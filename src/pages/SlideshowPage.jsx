@@ -2,11 +2,13 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
+import { useI18n } from "../lib/i18n.jsx";
 
 // HALO Live — a projector-ready slideshow of kept photos.
 // Auto-advances with a slow Ken Burns drift, cross-fades between shots,
 // and polls for new uploads so the wall stays live during the service.
 export default function SlideshowPage() {
+  const { t, ev } = useI18n();
   const { code } = useParams();
   const [event, setEvent] = useState(null);
   const [photos, setPhotos] = useState([]);
@@ -104,13 +106,13 @@ export default function SlideshowPage() {
     else document.exitFullscreen?.();
   }
 
-  if (!ready) return <Stage><Centered>Preparing the gallery…</Centered></Stage>;
-  if (event === false) return <Stage><Centered>Event not found.</Centered></Stage>;
+  if (!ready) return <Stage><Centered>{t("live.preparing")}</Centered></Stage>;
+  if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered></Stage>;
   if (photos.length === 0) return (
     <Stage>
       <Centered>
-        <div className="serif" style={{ fontSize: "4vw", color: C.bg, marginBottom: 12 }}>{event.name}</div>
-        <div style={{ color: C.gold, fontSize: "1.4vw", letterSpacing: 4, textTransform: "uppercase" }}>Waiting for the first moment…</div>
+        <div className="serif" style={{ fontSize: "4vw", color: C.bg, marginBottom: 12 }}>{ev(event, "name")}</div>
+        <div style={{ color: C.gold, fontSize: "1.4vw", letterSpacing: 4, textTransform: "uppercase" }}>{t("live.waiting")}</div>
       </Centered>
     </Stage>
   );
@@ -134,18 +136,18 @@ export default function SlideshowPage() {
         <div style={{ position: "absolute", top: "4vh", left: "4vw", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 38, height: 38, borderRadius: "50%", border: `3px solid ${C.gold}` }} />
           <div>
-            <div className="serif" style={{ color: C.bg, fontSize: "1.9vw", lineHeight: 1, fontWeight: 700 }}>{event.name}</div>
+            <div className="serif" style={{ color: C.bg, fontSize: "1.9vw", lineHeight: 1, fontWeight: 700 }}>{ev(event, "name")}</div>
             <div style={{ color: C.gold, fontSize: ".8vw", letterSpacing: 3, textTransform: "uppercase", marginTop: 4 }}>HALO Live</div>
           </div>
         </div>
 
         <div style={{ position: "absolute", bottom: "4vh", left: "4vw", right: "4vw", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ color: C.bg, fontSize: ".95vw", opacity: .85 }}>
-            {idx + 1} / {photos.length}{paused ? " · paused" : ""}
+            {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
           <div style={{ display: "flex", gap: 10, pointerEvents: "auto" }}>
-            <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? "Play" : "Pause"}</Ctrl>
-            <Ctrl onClick={toggleFull}>Fullscreen</Ctrl>
+            <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? t("live.play") : t("live.pause")}</Ctrl>
+            <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>
           </div>
         </div>
 

@@ -4,10 +4,12 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { Header, Footer, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
+import { useI18n } from "../lib/i18n.jsx";
 
 export default function GalleryPage() {
   const { contributorId } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [contributor, setContributor] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +32,12 @@ export default function GalleryPage() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header />
       <main className="wrap" style={{ flex: 1 }}>
-        {loading ? <Spinner label="Loading gallery…" /> :
-          !contributor ? <Empty title="Gallery not found" sub="This share link may be invalid." action="Go home" onAction={() => navigate("/")} /> :
+        {loading ? <Spinner label={t("gal.loading")} /> :
+          !contributor ? <Empty title={t("gal.notFound.title")} sub={t("gal.notFound.sub")} action={t("gal.goHome")} onAction={() => navigate("/")} /> :
           <>
-            <h1 className="serif" style={{ fontSize: 34, color: C.ink, marginBottom: 2 }}>{contributor.name}'s gallery</h1>
-            <p style={{ color: C.second, marginTop: 0 }}>{photos.length} curated photo{photos.length === 1 ? "" : "s"}</p>
-            {photos.length === 0 ? <Empty title="No photos yet" sub="Curated shots will appear here." /> : <PhotoGrid photos={photos} dimUnkept={false} />}
+            <h1 className="serif" style={{ fontSize: 34, color: C.ink, marginBottom: 2 }}>{t("gal.titlePrefix")}{contributor.name}{t("gal.titleSuffix")}</h1>
+            <p style={{ color: C.second, marginTop: 0 }}>{photos.length} {photos.length === 1 ? t("gal.curatedPhoto") : t("gal.curatedPhotos")}</p>
+            {photos.length === 0 ? <Empty title={t("gal.empty.title")} sub={t("gal.empty.sub")} /> : <PhotoGrid photos={photos} dimUnkept={false} />}
           </>}
       </main>
       <Footer />

@@ -1,5 +1,6 @@
 import React from "react";
 import { C } from "../lib/score.js";
+import { useI18n } from "../lib/i18n.jsx";
 
 export function HaloMark({ size = 34 }) {
   return (
@@ -10,17 +11,33 @@ export function HaloMark({ size = 34 }) {
   );
 }
 
+export function LangToggle() {
+  const { lang, setLang } = useI18n();
+  return (
+    <div style={{ display: "inline-flex", borderRadius: 999, border: "1px solid rgba(242,236,228,.3)", overflow: "hidden" }}>
+      <button onClick={() => setLang("en")} aria-pressed={lang === "en"}
+        style={{ background: lang === "en" ? C.gold : "transparent", color: lang === "en" ? C.ink : C.bg, border: "none", padding: "5px 10px", fontSize: 11, fontWeight: 700, borderRadius: 0 }}>EN</button>
+      <button onClick={() => setLang("es")} aria-pressed={lang === "es"}
+        style={{ background: lang === "es" ? C.gold : "transparent", color: lang === "es" ? C.ink : C.bg, border: "none", padding: "5px 10px", fontSize: 11, fontWeight: 700, borderRadius: 0 }}>ES</button>
+    </div>
+  );
+}
+
 export function Header({ right }) {
+  const { t } = useI18n();
   return (
     <header style={{ background: C.ink, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
         <HaloMark />
         <div>
           <div className="serif" style={{ color: C.bg, fontSize: 26, fontWeight: 700, letterSpacing: 1, lineHeight: 1 }}>HALO</div>
-          <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>Holy moments, auto-curated</div>
+          <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>{t("brand.tagline")}</div>
         </div>
       </a>
-      <div>{right}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {right}
+        <LangToggle />
+      </div>
     </header>
   );
 }
@@ -57,9 +74,10 @@ export function Spinner({ label }) {
 }
 
 export function Footer({ code }) {
+  const { t } = useI18n();
   return (
     <footer style={{ textAlign: "center", padding: 20, color: C.second, fontSize: 12 }}>
-      HALO by Finesse Media{code ? ` · ${code}` : ""} · "For I know the plans I have for you" — Jeremiah 29:11
+      HALO by Finesse Media{code ? ` · ${code}` : ""} · {t("footer.scripture")}
     </footer>
   );
 }

@@ -7,7 +7,7 @@ export async function handler(event) {
 
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, name, host, event_date, code, keep_threshold } = body;
+  const { passcode, name, host, event_date, code, keep_threshold, name_es, host_es, event_date_es } = body;
 
   if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
@@ -20,6 +20,7 @@ export async function handler(event) {
 
   const { data, error } = await supabase.from("events").insert({
     name, host: host || null, event_date: event_date || null,
+    name_es: name_es || null, host_es: host_es || null, event_date_es: event_date_es || null,
     code: code.toUpperCase(),
     keep_threshold: Number.isFinite(keep_threshold) ? keep_threshold : 45,
   }).select().single();

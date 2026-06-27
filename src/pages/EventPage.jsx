@@ -4,12 +4,14 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { scoreImage, C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
+import { useI18n } from "../lib/i18n.jsx";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
 export default function EventPage() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const { t, ev } = useI18n();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [contributor, setContributor] = useState(null); // {id, name}
@@ -50,7 +52,7 @@ export default function EventPage() {
       .from("contributors")
       .insert({ event_id: event.id, name: name.trim(), email: email.trim() || null })
       .select().single();
-    if (error) return alert("Could not start your session. Try again.");
+    if (error) return alert(t("event.startError"));
     const c = { id: data.id, name: data.name };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
     setContributor(c);
@@ -108,9 +110,9 @@ export default function EventPage() {
     }
   }
 
-  if (loading) return <Shell><Spinner label="Opening the event…" /></Shell>;
+  if (loading) return <Shell><Spinner label={t("event.opening")} /></Shell>;
   if (event === false) return (
-    <Shell><Empty title="Event not found" sub="This QR code may be inactive or mistyped." action="Go home" onAction={() => navigate("/")} /></Shell>
+    <Shell><Empty title={t("event.notFound.title")} sub={t("event.notFound.sub")} action={t("gal.goHome")} onAction={() => navigate("/")} /></Shell>
   );
 
   // sign-in screen
@@ -118,22 +120,22 @@ export default function EventPage() {
     return (
       <Shell code={event.code}>
         <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ display: "inline-flex", padding: "6px 14px", borderRadius: 999, background: C.ink, color: C.gold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginTop: 14 }}>You're invited to capture</div>
-          <h1 className="serif" style={{ fontSize: 44, color: C.ink, margin: "14px 0 6px", lineHeight: 1.06 }}>{event.name}</h1>
-          <p style={{ color: C.second, margin: 0 }}>{[event.host, event.event_date].filter(Boolean).join(" · ")}</p>
+          <div style={{ display: "inline-flex", padding: "6px 14px", borderRadius: 999, background: C.ink, color: C.gold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginTop: 14 }}>{t("event.invited")}</div>
+          <h1 className="serif" style={{ fontSize: 44, color: C.ink, margin: "14px 0 6px", lineHeight: 1.06 }}>{ev(event, "name")}</h1>
+          <p style={{ color: C.second, margin: 0 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
 
           <div style={{ background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 24, textAlign: "left", marginTop: 24 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>Your name</label>
-            <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>So your photos land in your own gallery to share.</p>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Angel Gerena"
+            <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{t("event.yourName")}</label>
+            <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("event.yourName.help")}</p>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")}
               onKeyDown={(e) => e.key === "Enter" && startSession()}
               style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginBottom: 14 }} />
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>Email <span style={{ color: C.second, fontWeight: 400 }}>(optional)</span></label>
-            <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>We'll send your gallery link and let you know when photos are ready.</p>
+            <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{t("event.email")} <span style={{ color: C.second, fontWeight: 400 }}>{t("event.optional")}</span></label>
+            <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("event.email.help")}</p>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com"
               onKeyDown={(e) => e.key === "Enter" && startSession()}
               style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginBottom: 14 }} />
-            <button onClick={startSession} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15 }}>Start uploading</button>
+            <button onClick={startSession} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15 }}>{t("event.start")}</button>
           </div>
         </div>
       </Shell>
@@ -148,8 +150,8 @@ export default function EventPage() {
   return (
     <Shell code={event.code}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <h2 className="serif" style={{ fontSize: 30, color: C.ink, marginBottom: 2 }}>Welcome, {contributor.name}</h2>
-        <p style={{ color: C.second, marginTop: 0 }}>{event.name} — upload everything, HALO keeps the best.</p>
+        <h2 className="serif" style={{ fontSize: 30, color: C.ink, marginBottom: 2 }}>{t("up.welcome")}, {contributor.name}</h2>
+        <p style={{ color: C.second, marginTop: 0 }}>{ev(event, "name")} — {t("up.uploadEverything")}</p>
 
         <div
           onDragOver={(e) => e.preventDefault()}
@@ -157,8 +159,8 @@ export default function EventPage() {
           onClick={() => inputRef.current?.click()}
           style={{ cursor: "pointer", border: `2px dashed ${C.second}`, background: C.white, borderRadius: 18, padding: "40px 20px", textAlign: "center" }}>
           <div style={{ width: 46, height: 46, margin: "0 auto 8px", borderRadius: "50%", border: `3px solid ${C.gold}` }} />
-          <div style={{ fontWeight: 700, color: C.ink, fontSize: 17 }}>Tap to add photos</div>
-          <div style={{ fontSize: 13, color: C.second, marginTop: 4 }}>or drag them here · JPG, PNG, HEIC</div>
+          <div style={{ fontWeight: 700, color: C.ink, fontSize: 17 }}>{t("up.tapToAdd")}</div>
+          <div style={{ fontSize: 13, color: C.second, marginTop: 4 }}>{t("up.dragHere")}</div>
           <input ref={inputRef} type="file" accept="image/*" multiple hidden
             onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
         </div>
@@ -166,22 +168,22 @@ export default function EventPage() {
         {uploading > 0 && (
           <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
             <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(107,140,174,.3)`, borderTopColor: C.gold, display: "inline-block" }} />
-            Uploading {uploading}…
+            {t("up.uploading")} {uploading}…
           </div>
         )}
 
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-          <Stat label="Uploaded" value={photos.length} />
-          <Stat label="Kept by HALO" value={kept.length} gold />
+          <Stat label={t("up.uploaded")} value={photos.length} />
+          <Stat label={t("up.keptByHalo")} value={kept.length} gold />
         </div>
 
         {photos.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 26, flexWrap: "wrap", gap: 10 }}>
-              <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>Your gallery</h3>
+              <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>{t("up.yourGallery")}</h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setShowAll((s) => !s)} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{showAll ? "Kept only" : `All (${photos.length})`}</button>
-                <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert("Share link copied:\n" + shareUrl); }} style={{ background: C.ink, color: C.bg, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>Copy share link</button>
+                <button onClick={() => setShowAll((s) => !s)} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{showAll ? t("up.keptOnly") : `${t("up.all")} (${photos.length})`}</button>
+                <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert(t("up.linkCopied") + "\n" + shareUrl); }} style={{ background: C.ink, color: C.bg, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("up.copyShareLink")}</button>
               </div>
             </div>
             <PhotoGrid photos={shown} />

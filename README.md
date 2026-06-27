@@ -141,3 +141,30 @@ In the admin event view:
 All deletes run through the passcode-gated `delete-photos` function, which removes
 both the original and any edited copy from storage AND the database row. Deletes
 are permanent — there's a confirmation prompt, but no undo.
+
+## Bilingual (English / Spanish)
+
+HALO ships fully bilingual. An EN/ES toggle sits in the header on every screen and
+translates the entire interface — sign-in, uploader, galleries, admin panel,
+slideshow, emails-facing labels, and the footer scripture. The choice persists in
+the browser, and HALO auto-defaults to Spanish for visitors whose device language
+is Spanish.
+
+All interface strings live in `src/lib/i18n.jsx` under both languages. To add or
+edit wording, change them there — components read strings via `t("key")`. Content
+the user types (event names, hosts, contributor names) is never auto-translated;
+only HALO's own UI text switches.
+
+## Bilingual event content (auto-translate with review)
+
+Beyond the interface toggle, each event can carry a Spanish name, host, and date.
+When creating an event, fill the English fields then tap "Auto-translate from
+English" — HALO suggests Spanish versions (via a no-key translation endpoint) into
+editable fields. Review and fix them, then save. The EN/ES toggle then swaps the
+event's English and Spanish content everywhere it appears (join screen, galleries,
+admin, slideshow).
+
+If a Spanish version is left blank, HALO falls back to the English value, so the
+site never shows an empty title. The translate endpoint is passcode-gated.
+New DB columns: events.name_es, events.host_es, events.event_date_es (see the
+migration block in schema.sql for existing installs).

@@ -8,8 +8,11 @@ create table if not exists events (
   id          uuid primary key default gen_random_uuid(),
   code        text unique not null,              -- short code in the QR/URL, e.g. ICGG-RES26
   name        text not null,                     -- "Resurrection Sunday Service"
+  name_es     text,                              -- Spanish event name (auto-suggested, admin-editable)
   host        text,                              -- "Iglesia Cristiana Gracia y Gloria"
+  host_es     text,                              -- Spanish host
   event_date  text,                              -- free text date for display
+  event_date_es text,                            -- Spanish date
   keep_threshold int not null default 45,        -- quality cutoff for auto-curation
   is_active   boolean not null default true,
   published_at timestamptz,                       -- set when admin publishes the gallery
@@ -101,3 +104,6 @@ create policy "halo upload" on storage.objects
 -- ============================================================
 alter table contributors add column if not exists email text;
 alter table events add column if not exists published_at timestamptz;
+alter table events add column if not exists name_es text;
+alter table events add column if not exists host_es text;
+alter table events add column if not exists event_date_es text;
