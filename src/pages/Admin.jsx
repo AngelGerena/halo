@@ -173,6 +173,9 @@ function EventDetail({ event, token, back }) {
   const [version, setVersion] = useState("edited"); // edited | original
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
@@ -218,7 +221,44 @@ function EventDetail({ event, token, back }) {
     for (const p of list) { download(p); await new Promise((r) => setTimeout(r, 350)); }
   }
 
+  // --- selection helpers ---
+  function toggleSelect(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() { setSelectMode(false); setSelected(new Set()); }
+  function selectAllShown() {
+    setSelected(new Set(shown.map((p) => p.id)));
+  }
+
+  // --- delete (one or many) via passcode-gated function ---
+  async function deleteIds(ids, label) {
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} photo${ids.length === 1 ? "" : "s"}${label ? ` (${label})` : ""}? This removes the file${ids.length === 1 ? "" : "s"} permanently and can't be undone.`)) return;
+    setDeleting(true);
+    try {
+      const r = await fetch("/.netlify/functions/delete-photos", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: token, photoIds: ids }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Delete failed");
+      const removed = new Set(ids);
+      setPhotos((prev) => prev.filter((p) => !removed.has(p.id)));
+      setSelected((prev) => { const n = new Set(prev); ids.forEach((i) => n.delete(i)); return n; });
+    } catch (e) {
+      alert("Could not delete: " + e.message);
+    } finally { setDeleting(false); }
+  }
+  const deleteOne = (id) => deleteIds([id]);
+  const deleteSelected = () => deleteIds([...selected], "selected");
+  const deleteAllRejected = () => deleteIds(photos.filter((p) => !p.kept).map((p) => p.id), "rejected");
+
   const kept = photos.filter((p) => p.kept);
+  const rejected = photos.filter((p) => !p.kept);
   const editedCount = photos.filter((p) => p.edited_url).length;
   const shown = photos.filter((p) => filter === "all" || p.kept);
 
@@ -264,7 +304,7 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>Collection</h3>
-              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} of {photos.length} auto-edited</div>
+              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} of {photos.length} auto-edited{rejected.length ? ` · ${rejected.length} rejected` : ""}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.second}`, overflow: "hidden" }}>
@@ -273,29 +313,61 @@ function EventDetail({ event, token, back }) {
               </div>
               <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? "Kept only" : `All (${photos.length})`}</button>
               <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>Download {filter === "all" ? "all" : "kept"} ({version})</button>
+              {!selectMode ? (
+                <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>Select</button>
+              ) : (
+                <button onClick={exitSelect} style={{ background: C.ink, color: C.bg, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>Done</button>
+              )}
+              {rejected.length > 0 && (
+                <button onClick={deleteAllRejected} disabled={deleting} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>Clear {rejected.length} rejected</button>
+              )}
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 14, marginTop: 16 }}>
-            {shown.map((p) => (
-              <div key={p.id} className="card" style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6 }}>
-                <div style={{ position: "relative" }}>
-                  <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
-                  <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
-                  {version === "edited" && p.edited_url && (
-                    <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
-                  )}
-                  {version === "edited" && !p.edited_url && (
-                    <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(28,38,64,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
-                  )}
-                </div>
-                <div style={{ padding: "8px 10px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{p.ownerName}</div>
-                  <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} · exp {p.exposure}</div>
-                  <button onClick={() => download(p)} style={{ width: "100%", background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12 }}>Download</button>
-                </div>
+          {/* selection action bar */}
+          {selectMode && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(28,38,64,.12)`, borderRadius: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} selected</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={selectAllShown} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>Select all shown</button>
+                <button onClick={() => setSelected(new Set())} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>Clear</button>
+                <button onClick={deleteSelected} disabled={deleting || selected.size === 0} style={{ background: "#b3261e", color: "#fff", padding: "6px 14px", borderRadius: 999, fontSize: 12, opacity: deleting || selected.size === 0 ? 0.5 : 1 }}>{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>
               </div>
-            ))}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 14, marginTop: 16 }}>
+            {shown.map((p) => {
+              const isSel = selected.has(p.id);
+              return (
+                <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
+                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
+                  <div style={{ position: "relative" }}>
+                    <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                    <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
+                    {version === "edited" && p.edited_url && (
+                      <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
+                    )}
+                    {version === "edited" && !p.edited_url && (
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(28,38,64,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
+                    )}
+                    {selectMode && (
+                      <span style={{ position: "absolute", bottom: 8, left: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 700 }}>{isSel ? "✓" : ""}</span>
+                    )}
+                  </div>
+                  <div style={{ padding: "8px 10px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{p.ownerName}</div>
+                    <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} · exp {p.exposure}</div>
+                    {!selectMode && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => download(p)} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12 }}>Download</button>
+                        <button onClick={() => deleteOne(p.id)} disabled={deleting} title="Delete" aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 13, opacity: deleting ? 0.6 : 1 }}>🗑</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

@@ -130,3 +130,14 @@ To tune the look, edit `autoCorrect()` in `netlify/functions/edit-photo.js`
 
 Threshold tuning: the keep cutoff is per-event (`keep_threshold`). Start at 45;
 raise it for stricter curation, lower it to keep more.
+
+## Deleting photos (admin)
+
+In the admin event view:
+- **Per-photo:** each photo has a trash icon next to Download.
+- **Bulk:** tap "Select", choose photos (or "Select all shown"), then "Delete N".
+- **Clear rejected:** one button removes every below-threshold photo at once.
+
+All deletes run through the passcode-gated `delete-photos` function, which removes
+both the original and any edited copy from storage AND the database row. Deletes
+are permanent — there's a confirmation prompt, but no undo.
