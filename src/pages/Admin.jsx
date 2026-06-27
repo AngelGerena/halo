@@ -8,6 +8,7 @@ import { useI18n } from "../lib/i18n.jsx";
 const TOKEN_KEY = "halo_admin_token";
 
 export default function Admin() {
+  const { t } = useI18n();
   const [token, setToken] = useState(sessionStorage.getItem(TOKEN_KEY) || "");
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -32,7 +33,7 @@ export default function Admin() {
   }
 
   if (checking) return <Shell><Spinner label={t("admin.checking")} /></Shell>;
-  if (!authed) return <Shell><Gate onAuth={(t) => { sessionStorage.setItem(TOKEN_KEY, t); setToken(t); setAuthed(true); }} verify={verify} /></Shell>;
+  if (!authed) return <Shell><Gate onAuth={(tok) => { sessionStorage.setItem(TOKEN_KEY, tok); setToken(tok); setAuthed(true); }} verify={verify} /></Shell>;
   return <Shell><Dashboard token={token} onLogout={() => { sessionStorage.removeItem(TOKEN_KEY); setAuthed(false); setToken(""); }} /></Shell>;
 }
 
