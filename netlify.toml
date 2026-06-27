@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# SPA fallback so React Router handles all routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
