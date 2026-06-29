@@ -162,3 +162,12 @@ alter table events add column if not exists connect_url text;
 alter table photos add column if not exists phash text;                         -- perceptual hash (dHash) for burst dedup
 alter table photos add column if not exists is_burst_dup boolean not null default false; -- near-duplicate of a kept shot
 create index if not exists idx_photos_phash on photos(phash);
+
+-- ============================================================
+-- HALO V2 — Phase 3b: auto-crop, in-browser auto-flag, tags
+-- Additive + idempotent.
+-- ============================================================
+alter table photos add column if not exists crops jsonb;                          -- {"1x1":path,"4x5":path,...}
+alter table photos add column if not exists auto_flagged boolean not null default false; -- in-browser model flagged as explicit
+alter table photos add column if not exists tags text[] not null default '{}';    -- worship | baptism | kids | fellowship
+create index if not exists idx_photos_tags on photos using gin (tags);

@@ -218,6 +218,18 @@ const STRINGS = {
   "grid.duplicate": { en: "Duplicate", es: "Duplicada" },
   "admin.duplicateBadge": { en: "Duplicate", es: "Duplicada" },
   "admin.duplicates": { en: "duplicates", es: "duplicadas" },
+  // ---- V2 Phase 3b: auto-crop, auto-flag, tags ----
+  "admin.socialCrops": { en: "Social crops", es: "Recortes sociales" },
+  "admin.cropping": { en: "Cropping\u2026", es: "Recortando\u2026" },
+  "admin.cropError": { en: "Could not make crops", es: "No se pudieron crear los recortes" },
+  "admin.autoFlagged": { en: "Auto-flagged", es: "Marcada autom." },
+  "admin.tagFilter": { en: "All tags", es: "Todas las etiquetas" },
+  "admin.tagged": { en: "Tag", es: "Etiquetar" },
+  "admin.removeTag": { en: "remove tag", es: "quitar etiqueta" },
+  "tag.worship": { en: "Worship", es: "Adoraci\u00f3n" },
+  "tag.baptism": { en: "Baptism", es: "Bautismo" },
+  "tag.kids": { en: "Kids", es: "Ni\u00f1os" },
+  "tag.fellowship": { en: "Fellowship", es: "Compa\u00f1erismo" },
 };
 
 const LANG_KEY = "halo_lang";

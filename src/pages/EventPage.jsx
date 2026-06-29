@@ -5,6 +5,7 @@ import { scoreImage, C, hamming } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { preloadNsfw } from "../lib/nsfw.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -39,6 +40,9 @@ export default function EventPage() {
       setLoading(false);
     })();
   }, [code]);
+
+  // Warm the in-browser explicit-content model in the background.
+  useEffect(() => { if (contributor) preloadNsfw(); }, [contributor]);
 
   async function loadPhotos(contributorId) {
     const { data } = await supabase
@@ -77,7 +81,6 @@ export default function EventPage() {
 
     // V2 moderation gate: public immediately, or held for the super-admin to review first.
     const needsReview = event.moderation_mode === "review" || (event.protect_minors && kidsInFrame);
-    const initialStatus = needsReview ? "pending" : "approved";
     const sessionLabel = event.current_session || null; // V2 recurring-service session tag
 
     for (const f of files) {
@@ -93,6 +96,13 @@ export default function EventPage() {
         }
         const kept = !isBurstDup && s.quality >= (event.keep_threshold ?? 45);
         if (kept && s.phash) burstRef.current.push({ phash: s.phash, quality: s.quality });
+
+        // In-browser explicit-content auto-flag (graceful: never blocks an upload).
+        let flagged = false;
+        try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(f)).flagged; } catch {}
+        const status = (needsReview || flagged) ? "pending" : "approved";
+        const tags = kidsInFrame ? ["kids"] : []; // reliable auto-tag from the consent flag
+
         const path = `${event.id}/${contributor.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
         const up = await supabase.storage.from("halo").upload(path, f, { contentType: f.type, upsert: false });
         if (up.error) throw up.error;
@@ -103,10 +113,12 @@ export default function EventPage() {
           quality: s.quality, focus: s.focus, exposure: s.exposure,
           kept, width: s.width, height: s.height,
           has_minors: kidsInFrame,
-          status: initialStatus,
+          status,
           session_label: sessionLabel,
           phash: s.phash,
           is_burst_dup: isBurstDup,
+          auto_flagged: flagged,
+          tags,
         }).select().single();
         if (error) throw error;
         setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);

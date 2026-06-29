@@ -6,6 +6,7 @@ import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 
 const TOKEN_KEY = "halo_admin_token";
+const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
 export default function Admin() {
   const { t } = useI18n();
@@ -257,6 +258,9 @@ function EventDetail({ event, token, back }) {
   const [selected, setSelected] = useState(() => new Set());
   const [deleting, setDeleting] = useState(false);
   const [moderating, setModerating] = useState(false);
+  const [cropping, setCropping] = useState(() => new Set());
+  const [tagFilter, setTagFilter] = useState("all");
+  const [tagging, setTagging] = useState(false);
   // V2 settings + moment
   const [featuredId, setFeaturedId] = useState(event.featured_photo_id || null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -380,6 +384,53 @@ function EventDetail({ event, token, back }) {
     } catch (e) { alert(e.message); } finally { setModerating(false); }
   }
 
+  async function makeCrops(p) {
+    setCropping((prev) => new Set(prev).add(p.id));
+    try {
+      let crops = p.crops;
+      if (!crops || Object.keys(crops).length < 4) {
+        const r = await fetch("/.netlify/functions/crop-photo", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ passcode: token, photoId: p.id }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || t("admin.cropError"));
+        crops = j.crops;
+        setPhotos((prev) => prev.map((x) => (x.id === p.id ? { ...x, crops } : x)));
+      }
+      for (const key of ["1x1", "4x5", "9x16", "16x9"]) {
+        const path = crops[key];
+        if (!path) continue;
+        const a = document.createElement("a");
+        a.href = publicUrl(path); a.download = `HALO_${event.code}_${p.ownerName.replace(/\s+/g, "-")}_${key}.jpg`;
+        document.body.appendChild(a); a.click(); a.remove();
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    } catch (e) { alert(e.message); } finally {
+      setCropping((prev) => { const n = new Set(prev); n.delete(p.id); return n; });
+    }
+  }
+
+  async function tagPhotos(ids, tag, op) {
+    if (!ids || ids.length === 0) return;
+    setTagging(true);
+    try {
+      const r = await fetch("/.netlify/functions/tag-photos", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: token, photoIds: ids, tag, op }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Failed");
+      const set = new Set(ids);
+      setPhotos((prev) => prev.map((p) => {
+        if (!set.has(p.id)) return p;
+        const cur = new Set(p.tags || []);
+        op === "add" ? cur.add(tag) : cur.delete(tag);
+        return { ...p, tags: Array.from(cur) };
+      }));
+    } catch (e) { alert(e.message); } finally { setTagging(false); }
+  }
+
   async function deleteIds(ids, label) {
     if (ids.length === 0) return;
     if (!confirm(`${t("admin.deleteConfirm1")} ${ids.length} ${ids.length === 1 ? t("admin.photos").toLowerCase().replace(/s$/,"") : t("admin.photos").toLowerCase()}${label ? ` (${label})` : ""}? ${t("admin.deleteConfirm2")}`)) return;
@@ -406,7 +457,7 @@ function EventDetail({ event, token, back }) {
   const dupCount = photos.filter((p) => p.is_burst_dup).length;
   const editedCount = photos.filter((p) => p.edited_url).length;
   const sessions = Array.from(new Set(photos.map((p) => p.session_label).filter(Boolean)));
-  const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter));
+  const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter) && (tagFilter === "all" || (p.tags || []).includes(tagFilter)));
   const featured = photos.find((p) => p.id === featuredId);
 
   const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginTop: 4 };
@@ -517,6 +568,9 @@ function EventDetail({ event, token, back }) {
                   {p.has_minors && (
                     <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.kidsBadge")}</span>
                   )}
+                  {p.auto_flagged && (
+                    <span style={{ position: "absolute", top: 8, right: 8, background: "#b3261e", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.autoFlagged")}</span>
+                  )}
                 </div>
                 <div style={{ padding: "8px 10px" }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{p.ownerName}</div>
@@ -547,6 +601,10 @@ function EventDetail({ event, token, back }) {
                   {sessions.map((s) => <option key={s} value={s}>{t("admin.session")} {s}</option>)}
                 </select>
               )}
+              <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.ink, background: C.white }}>
+                <option value="all">{t("admin.tagFilter")}</option>
+                {TAGS.map((tg) => <option key={tg} value={tg}>{t("tag." + tg)}</option>)}
+              </select>
               <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.second}`, overflow: "hidden" }}>
                 <button onClick={() => setVersion("edited")} style={{ background: version === "edited" ? C.ink : "transparent", color: version === "edited" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.edited")}</button>
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
@@ -565,12 +623,20 @@ function EventDetail({ event, token, back }) {
           </div>
 
           {selectMode && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(28,38,64,.12)`, borderRadius: 12, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={selectAllShown} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.selectAllShown")}</button>
-                <button onClick={() => setSelected(new Set())} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clear")}</button>
-                <button onClick={deleteSelected} disabled={deleting || selected.size === 0} style={{ background: "#b3261e", color: "#fff", padding: "6px 14px", borderRadius: 999, fontSize: 12, opacity: deleting || selected.size === 0 ? 0.5 : 1 }}>{deleting ? t("admin.deleting") : `${t("admin.delete")} ${selected.size}`}</button>
+            <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(28,38,64,.12)`, borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button onClick={selectAllShown} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.selectAllShown")}</button>
+                  <button onClick={() => setSelected(new Set())} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clear")}</button>
+                  <button onClick={deleteSelected} disabled={deleting || selected.size === 0} style={{ background: "#b3261e", color: "#fff", padding: "6px 14px", borderRadius: 999, fontSize: 12, opacity: deleting || selected.size === 0 ? 0.5 : 1 }}>{deleting ? t("admin.deleting") : `${t("admin.delete")} ${selected.size}`}</button>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: C.second }}>{t("admin.tagged")}:</span>
+                {TAGS.map((tg) => (
+                  <button key={tg} onClick={() => tagPhotos([...selected], tg, "add")} disabled={tagging || selected.size === 0} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "5px 11px", borderRadius: 999, fontSize: 12, opacity: tagging || selected.size === 0 ? 0.5 : 1 }}>{t("tag." + tg)}</button>
+                ))}
               </div>
             </div>
           )}
@@ -610,14 +676,24 @@ function EventDetail({ event, token, back }) {
                   <div style={{ padding: "8px 10px" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{p.ownerName}</div>
                     <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} · exp {p.exposure}</div>
+                    {(p.tags || []).length > 0 && (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
+                        {p.tags.map((tg) => (
+                          <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(28,38,64,.08)", color: C.ink, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
+                            {t("tag." + tg)}<span onClick={(e) => { e.stopPropagation(); tagPhotos([p.id], tg, "remove"); }} aria-label={t("admin.removeTag")} style={{ cursor: "pointer", color: C.second }}>×</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {!selectMode && (
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <button onClick={() => download(p)} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12 }}>{t("admin.download")}</button>
                         {p.status === "approved" ? (
                           <button onClick={() => moderate([p.id], "hidden")} disabled={moderating} title={t("admin.hide")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.hide")}</button>
                         ) : (
                           <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                         )}
+                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : "⛶"}</button>
                         <button onClick={() => deleteOne(p.id)} disabled={deleting} title="Delete" aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 13, opacity: deleting ? 0.6 : 1 }}>🗑</button>
                       </div>
                     )}
