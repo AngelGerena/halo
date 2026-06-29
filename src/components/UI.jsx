@@ -28,7 +28,7 @@ export function Header({ right }) {
   return (
     <header style={{ background: C.headerGrad, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
-        <img src="/halo-logo.png" alt="HALO" style={{ height: 40, width: "auto", display: "block" }} />
+        <img src="/halo-logo.png" alt="HALO" style={{ height: 72, width: "auto", display: "block" }} />
         <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", alignSelf: "center" }}>{t("brand.tagline")}</div>
       </a>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
