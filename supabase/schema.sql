@@ -107,3 +107,14 @@ alter table events add column if not exists published_at timestamptz;
 alter table events add column if not exists name_es text;
 alter table events add column if not exists host_es text;
 alter table events add column if not exists event_date_es text;
+
+-- ============================================================
+-- HALO V2 — Phase 1: moderation gate + consent-first child safety
+-- Additive + idempotent. Existing rows default to current behavior
+-- (photos 'approved', events moderation 'off') so nothing breaks.
+-- ============================================================
+alter table photos add column if not exists status text not null default 'approved';   -- approved | pending | hidden
+alter table photos add column if not exists has_minors boolean not null default false;  -- contributor flagged children in frame
+alter table events add column if not exists moderation_mode text not null default 'off'; -- off | review
+alter table events add column if not exists protect_minors boolean not null default true;-- hold child-flagged photos for review
+create index if not exists idx_photos_status on photos(status);

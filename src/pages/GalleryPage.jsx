@@ -20,7 +20,7 @@ export default function GalleryPage() {
       setContributor(c || false);
       if (c) {
         const { data } = await supabase.from("photos").select("*")
-          .eq("contributor_id", contributorId).eq("kept", true)
+          .eq("contributor_id", contributorId).eq("kept", true).eq("status", "approved")
           .order("created_at", { ascending: false });
         setPhotos((data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null })));
       }

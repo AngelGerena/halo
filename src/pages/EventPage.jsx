@@ -20,6 +20,7 @@ export default function EventPage() {
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  const [kidsInFrame, setKidsInFrame] = useState(false); // V2 consent: children in these photos
   const inputRef = useRef(null);
 
   // load event by code
@@ -72,6 +73,12 @@ export default function EventPage() {
   async function addFiles(fileList) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
     setUploading((u) => u + files.length);
+
+    // V2 moderation gate: decide whether each upload is public immediately
+    // or held for the super-admin to review first.
+    const needsReview = event.moderation_mode === "review" || (event.protect_minors && kidsInFrame);
+    const initialStatus = needsReview ? "pending" : "approved";
+
     for (const f of files) {
       try {
         const s = await scoreImage(f);
@@ -85,6 +92,8 @@ export default function EventPage() {
           storage_path: path,
           quality: s.quality, focus: s.focus, exposure: s.exposure,
           kept, width: s.width, height: s.height,
+          has_minors: kidsInFrame,
+          status: initialStatus,
         }).select().single();
         if (error) throw error;
         setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
@@ -152,6 +161,19 @@ export default function EventPage() {
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <h2 className="serif" style={{ fontSize: 30, color: C.ink, marginBottom: 2 }}>{t("up.welcome")}, {contributor.name}</h2>
         <p style={{ color: C.second, marginTop: 0 }}>{ev(event, "name")} — {t("up.uploadEverything")}</p>
+
+        {/* V2 consent-first child safety toggle */}
+        <button
+          type="button"
+          onClick={() => setKidsInFrame((v) => !v)}
+          aria-pressed={kidsInFrame}
+          style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: kidsInFrame ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${kidsInFrame ? C.gold : "rgba(28,38,64,.15)"}`, borderRadius: 12, padding: "12px 14px", margin: "4px 0 14px" }}>
+          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 14, fontWeight: 700 }}>{kidsInFrame ? "✓" : ""}</span>
+          <span>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.ink }}>{t("up.kidsToggle")}</span>
+            <span style={{ display: "block", fontSize: 12, color: C.second, marginTop: 2 }}>{t("up.kidsHelp")}</span>
+          </span>
+        </button>
 
         <div
           onDragOver={(e) => e.preventDefault()}

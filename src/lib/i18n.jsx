@@ -160,6 +160,32 @@ const STRINGS = {
   "live.pause": { en: "Pause", es: "Pausar" },
   "live.play": { en: "Play", es: "Reproducir" },
   "live.fullscreen": { en: "Fullscreen", es: "Pantalla completa" },
+  // ---- V2 Phase 1: moderation gate + consent-first child safety ----
+  // uploader consent (children in frame)
+  "up.kidsToggle": { en: "These photos include children", es: "Estas fotos incluyen ni\u00f1os" },
+  "up.kidsHelp": { en: "We'll hold them for the team to review before they appear publicly or on the screen.", es: "Las retendremos para que el equipo las revise antes de mostrarlas p\u00fablicamente o en la pantalla." },
+  "up.pendingReview": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },
+  // photo grid status badge
+  "grid.pending": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },
+  // admin: safety settings on create
+  "admin.safety": { en: "Safety & moderation", es: "Seguridad y moderaci\u00f3n" },
+  "admin.requireReview": { en: "Review every photo before it goes public", es: "Revisar cada foto antes de hacerla p\u00fablica" },
+  "admin.requireReview.help": { en: "Photos stay off the gallery and live screen until you approve them.", es: "Las fotos no aparecen en la galer\u00eda ni en la pantalla en vivo hasta que las apruebes." },
+  "admin.protectMinors": { en: "Protect children (hold flagged photos)", es: "Proteger a los ni\u00f1os (retener fotos marcadas)" },
+  "admin.protectMinors.help": { en: "When someone marks a photo as including children, it's held for your review even if full review is off.", es: "Cuando alguien marca una foto como que incluye ni\u00f1os, se retiene para tu revisi\u00f3n aunque la revisi\u00f3n completa est\u00e9 desactivada." },
+  // admin: review queue
+  "admin.reviewQueue": { en: "Review queue", es: "Cola de revisi\u00f3n" },
+  "admin.pendingCount": { en: "pending", es: "pendientes" },
+  "admin.approve": { en: "Approve", es: "Aprobar" },
+  "admin.hide": { en: "Hide", es: "Ocultar" },
+  "admin.restore": { en: "Restore", es: "Restaurar" },
+  "admin.approveAll": { en: "Approve all", es: "Aprobar todas" },
+  "admin.kidsBadge": { en: "Children", es: "Ni\u00f1os" },
+  "admin.pendingBadge": { en: "Pending", es: "Pendiente" },
+  "admin.hiddenBadge": { en: "Hidden", es: "Oculta" },
+  "admin.allClear": { en: "Nothing waiting for review", es: "Nada esperando revisi\u00f3n" },
+  "admin.moderating": { en: "Updating\u2026", es: "Actualizando\u2026" },
+  "admin.reviewHintQueue": { en: "Approve to make public, or hide to keep it out of galleries and the live screen.", es: "Aprueba para hacerla p\u00fablica u oc\u00faltala para mantenerla fuera de las galer\u00edas y la pantalla en vivo." },
 };
 
 const LANG_KEY = "halo_lang";

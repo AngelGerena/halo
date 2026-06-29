@@ -34,7 +34,7 @@ export default function SlideshowPage() {
 
   const refresh = useCallback(async (eventId, initial = false) => {
     const { data } = await supabase.from("photos").select("*")
-      .eq("event_id", eventId).eq("kept", true)
+      .eq("event_id", eventId).eq("kept", true).eq("status", "approved")
       .order("created_at", { ascending: true });
     const mapped = (data || []).map((p) => ({
       ...p,

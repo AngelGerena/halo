@@ -11,15 +11,19 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
         const hasEdit = !!p.edited_url;
         const showEdited = prefer === "edited" && hasEdit;
         const src = showEdited ? p.edited_url : p.url;
+        const pending = p.status === "pending";
         return (
           <figure key={p.id} className="card" style={{ margin: 0, background: C.white, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(28,38,64,.08)", opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
             <div style={{ position: "relative" }}>
-              <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block" }} />
+              <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block", filter: pending ? "blur(6px)" : "none" }} />
               <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
-              {showEdited && (
+              {showEdited && !pending && (
                 <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: 0.5 }}>{t("grid.edited")}</span>
               )}
-              {!p.kept && (
+              {pending && (
+                <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: 0.5 }}>{t("grid.pending")}</span>
+              )}
+              {!p.kept && !pending && (
                 <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.belowThreshold")}</span>
               )}
             </div>

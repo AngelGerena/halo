@@ -108,6 +108,19 @@ function Dashboard({ token, onLogout }) {
   );
 }
 
+function Toggle({ on, onClick, title, help }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on}
+      style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${on ? C.gold : "rgba(28,38,64,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
+      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 14, fontWeight: 700 }}>{on ? "✓" : ""}</span>
+      <span>
+        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.ink }}>{title}</span>
+        <span style={{ display: "block", fontSize: 12, color: C.second, marginTop: 2 }}>{help}</span>
+      </span>
+    </button>
+  );
+}
+
 function CreateEvent({ token, onCreated }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -119,6 +132,8 @@ function CreateEvent({ token, onCreated }) {
   const [nameEs, setNameEs] = useState("");
   const [hostEs, setHostEs] = useState("");
   const [dateEs, setDateEs] = useState("");
+  const [requireReview, setRequireReview] = useState(false); // V2: moderation_mode
+  const [protectMinors, setProtectMinors] = useState(true);  // V2: protect_minors
   const [translating, setTranslating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -157,11 +172,13 @@ function CreateEvent({ token, onCreated }) {
           passcode: token, name: name.trim(), host: host.trim(), event_date: date.trim(),
           name_es: nameEs.trim(), host_es: hostEs.trim(), event_date_es: dateEs.trim(),
           code: finalCode, keep_threshold: Number(threshold),
+          moderation_mode: requireReview ? "review" : "off",
+          protect_minors: protectMinors,
         }),
       });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || t("admin.failedCreate")); }
       setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45);
-      setNameEs(""); setHostEs(""); setDateEs(""); setOpen(false);
+      setNameEs(""); setHostEs(""); setDateEs(""); setRequireReview(false); setProtectMinors(true); setOpen(false);
       onCreated();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
@@ -186,6 +203,15 @@ function CreateEvent({ token, onCreated }) {
         <div><label style={lab}>{t("admin.dateDisplay")}</label><input style={field} value={date} onChange={(e) => setDate(e.target.value)} placeholder="March 31, 2026" /></div>
         <div><label style={lab}>{t("admin.customCode")}</label><input style={field} value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("admin.autoFromName")} /></div>
         <div><label style={lab}>{t("admin.keepThreshold")} ({threshold})</label><input type="range" min="0" max="80" value={threshold} onChange={(e) => setThreshold(e.target.value)} style={{ width: "100%", marginTop: 10 }} /></div>
+      </div>
+
+      {/* V2 Safety & moderation block */}
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 10 }}>{t("admin.safety")}</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
+          <Toggle on={protectMinors} onClick={() => setProtectMinors((v) => !v)} title={t("admin.protectMinors")} help={t("admin.protectMinors.help")} />
+        </div>
       </div>
 
       {/* Spanish version block */}
@@ -230,6 +256,7 @@ function EventDetail({ event, token, back }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [deleting, setDeleting] = useState(false);
+  const [moderating, setModerating] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
@@ -288,6 +315,24 @@ function EventDetail({ event, token, back }) {
     setSelected(new Set(shown.map((p) => p.id)));
   }
 
+  // --- V2 moderation (approve / hide / restore) via passcode-gated function ---
+  async function moderate(ids, status) {
+    if (!ids || ids.length === 0) return;
+    setModerating(true);
+    try {
+      const r = await fetch("/.netlify/functions/moderate-photos", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: token, photoIds: ids, status }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Failed");
+      const set = new Set(ids);
+      setPhotos((prev) => prev.map((p) => (set.has(p.id) ? { ...p, status } : p)));
+    } catch (e) {
+      alert(e.message);
+    } finally { setModerating(false); }
+  }
+
   // --- delete (one or many) via passcode-gated function ---
   async function deleteIds(ids, label) {
     if (ids.length === 0) return;
@@ -313,6 +358,7 @@ function EventDetail({ event, token, back }) {
 
   const kept = photos.filter((p) => p.kept);
   const rejected = photos.filter((p) => !p.kept);
+  const pending = photos.filter((p) => p.status === "pending");
   const editedCount = photos.filter((p) => p.edited_url).length;
   const shown = photos.filter((p) => filter === "all" || p.kept);
 
@@ -350,6 +396,43 @@ function EventDetail({ event, token, back }) {
           </div>
         </div>
       </div>
+
+      {/* V2 Review queue — only shows when photos are waiting for approval */}
+      {pending.length > 0 && (
+        <div style={{ marginTop: 18, background: C.white, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+            <div>
+              <h3 className="serif" style={{ fontSize: 22, color: C.ink, margin: 0 }}>
+                {t("admin.reviewQueue")} <span style={{ fontSize: 12, fontWeight: 700, color: C.ink, background: C.gold, padding: "2px 9px", borderRadius: 999, verticalAlign: "middle" }}>{pending.length} {t("admin.pendingCount")}</span>
+              </h3>
+              <p style={{ fontSize: 12, color: C.second, margin: "4px 0 0" }}>{t("admin.reviewHintQueue")}</p>
+            </div>
+            <button onClick={() => moderate(pending.map((p) => p.id), "approved")} disabled={moderating}
+              style={{ background: C.ink, color: C.bg, padding: "9px 16px", borderRadius: 999, fontSize: 13, opacity: moderating ? 0.6 : 1 }}>
+              {moderating ? t("admin.moderating") : t("admin.approveAll")}
+            </button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 14, marginTop: 14 }}>
+            {pending.map((p) => (
+              <div key={p.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.gold}` }}>
+                <div style={{ position: "relative" }}>
+                  <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                  {p.has_minors && (
+                    <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.kidsBadge")}</span>
+                  )}
+                </div>
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{p.ownerName}</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => moderate([p.id], "approved")} disabled={moderating} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
+                    <button onClick={() => moderate([p.id], "hidden")} disabled={moderating} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.hide")}</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? <Spinner label={t("admin.loadingCollection")} /> : photos.length === 0 ? (
         <Empty title={t("admin.nothing.title")} sub={t("admin.nothing.sub")} />
@@ -393,6 +476,7 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 14, marginTop: 16 }}>
             {shown.map((p) => {
               const isSel = selected.has(p.id);
+              const statusLabel = p.status === "pending" ? t("admin.pendingBadge") : p.status === "hidden" ? t("admin.hiddenBadge") : null;
               return (
                 <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
                   style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
@@ -405,8 +489,11 @@ function EventDetail({ event, token, back }) {
                     {version === "edited" && !p.edited_url && (
                       <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(28,38,64,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
                     )}
+                    {statusLabel && (
+                      <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
+                    )}
                     {selectMode && (
-                      <span style={{ position: "absolute", bottom: 8, left: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 700 }}>{isSel ? "✓" : ""}</span>
+                      <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 700 }}>{isSel ? "✓" : ""}</span>
                     )}
                   </div>
                   <div style={{ padding: "8px 10px" }}>
@@ -415,6 +502,11 @@ function EventDetail({ event, token, back }) {
                     {!selectMode && (
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => download(p)} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12 }}>{t("admin.download")}</button>
+                        {p.status === "approved" ? (
+                          <button onClick={() => moderate([p.id], "hidden")} disabled={moderating} title={t("admin.hide")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.hide")}</button>
+                        ) : (
+                          <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
+                        )}
                         <button onClick={() => deleteOne(p.id)} disabled={deleting} title="Delete" aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 13, opacity: deleting ? 0.6 : 1 }}>🗑</button>
                       </div>
                     )}
