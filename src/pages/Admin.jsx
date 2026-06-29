@@ -271,6 +271,7 @@ function EventDetail({ event, token, back }) {
   const [connectUrl, setConnectUrl] = useState(event.connect_url || "");
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [deletingEvent, setDeletingEvent] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
@@ -349,6 +350,22 @@ function EventDetail({ event, token, back }) {
       setCurrentSession(updated.current_session || "");
       setSavedMsg(t("admin.saved"));
     } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
+  }
+
+  async function deleteEvent() {
+    const typed = window.prompt(`${t("admin.deleteEventConfirm")} ${event.code}`);
+    if (typed === null) return;
+    if (typed.trim().toUpperCase() !== String(event.code).toUpperCase()) { alert(t("admin.deleteEventMismatch")); return; }
+    setDeletingEvent(true);
+    try {
+      const r = await fetch("/.netlify/functions/delete-event", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: token, eventId: event.id }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || t("admin.deleteEventFailed"));
+      back();
+    } catch (e) { alert(e.message); setDeletingEvent(false); }
   }
 
   function download(p) {
@@ -526,6 +543,12 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
             <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
+          </div>
+
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#b3261e" }}>{t("admin.dangerZone")}</div>
+            <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("admin.deleteEventHelp")}</p>
+            <button onClick={deleteEvent} disabled={deletingEvent} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "10px 16px", borderRadius: 10, fontSize: 14, opacity: deletingEvent ? 0.6 : 1 }}>{deletingEvent ? t("admin.deletingEvent") : t("admin.deleteEvent")}</button>
           </div>
         </div>
       )}

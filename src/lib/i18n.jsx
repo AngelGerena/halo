@@ -230,6 +230,14 @@ const STRINGS = {
   "tag.baptism": { en: "Baptism", es: "Bautismo" },
   "tag.kids": { en: "Kids", es: "Ni\u00f1os" },
   "tag.fellowship": { en: "Fellowship", es: "Compa\u00f1erismo" },
+  // ---- V2: delete entire event ----
+  "admin.dangerZone": { en: "Danger zone", es: "Zona de peligro" },
+  "admin.deleteEvent": { en: "Delete event", es: "Eliminar evento" },
+  "admin.deleteEventHelp": { en: "Permanently deletes this event and every photo, contributor, and reaction in it. This cannot be undone.", es: "Elimina permanentemente este evento y todas sus fotos, colaboradores y reacciones. Esto no se puede deshacer." },
+  "admin.deleteEventConfirm": { en: "Type the event code to permanently delete it:", es: "Escribe el c\u00f3digo del evento para eliminarlo permanentemente:" },
+  "admin.deleteEventMismatch": { en: "Code did not match \u2014 nothing was deleted.", es: "El c\u00f3digo no coincide \u2014 no se elimin\u00f3 nada." },
+  "admin.deletingEvent": { en: "Deleting event\u2026", es: "Eliminando evento\u2026" },
+  "admin.deleteEventFailed": { en: "Could not delete the event", es: "No se pudo eliminar el evento" },
 };
 
 const LANG_KEY = "halo_lang";
