@@ -1,0 +1,122 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/><title>HALO — Coming Soon landing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}:root{color-scheme:light;--ink:#16294C;--deep:#0E1B36;--gold:#C9A24B;--gl:#E6C879;--bg:#F6F1E8;--sec:#5E6E8C;--grad:linear-gradient(125deg,#0E1B36,#1E3461 58%,#2A4A6E)}
+body{font-family:Manrope,sans-serif;color:var(--ink);background:var(--bg)}
+.serif{font-family:'Cormorant Garamond',serif}
+.bar{background:var(--grad);padding:15px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;color:#F4EEDF}
+.ring{width:32px;height:32px;border-radius:50%;border:2.5px solid var(--gl);position:relative}.ring:after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--gl);opacity:.3}
+.logo{font:700 23px Manrope;letter-spacing:1px}.tagm{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--gl)}
+.nav{display:flex;align-items:center;gap:14px}
+.tg{display:inline-flex;border:1px solid rgba(244,238,223,.3);border-radius:999px;overflow:hidden;font:700 10px Manrope;color:#F4EEDF}.tg span{padding:5px 10px;cursor:pointer}.tg .on{background:var(--gold);color:var(--ink)}
+.navbtn{background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:9px 16px;font:600 12px Manrope;cursor:pointer}
+.hero{background:var(--grad);color:#F4EEDF;padding:54px 28px 78px;text-align:center;position:relative;overflow:hidden}
+.flame{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:340px;height:340px;background:radial-gradient(circle,rgba(230,200,121,.20),transparent 62%)}
+.cs{display:inline-block;font:700 10px Manrope;letter-spacing:3px;text-transform:uppercase;color:var(--deep);background:var(--gl);padding:6px 16px;border-radius:999px}
+.halo{width:66px;height:66px;border-radius:50%;border:3px solid var(--gl);margin:20px auto 18px;position:relative}.halo:after{content:"";position:absolute;inset:16px;border-radius:50%;background:var(--gl);opacity:.25}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:56px;line-height:1.03;margin:6px 0 12px;font-weight:700}
+.hero p{max-width:560px;margin:0 auto;font-size:17px;color:#cdd6e3;line-height:1.5}
+.cta{display:flex;gap:14px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.bp{background:var(--gold);color:var(--ink);border:0;border-radius:12px;padding:14px 26px;font:600 15px Manrope;cursor:pointer}
+.bo{background:transparent;color:#F4EEDF;border:1px solid rgba(244,238,223,.45);border-radius:12px;padding:14px 26px;font:600 15px Manrope;cursor:pointer}
+.note{margin-top:14px;font-size:12px;color:var(--gl);letter-spacing:1px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+.sec{padding:56px 0}
+.eyebrow{text-align:center;font:700 11px Manrope;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+.h2{font-family:'Cormorant Garamond',serif;font-size:38px;text-align:center;margin:8px 0 6px}
+.lede{text-align:center;color:var(--sec);max-width:580px;margin:0 auto 36px;font-size:15px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}@media(max-width:820px){.steps{grid-template-columns:1fr}}
+.step{background:#fff;border:1px solid rgba(22,41,76,.08);border-radius:18px;padding:24px 20px;box-shadow:0 10px 30px rgba(22,41,76,.06);position:relative}
+.num{position:absolute;top:16px;right:18px;font-family:'Cormorant Garamond',serif;font-size:42px;color:rgba(201,162,75,.28);font-weight:700}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:24px;margin:6px 0 5px}.step p{color:var(--sec);font-size:14px;line-height:1.5}
+.ic{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#16294C,#284a78);display:grid;place-items:center;margin-bottom:12px}
+.price{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch}@media(max-width:900px){.price{grid-template-columns:1fr 1fr}}@media(max-width:540px){.price{grid-template-columns:1fr}}
+.tier{background:#fff;border:1px solid rgba(22,41,76,.1);border-radius:18px;padding:24px 20px;position:relative;display:flex;flex-direction:column}
+.tier.feat{border:2px solid var(--gold);box-shadow:0 16px 40px rgba(201,162,75,.16)}
+.ribbon{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--ink);font:700 10px Manrope;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.csb{display:inline-block;font:700 9px Manrope;letter-spacing:2px;text-transform:uppercase;color:var(--sec);background:rgba(22,41,76,.07);padding:3px 9px;border-radius:999px;margin-bottom:10px;align-self:flex-start}
+.tier h3{font-family:'Cormorant Garamond',serif;font-size:24px}
+.amt{font-size:30px;font-weight:700;color:var(--ink);margin:6px 0 2px}.amt small{font-size:13px;color:var(--sec);font-weight:500}
+.tsub{color:var(--sec);font-size:12.5px}
+.til{color:var(--sec);font-size:13px;line-height:1.7;margin-top:12px;list-style:none}
+.til li{padding-left:20px;position:relative}.til li:before{content:"✓";position:absolute;left:0;color:var(--gold);font-weight:700}
+.foot-note{text-align:center;color:var(--sec);font-size:12px;margin-top:18px}
+.formsec{background:var(--ink);color:#F4EEDF;border-radius:24px;padding:42px;margin:8px 0}
+.formsec h2{font-family:'Cormorant Garamond',serif;font-size:34px;text-align:center}
+.formsec .subt{text-align:center;color:#cdd6e3;font-size:14px;max-width:520px;margin:8px auto 26px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:620px;margin:0 auto}
+.form .full{grid-column:1/-1}
+.inp{width:100%;padding:13px 14px;border-radius:11px;border:1px solid rgba(244,238,223,.25);background:rgba(244,238,223,.06);color:#F4EEDF;font:400 14px Manrope}
+.inp::placeholder{color:#9fb0c8}
+.sbm{background:var(--gold);color:var(--ink);border:0;border-radius:12px;padding:14px;font:600 15px Manrope;cursor:pointer}
+.priv{text-align:center;font-size:11px;color:#8ea0c1;margin-top:12px}
+.foot{text-align:center;color:var(--sec);font-size:12px;padding:26px;border-top:1px solid rgba(22,41,76,.08)}
+</style></head>
+<body>
+<div class="bar"><div class="brand"><div class="ring"></div><div><div class="logo">HALO</div><div class="tagm" data-i="tag">Holy moments, auto-curated</div></div></div>
+  <div class="nav"><div class="tg"><span class="on" onclick="L('en')">EN</span><span onclick="L('es')">ES</span></div><button class="navbtn" data-i="cta1">Request early access</button></div></div>
+
+<div class="hero"><div class="flame"></div>
+  <span class="cs" data-i="cs">Coming soon</span>
+  <div class="halo"></div>
+  <h1 data-i="h1">Every moment, gathered.</h1>
+  <p data-i="hp">A bilingual, done-for-you photo experience for churches. Your congregation scans one code; HALO curates, edits, and delivers beautiful galleries — and a live slideshow on the big screen. Launching soon.</p>
+  <div class="cta"><button class="bp" data-i="cta1b">Request early access</button><button class="bo" data-i="cta2">See how it works</button></div>
+  <div class="note" data-i="note">Founding churches get early access + locked-in founding pricing.</div>
+</div>
+
+<div class="sec"><div class="wrap">
+  <div class="eyebrow" data-i="ew">The basics</div>
+  <div class="h2" data-i="hh">Three steps to a full gallery</div>
+  <div class="lede" data-i="hl">No sign-ups, no app downloads. Just a code and a camera.</div>
+  <div class="steps">
+    <div class="step"><div class="num">1</div><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E6C879" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01"/></svg></div><h3 data-i="s1t">Scan the code</h3><p data-i="s1p">Print or project the QR. Anyone points their phone — opens instantly, no app, no account.</p></div>
+    <div class="step"><div class="num">2</div><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E6C879" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div><h3 data-i="s2t">Capture &amp; upload</h3><p data-i="s2p">Everyone shares what they shoot. HALO keeps the sharp, well-lit moments and edits them automatically.</p></div>
+    <div class="step"><div class="num">3</div><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E6C879" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M4 15l4-4 3 3 5-5 4 4"/><circle cx="9" cy="9" r="1.4"/></svg></div><h3 data-i="s3t">Relive &amp; share</h3><p data-i="s3p">Private galleries for every person, a live slideshow on screen, and originals ready to post.</p></div>
+  </div>
+</div></div>
+
+<div class="sec" style="padding-top:6px"><div class="wrap">
+  <div class="eyebrow" data-i="pw">Founding pricing</div>
+  <div class="h2" data-i="ph">Simple plans, coming soon</div>
+  <div class="lede" data-i="pl">Start free, keep it for a low monthly, and add a premium pack for your big events. Early churches lock in founding rates.</div>
+  <div class="price">
+    <div class="tier"><span class="csb" data-i="csb">Coming soon</span><h3 data-i="t1">First event</h3><div class="amt" data-i="t1a">Free</div><div class="tsub" data-i="t1s">Try HALO with zero risk</div>
+      <ul class="til"><li data-i="t1f1">One full event</li><li data-i="t1f2">Auto-curated galleries</li><li data-i="t1f3">Live slideshow</li></ul></div>
+    <div class="tier feat"><span class="ribbon" data-i="rb">Most popular</span><span class="csb" data-i="csb">Coming soon</span><h3 data-i="t2">Church plan</h3><div class="amt" data-i="t2a">$19<small> /mo</small></div><div class="tsub" data-i="t2s">Everything, every Sunday</div>
+      <ul class="til"><li data-i="t2f1">Unlimited events</li><li data-i="t2f2">Your branding</li><li data-i="t2f3">Bilingual + all features</li></ul></div>
+    <div class="tier"><span class="csb" data-i="csb">Coming soon</span><h3 data-i="t3">Premium pack</h3><div class="amt" data-i="t3a">$49<small> /event</small></div><div class="tsub" data-i="t3s">For Easter &amp; graduations</div>
+      <ul class="til"><li data-i="t3f1">Auto highlight-reel video</li><li data-i="t3f2">Branded social graphics</li><li data-i="t3f3">Done-for-you setup</li></ul></div>
+    <div class="tier"><span class="csb" data-i="csb">Coming soon</span><h3 data-i="t4">Multi-campus</h3><div class="amt" data-i="t4a">$99<small> /mo</small></div><div class="tsub" data-i="t4s">For larger churches</div>
+      <ul class="til"><li data-i="t4f1">Multiple campuses</li><li data-i="t4f2">White-label</li><li data-i="t4f3">Priority support</li></ul></div>
+  </div>
+  <div class="foot-note" data-i="pn">Pricing is indicative and may change at launch. Founding churches keep their early rate.</div>
+</div></div>
+
+<div class="sec" style="padding-top:0"><div class="wrap">
+  <div class="formsec" id="form">
+    <h2 data-i="fh">Be a founding church</h2>
+    <div class="subt" data-i="fs">Tell us about your church and we'll reach out with early access and founding pricing as soon as we launch.</div>
+    <div class="form">
+      <input class="inp" data-ph="ph_church" placeholder="Church name">
+      <input class="inp" data-ph="ph_name" placeholder="Your name">
+      <input class="inp" data-ph="ph_email" placeholder="Email">
+      <input class="inp" data-ph="ph_size" placeholder="Congregation size (approx.)">
+      <input class="inp full" data-ph="ph_event" placeholder="What event are you thinking of? (e.g. Easter, weekly service)">
+      <input class="inp full" data-ph="ph_pay" placeholder="What would you expect to pay? (optional)">
+      <button class="sbm full" data-i="fsub">Request early access</button>
+    </div>
+    <div class="priv" data-i="fp">No spam. We'll only use this to contact you about HALO.</div>
+  </div>
+</div></div>
+
+<div class="foot serif" data-i="ft">HALO by Finesse Media · "For I know the plans I have for you" — Jeremiah 29:11</div>
+
+<script>
+const T={en:{tag:"Holy moments, auto-curated",cta1:"Request early access",cs:"Coming soon",h1:"Every moment, gathered.",hp:"A bilingual, done-for-you photo experience for churches. Your congregation scans one code; HALO curates, edits, and delivers beautiful galleries — and a live slideshow on the big screen. Launching soon.",cta1b:"Request early access",cta2:"See how it works",note:"Founding churches get early access + locked-in founding pricing.",ew:"The basics",hh:"Three steps to a full gallery",hl:"No sign-ups, no app downloads. Just a code and a camera.",s1t:"Scan the code",s1p:"Print or project the QR. Anyone points their phone — opens instantly, no app, no account.",s2t:"Capture & upload",s2p:"Everyone shares what they shoot. HALO keeps the sharp, well-lit moments and edits them automatically.",s3t:"Relive & share",s3p:"Private galleries for every person, a live slideshow on screen, and originals ready to post.",pw:"Founding pricing",ph:"Simple plans, coming soon",pl:"Start free, keep it for a low monthly, and add a premium pack for your big events. Early churches lock in founding rates.",csb:"Coming soon",t1:"First event",t1a:"Free",t1s:"Try HALO with zero risk",t1f1:"One full event",t1f2:"Auto-curated galleries",t1f3:"Live slideshow",rb:"Most popular",t2:"Church plan",t2a:'$19<small> /mo</small>',t2s:"Everything, every Sunday",t2f1:"Unlimited events",t2f2:"Your branding",t2f3:"Bilingual + all features",t3:"Premium pack",t3a:'$49<small> /event</small>',t3s:"For Easter & graduations",t3f1:"Auto highlight-reel video",t3f2:"Branded social graphics",t3f3:"Done-for-you setup",t4:"Multi-campus",t4a:'$99<small> /mo</small>',t4s:"For larger churches",t4f1:"Multiple campuses",t4f2:"White-label",t4f3:"Priority support",pn:"Pricing is indicative and may change at launch. Founding churches keep their early rate.",fh:"Be a founding church",fs:"Tell us about your church and we'll reach out with early access and founding pricing as soon as we launch.",fsub:"Request early access",fp:"No spam. We'll only use this to contact you about HALO.",ft:'HALO by Finesse Media · "For I know the plans I have for you" — Jeremiah 29:11',ph_church:"Church name",ph_name:"Your name",ph_email:"Email",ph_size:"Congregation size (approx.)",ph_event:"What event are you thinking of? (e.g. Easter, weekly service)",ph_pay:"What would you expect to pay? (optional)"},
+es:{tag:"Momentos sagrados, curados automáticamente",cta1:"Solicitar acceso anticipado",cs:"Próximamente",h1:"Cada momento, reunido.",hp:"Una experiencia de fotos bilingüe y lista para usar, para iglesias. Tu congregación escanea un código; HALO cura, edita y entrega galerías hermosas — y una presentación en vivo en la pantalla grande. Próximamente.",cta1b:"Solicitar acceso anticipado",cta2:"Ver cómo funciona",note:"Las iglesias fundadoras obtienen acceso anticipado y precio fundador asegurado.",ew:"Lo básico",hh:"Tres pasos para una galería completa",hl:"Sin registros, sin descargas. Solo un código y una cámara.",s1t:"Escanea el código",s1p:"Imprime o proyecta el QR. Cualquiera apunta su teléfono — abre al instante, sin app, sin cuenta.",s2t:"Captura y sube",s2p:"Todos comparten lo que toman. HALO conserva los momentos nítidos y bien iluminados y los edita automáticamente.",s3t:"Revive y comparte",s3p:"Galerías privadas para cada persona, una presentación en vivo en pantalla, y originales listos para publicar.",pw:"Precio fundador",ph:"Planes simples, próximamente",pl:"Empieza gratis, mantenlo por una mensualidad baja, y agrega un paquete premium para tus grandes eventos. Las iglesias tempranas aseguran tarifas fundadoras.",csb:"Próximamente",t1:"Primer evento",t1a:"Gratis",t1s:"Prueba HALO sin riesgo",t1f1:"Un evento completo",t1f2:"Galerías auto-curadas",t1f3:"Presentación en vivo",rb:"Más popular",t2:"Plan iglesia",t2a:'$19<small> /mes</small>',t2s:"Todo, cada domingo",t2f1:"Eventos ilimitados",t2f2:"Tu marca",t2f3:"Bilingüe + todo incluido",t3:"Paquete premium",t3a:'$49<small> /evento</small>',t3s:"Para Pascua y graduaciones",t3f1:"Video destacado automático",t3f2:"Gráficas para redes con tu marca",t3f3:"Configuración lista para usar",t4:"Multi-campus",t4a:'$99<small> /mes</small>',t4s:"Para iglesias grandes",t4f1:"Múltiples campus",t4f2:"Marca blanca",t4f3:"Soporte prioritario",pn:"El precio es indicativo y puede cambiar al lanzamiento. Las iglesias fundadoras mantienen su tarifa temprana.",fh:"Sé una iglesia fundadora",fs:"Cuéntanos sobre tu iglesia y te contactaremos con acceso anticipado y precio fundador en cuanto lancemos.",fsub:"Solicitar acceso anticipado",fp:"Sin spam. Solo usaremos esto para contactarte sobre HALO.",ft:'HALO by Finesse Media · "Porque yo sé los planes que tengo para ustedes" — Jeremías 29:11',ph_church:"Nombre de la iglesia",ph_name:"Tu nombre",ph_email:"Correo electrónico",ph_size:"Tamaño de la congregación (aprox.)",ph_event:"¿Qué evento tienes en mente? (ej. Pascua, servicio semanal)",ph_pay:"¿Cuánto esperarías pagar? (opcional)"}};
+function L(l){document.querySelectorAll('.tg span').forEach((s,i)=>s.classList.toggle('on',(l==='en')===(i===0)));document.querySelectorAll('[data-i]').forEach(e=>{const k=e.getAttribute('data-i');if(T[l][k]!=null)e.innerHTML=T[l][k];});document.querySelectorAll('[data-ph]').forEach(e=>{const k=e.getAttribute('data-ph');if(T[l][k]!=null)e.placeholder=T[l][k];});}
+</script></body></html>
