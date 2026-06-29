@@ -11,7 +11,7 @@ const LS_KEY = (code) => `halo_contributor_${code}`;
 export default function EventPage() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { t, ev } = useI18n();
+  const { t, ev, lang } = useI18n();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [contributor, setContributor] = useState(null); // {id, name}
@@ -74,10 +74,10 @@ export default function EventPage() {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
     setUploading((u) => u + files.length);
 
-    // V2 moderation gate: decide whether each upload is public immediately
-    // or held for the super-admin to review first.
+    // V2 moderation gate: public immediately, or held for the super-admin to review first.
     const needsReview = event.moderation_mode === "review" || (event.protect_minors && kidsInFrame);
     const initialStatus = needsReview ? "pending" : "approved";
+    const sessionLabel = event.current_session || null; // V2 recurring-service session tag
 
     for (const f of files) {
       try {
@@ -94,6 +94,7 @@ export default function EventPage() {
           kept, width: s.width, height: s.height,
           has_minors: kidsInFrame,
           status: initialStatus,
+          session_label: sessionLabel,
         }).select().single();
         if (error) throw error;
         setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
@@ -155,6 +156,7 @@ export default function EventPage() {
   const kept = photos.filter((p) => p.kept);
   const shown = showAll ? photos : kept;
   const shareUrl = `${window.location.origin}/g/${contributor.id}`;
+  const connectLabel = (lang === "es" && event.connect_label_es) ? event.connect_label_es : (event.connect_label || t("connect.cta"));
 
   return (
     <Shell code={event.code}>
@@ -198,6 +200,19 @@ export default function EventPage() {
           <Stat label={t("up.uploaded")} value={photos.length} />
           <Stat label={t("up.keptByHalo")} value={kept.length} gold />
         </div>
+
+        {/* V2 "Connect" call-to-action — turns a photo moment into a next step */}
+        {event.connect_url && (
+          <a href={event.connect_url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
+            <div style={{ background: C.ink, borderRadius: 16, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ color: C.bg, fontWeight: 700, fontSize: 15 }}>{connectLabel}</div>
+                <div style={{ color: C.gold, fontSize: 12, marginTop: 2 }}>{t("connect.sub")}</div>
+              </div>
+              <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.gold}`, color: C.gold, display: "grid", placeItems: "center", fontSize: 18 }}>→</span>
+            </div>
+          </a>
+        )}
 
         {photos.length > 0 && (
           <>

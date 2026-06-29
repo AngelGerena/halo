@@ -76,7 +76,7 @@ function Dashboard({ token, onLogout }) {
   useEffect(() => { loadEvents(); }, []);
 
   if (loading) return <Spinner label={t("admin.loadingEvents")} />;
-  if (selected) return <EventDetail event={selected} token={token} back={() => setSelected(null)} />;
+  if (selected) return <EventDetail event={selected} token={token} back={() => { setSelected(null); loadEvents(); }} />;
 
   return (
     <div>
@@ -97,7 +97,7 @@ function Dashboard({ token, onLogout }) {
           {events.map((e) => (
             <button key={e.id} onClick={() => setSelected(e)} className="card"
               style={{ textAlign: "left", background: C.white, border: "1px solid rgba(28,38,64,.08)", borderRadius: 14, padding: 18 }}>
-              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}</div>
+              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " · ↻" : ""}</div>
               <div className="serif" style={{ fontSize: 22, color: C.ink, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
               <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" · ")}</div>
             </button>
@@ -132,8 +132,8 @@ function CreateEvent({ token, onCreated }) {
   const [nameEs, setNameEs] = useState("");
   const [hostEs, setHostEs] = useState("");
   const [dateEs, setDateEs] = useState("");
-  const [requireReview, setRequireReview] = useState(false); // V2: moderation_mode
-  const [protectMinors, setProtectMinors] = useState(true);  // V2: protect_minors
+  const [requireReview, setRequireReview] = useState(false);
+  const [protectMinors, setProtectMinors] = useState(true);
   const [translating, setTranslating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -205,7 +205,6 @@ function CreateEvent({ token, onCreated }) {
         <div><label style={lab}>{t("admin.keepThreshold")} ({threshold})</label><input type="range" min="0" max="80" value={threshold} onChange={(e) => setThreshold(e.target.value)} style={{ width: "100%", marginTop: 10 }} /></div>
       </div>
 
-      {/* V2 Safety & moderation block */}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 10 }}>{t("admin.safety")}</div>
         <div style={{ display: "grid", gap: 10 }}>
@@ -214,7 +213,6 @@ function CreateEvent({ token, onCreated }) {
         </div>
       </div>
 
-      {/* Spanish version block */}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.spanishVersion")}</div>
@@ -247,19 +245,32 @@ function EventDetail({ event, token, back }) {
   const { t, ev } = useI18n();
   const [photos, setPhotos] = useState([]);
   const [contributors, setContributors] = useState([]);
+  const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [qr, setQr] = useState("");
-  const [filter, setFilter] = useState("all"); // all | kept
-  const [version, setVersion] = useState("edited"); // edited | original
+  const [filter, setFilter] = useState("all");
+  const [version, setVersion] = useState("edited");
+  const [sessionFilter, setSessionFilter] = useState(event.current_session || "all");
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [deleting, setDeleting] = useState(false);
   const [moderating, setModerating] = useState(false);
+  // V2 settings + moment
+  const [featuredId, setFeaturedId] = useState(event.featured_photo_id || null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(!!event.is_recurring);
+  const [currentSession, setCurrentSession] = useState(event.current_session || "");
+  const [connectLabel, setConnectLabel] = useState(event.connect_label || "");
+  const [connectLabelEs, setConnectLabelEs] = useState(event.connect_label_es || "");
+  const [connectUrl, setConnectUrl] = useState(event.connect_url || "");
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
+  const today = () => new Date().toISOString().slice(0, 10);
 
   async function publish() {
     if (!confirm(t("admin.publishConfirm"))) return;
@@ -278,16 +289,63 @@ function EventDetail({ event, token, back }) {
   useEffect(() => {
     QRCode.toDataURL(eventUrl, { width: 320, margin: 1, color: { dark: "#1C2640", light: "#ffffff" } }).then(setQr);
     (async () => {
-      const [{ data: ph }, { data: co }] = await Promise.all([
+      const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
         supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
         supabase.from("contributors").select("*").eq("event_id", event.id),
+        supabase.from("reactions").select("photo_id").eq("event_id", event.id),
       ]);
       const names = Object.fromEntries((co || []).map((c) => [c.id, c.name]));
+      const cmap = {};
+      (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
+      setCounts(cmap);
       setContributors(co || []);
       setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, ownerName: names[p.contributor_id] || "Unknown" })));
       setLoading(false);
     })();
   }, [event.id]);
+
+  // --- V2: patch event settings via passcode-gated function ---
+  async function updateEvent(patch) {
+    const r = await fetch("/.netlify/functions/update-event", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: token, eventId: event.id, patch }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || t("admin.saveFailed"));
+    return j.event;
+  }
+
+  async function pinMoment(id) { try { await updateEvent({ featured_photo_id: id }); setFeaturedId(id); } catch (e) { alert(e.message); } }
+  async function clearMoment() { try { await updateEvent({ featured_photo_id: null }); setFeaturedId(null); } catch (e) { alert(e.message); } }
+  async function pinTopMoment() {
+    const pool = photos.filter((p) => p.kept && p.status === "approved");
+    if (pool.length === 0) return;
+    const top = pool.slice().sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0))[0];
+    pinMoment(top.id);
+  }
+
+  async function startNewSession() {
+    if (!confirm(t("admin.newSessionConfirm"))) return;
+    const d = today();
+    try { await updateEvent({ is_recurring: true, current_session: d }); setIsRecurring(true); setCurrentSession(d); setSessionFilter(d); setSavedMsg(t("admin.saved")); }
+    catch (e) { alert(e.message); }
+  }
+
+  async function saveSettings() {
+    setSaving(true); setSavedMsg("");
+    try {
+      const patch = {
+        is_recurring: isRecurring,
+        current_session: isRecurring ? (currentSession || today()) : null,
+        connect_label: connectLabel.trim() || null,
+        connect_label_es: connectLabelEs.trim() || null,
+        connect_url: connectUrl.trim() || null,
+      };
+      const updated = await updateEvent(patch);
+      setCurrentSession(updated.current_session || "");
+      setSavedMsg(t("admin.saved"));
+    } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
+  }
 
   function download(p) {
     const useEdited = version === "edited" && p.edited_url;
@@ -298,24 +356,15 @@ function EventDetail({ event, token, back }) {
     document.body.appendChild(a); a.click(); a.remove();
   }
   async function downloadAll() {
-    const list = photos.filter((p) => filter === "all" || p.kept);
-    for (const p of list) { download(p); await new Promise((r) => setTimeout(r, 350)); }
+    for (const p of shown) { download(p); await new Promise((r) => setTimeout(r, 350)); }
   }
 
-  // --- selection helpers ---
   function toggleSelect(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
   function exitSelect() { setSelectMode(false); setSelected(new Set()); }
-  function selectAllShown() {
-    setSelected(new Set(shown.map((p) => p.id)));
-  }
+  function selectAllShown() { setSelected(new Set(shown.map((p) => p.id))); }
 
-  // --- V2 moderation (approve / hide / restore) via passcode-gated function ---
   async function moderate(ids, status) {
     if (!ids || ids.length === 0) return;
     setModerating(true);
@@ -328,12 +377,9 @@ function EventDetail({ event, token, back }) {
       if (!r.ok) throw new Error(j.error || "Failed");
       const set = new Set(ids);
       setPhotos((prev) => prev.map((p) => (set.has(p.id) ? { ...p, status } : p)));
-    } catch (e) {
-      alert(e.message);
-    } finally { setModerating(false); }
+    } catch (e) { alert(e.message); } finally { setModerating(false); }
   }
 
-  // --- delete (one or many) via passcode-gated function ---
   async function deleteIds(ids, label) {
     if (ids.length === 0) return;
     if (!confirm(`${t("admin.deleteConfirm1")} ${ids.length} ${ids.length === 1 ? t("admin.photos").toLowerCase().replace(/s$/,"") : t("admin.photos").toLowerCase()}${label ? ` (${label})` : ""}? ${t("admin.deleteConfirm2")}`)) return;
@@ -348,9 +394,7 @@ function EventDetail({ event, token, back }) {
       const removed = new Set(ids);
       setPhotos((prev) => prev.filter((p) => !removed.has(p.id)));
       setSelected((prev) => { const n = new Set(prev); ids.forEach((i) => n.delete(i)); return n; });
-    } catch (e) {
-      alert(t("admin.couldNotDelete") + " " + e.message);
-    } finally { setDeleting(false); }
+    } catch (e) { alert(t("admin.couldNotDelete") + " " + e.message); } finally { setDeleting(false); }
   }
   const deleteOne = (id) => deleteIds([id]);
   const deleteSelected = () => deleteIds([...selected], "selected");
@@ -360,11 +404,19 @@ function EventDetail({ event, token, back }) {
   const rejected = photos.filter((p) => !p.kept);
   const pending = photos.filter((p) => p.status === "pending");
   const editedCount = photos.filter((p) => p.edited_url).length;
-  const shown = photos.filter((p) => filter === "all" || p.kept);
+  const sessions = Array.from(new Set(photos.map((p) => p.session_label).filter(Boolean)));
+  const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter));
+  const featured = photos.find((p) => p.id === featuredId);
+
+  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginTop: 4 };
+  const slab = { fontSize: 12, fontWeight: 600, color: C.ink };
 
   return (
     <div>
-      <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
+        <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.ink : "transparent", color: settingsOpen ? C.bg : C.ink, border: `1px solid ${C.ink}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
@@ -377,7 +429,7 @@ function EventDetail({ event, token, back }) {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}</div>
+          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.ink, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
           <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
           <div style={{ display: "flex", gap: 12 }}>
@@ -397,7 +449,51 @@ function EventDetail({ event, token, back }) {
         </div>
       </div>
 
-      {/* V2 Review queue — only shows when photos are waiting for approval */}
+      {/* V2 Settings panel: recurring sessions + connect CTA */}
+      {settingsOpen && (
+        <div style={{ marginTop: 16, background: C.white, border: "1px solid rgba(28,38,64,.12)", borderRadius: 16, padding: 20 }}>
+          <h3 className="serif" style={{ fontSize: 20, color: C.ink, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
+          <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
+          {isRecurring && (
+            <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: C.second }}>{t("admin.session")}: <strong style={{ color: C.ink }}>{currentSession || today()}</strong></span>
+              <button onClick={startNewSession} style={{ background: C.ink, color: C.bg, padding: "8px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.startSession")}</button>
+            </div>
+          )}
+
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.connectCta")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.connectHelp")}</p>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
+              <div><label style={slab}>{t("admin.connectLabel")}</label><input style={sfield} value={connectLabel} onChange={(e) => setConnectLabel(e.target.value)} placeholder="New here? Get connected" /></div>
+              <div><label style={slab}>{t("admin.connectLabelEs")}</label><input style={sfield} value={connectLabelEs} onChange={(e) => setConnectLabelEs(e.target.value)} placeholder="¿Primera vez? Conéctate" /></div>
+              <div style={{ gridColumn: "1 / -1" }}><label style={slab}>{t("admin.connectUrl")}</label><input style={sfield} value={connectUrl} onChange={(e) => setConnectUrl(e.target.value)} placeholder="https://icgg.us/connect" /></div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
+            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
+            {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* V2 Moment of the service strip */}
+      {photos.length > 0 && (
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.white, border: `1px solid ${featured ? C.gold : "rgba(28,38,64,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.moment")}</span>
+          {featured ? (
+            <>
+              <img src={featured.edited_url || featured.url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" }} />
+              <span style={{ fontSize: 12, color: C.second }}>{featured.ownerName} · {counts[featured.id] || 0} ♥</span>
+              <button onClick={clearMoment} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clearMoment")}</button>
+            </>
+          ) : <span style={{ fontSize: 12, color: C.second }}>{t("admin.momentNone")}</span>}
+          <button onClick={pinTopMoment} style={{ marginLeft: "auto", background: C.ink, color: C.bg, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.pinTopMoment")}</button>
+        </div>
+      )}
+
+      {/* V2 Review queue */}
       {pending.length > 0 && (
         <div style={{ marginTop: 18, background: C.white, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
@@ -444,6 +540,12 @@ function EventDetail({ event, token, back }) {
               <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {sessions.length > 0 && (
+                <select value={sessionFilter} onChange={(e) => setSessionFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.ink, background: C.white }}>
+                  <option value="all">{t("admin.allSessions")}</option>
+                  {sessions.map((s) => <option key={s} value={s}>{t("admin.session")} {s}</option>)}
+                </select>
+              )}
               <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.second}`, overflow: "hidden" }}>
                 <button onClick={() => setVersion("edited")} style={{ background: version === "edited" ? C.ink : "transparent", color: version === "edited" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.edited")}</button>
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
@@ -461,7 +563,6 @@ function EventDetail({ event, token, back }) {
             </div>
           </div>
 
-          {/* selection action bar */}
           {selectMode && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(28,38,64,.12)`, borderRadius: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
@@ -477,9 +578,11 @@ function EventDetail({ event, token, back }) {
             {shown.map((p) => {
               const isSel = selected.has(p.id);
               const statusLabel = p.status === "pending" ? t("admin.pendingBadge") : p.status === "hidden" ? t("admin.hiddenBadge") : null;
+              const isFeatured = p.id === featuredId;
+              const n = counts[p.id] || 0;
               return (
                 <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
-                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
+                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
                     <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
                     <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
@@ -489,8 +592,13 @@ function EventDetail({ event, token, back }) {
                     {version === "edited" && !p.edited_url && (
                       <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(28,38,64,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
                     )}
-                    {statusLabel && (
+                    {statusLabel ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
+                    ) : !selectMode && (
+                      <button onClick={(e) => { e.stopPropagation(); isFeatured ? clearMoment() : pinMoment(p.id); }} title={t("admin.pinMoment")}
+                        style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(28,38,64,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                        {isFeatured ? "★" : "☆"}{n > 0 ? ` ${n}` : ""}
+                      </button>
                     )}
                     {selectMode && (
                       <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 700 }}>{isSel ? "✓" : ""}</span>

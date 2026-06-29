@@ -2,11 +2,13 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
+import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
 
-// HALO Live — a projector-ready slideshow of kept photos.
+// HALO Live — a projector-ready slideshow of approved, kept photos.
 // Auto-advances with a slow Ken Burns drift, cross-fades between shots,
-// and polls for new uploads so the wall stays live during the service.
+// polls for new uploads, shows live heart counts, and spotlights the
+// admin-pinned "Moment of the Service".
 export default function SlideshowPage() {
   const { t, ev } = useI18n();
   const { code } = useParams();
@@ -17,38 +19,42 @@ export default function SlideshowPage() {
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
+  const [counts, setCounts] = useState({});
+  const [liked, setLiked] = useState(() => new Set());
   const seen = useRef(new Set());
   const chromeTimer = useRef(null);
+  const eventRef = useRef(null);
 
   const HOLD = 6500; // ms per photo
 
   // load event + initial photos
   useEffect(() => {
     (async () => {
-      const { data: ev } = await supabase.from("events").select("*").eq("code", code).single();
-      setEvent(ev || false);
-      if (ev) await refresh(ev.id, true);
+      const { data: evrow } = await supabase.from("events").select("*").eq("code", code).single();
+      setEvent(evrow || false);
+      eventRef.current = evrow || null;
+      if (evrow) await refresh(evrow.id, true);
       setReady(true);
     })();
   }, [code]);
 
   const refresh = useCallback(async (eventId, initial = false) => {
-    const { data } = await supabase.from("photos").select("*")
-      .eq("event_id", eventId).eq("kept", true).eq("status", "approved")
-      .order("created_at", { ascending: true });
+    let q = supabase.from("photos").select("*")
+      .eq("event_id", eventId).eq("kept", true).eq("status", "approved");
+    const session = eventRef.current && eventRef.current.current_session;
+    if (session) q = q.eq("session_label", session); // V2: current weekly session only
+    const { data } = await q.order("created_at", { ascending: true });
     const mapped = (data || []).map((p) => ({
       ...p,
       url: p.edited_path ? publicUrl(p.edited_path) : publicUrl(p.storage_path),
     }));
     if (initial) {
       mapped.forEach((p) => seen.current.add(p.id));
-      // shuffle once for variety on first load
       setPhotos(shuffle(mapped));
     } else {
       const fresh = mapped.filter((p) => !seen.current.has(p.id));
       if (fresh.length) {
         fresh.forEach((p) => seen.current.add(p.id));
-        // insert new photos right after the current one so they surface fast
         setPhotos((prev) => {
           const copy = [...prev];
           copy.splice(idx + 1, 0, ...fresh);
@@ -61,15 +67,23 @@ export default function SlideshowPage() {
   // poll for new uploads every 12s
   useEffect(() => {
     if (!event) return;
-    const t = setInterval(() => refresh(event.id, false), 12000);
-    return () => clearInterval(t);
+    const tmr = setInterval(() => refresh(event.id, false), 12000);
+    return () => clearInterval(tmr);
   }, [event, refresh]);
+
+  // keep heart counts fresh as photos arrive (and on first load)
+  useEffect(() => {
+    if (!event || photos.length === 0) return;
+    let alive = true;
+    fetchReactions(photos.map((p) => p.id)).then((r) => { if (alive) { setCounts(r.counts); setLiked(r.liked); } });
+    return () => { alive = false; };
+  }, [event, photos.length]);
 
   // advance timer
   useEffect(() => {
     if (paused || photos.length < 2) return;
-    const t = setTimeout(() => go(1), HOLD);
-    return () => clearTimeout(t);
+    const tmr = setTimeout(() => go(1), HOLD);
+    return () => clearTimeout(tmr);
   }, [idx, paused, photos.length]);
 
   function go(dir) {
@@ -81,6 +95,14 @@ export default function SlideshowPage() {
     });
   }
 
+  async function likeCurrent() {
+    const cur = photos[idx];
+    if (!cur || !event || liked.has(cur.id)) return;
+    setLiked((prev) => new Set(prev).add(cur.id));
+    setCounts((prev) => ({ ...prev, [cur.id]: (prev[cur.id] || 0) + 1 }));
+    try { await like(cur.id, event.id); } catch { /* keep optimistic */ }
+  }
+
   // keyboard + auto-hide chrome
   useEffect(() => {
     const onKey = (e) => {
@@ -88,11 +110,12 @@ export default function SlideshowPage() {
       else if (e.key === "ArrowLeft") go(-1);
       else if (e.key === " ") { e.preventDefault(); setPaused((p) => !p); }
       else if (e.key.toLowerCase() === "f") toggleFull();
+      else if (e.key.toLowerCase() === "h") likeCurrent();
       wake();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [idx]);
+  }, [idx, photos, liked, event]);
 
   function wake() {
     setShowChrome(true);
@@ -119,19 +142,26 @@ export default function SlideshowPage() {
 
   const cur = photos[idx];
   const prev = prevIdx != null ? photos[prevIdx] : null;
+  const isMoment = event && event.featured_photo_id && cur.id === event.featured_photo_id;
+  const curCount = counts[cur.id] || 0;
+  const curLiked = liked.has(cur.id);
 
   return (
     <Stage onMouseMove={wake} onClick={wake}>
-      {/* previous frame fades out under the new one */}
       {prev && prev.id !== cur.id && (
         <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading />
       )}
       <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />
 
-      {/* gradient vignette for text legibility */}
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(28,38,64,.55) 100%)", pointerEvents: "none" }} />
 
-      {/* chrome: title + progress + controls */}
+      {/* Moment of the Service ribbon */}
+      {isMoment && (
+        <div style={{ position: "absolute", top: "4vh", left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, padding: ".5vw 1.6vw", borderRadius: 999, fontSize: "1.1vw", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
+          {t("live.moment")}
+        </div>
+      )}
+
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: showChrome ? 1 : 0, transition: "opacity .6s ease" }}>
         <div style={{ position: "absolute", top: "4vh", left: "4vw", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 38, height: 38, borderRadius: "50%", border: `3px solid ${C.gold}` }} />
@@ -145,13 +175,18 @@ export default function SlideshowPage() {
           <div style={{ color: C.bg, fontSize: ".95vw", opacity: .85 }}>
             {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
-          <div style={{ display: "flex", gap: 10, pointerEvents: "auto" }}>
+          <div style={{ display: "flex", gap: 10, pointerEvents: "auto", alignItems: "center" }}>
+            <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: C.bg, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.1vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
+              <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.bg} strokeWidth="2" style={{ width: "1.1vw", height: "1.1vw" }}>
+                <path d="M12 21s-7.5-4.6-10-9.2C.7 9 1.6 5.6 4.6 4.7 6.7 4 8.8 4.9 12 8c3.2-3.1 5.3-4 7.4-3.3 3 .9 3.9 4.3 2.6 7.1C19.5 16.4 12 21 12 21z" />
+              </svg>
+              {curCount > 0 && <span>{curCount}</span>}
+            </button>
             <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? t("live.play") : t("live.pause")}</Ctrl>
             <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>
           </div>
         </div>
 
-        {/* slim progress bar */}
         {!paused && (
           <div key={idx} style={{ position: "absolute", bottom: 0, left: 0, height: 4, background: C.gold, animation: `grow ${HOLD}ms linear` }} />
         )}

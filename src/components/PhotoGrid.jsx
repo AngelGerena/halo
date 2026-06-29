@@ -2,9 +2,20 @@ import React from "react";
 import { C } from "../lib/score.js";
 import { useI18n } from "../lib/i18n.jsx";
 
-// `prefer` = "edited" | "original" — which version to display when both exist.
-export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edited" }) {
+function Heart({ filled }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
+      style={{ display: "block" }}
+      fill={filled ? C.gold : "none"} stroke={filled ? C.gold : C.white} strokeWidth="2">
+      <path d="M12 21s-7.5-4.6-10-9.2C.7 9 1.6 5.6 4.6 4.7 6.7 4 8.8 4.9 12 8c3.2-3.1 5.3-4 7.4-3.3 3 .9 3.9 4.3 2.6 7.1C19.5 16.4 12 21 12 21z" />
+    </svg>
+  );
+}
+
+// `prefer` = "edited" | "original". When `onLike` is provided, a heart appears.
+export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edited", counts = {}, liked, onLike }) {
   const { t } = useI18n();
+  const likedSet = liked || new Set();
   return (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${min}px,1fr))`, gap: 14, marginTop: 16 }}>
       {photos.map((p) => {
@@ -12,6 +23,8 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
         const showEdited = prefer === "edited" && hasEdit;
         const src = showEdited ? p.edited_url : p.url;
         const pending = p.status === "pending";
+        const n = counts[p.id] || 0;
+        const isLiked = likedSet.has(p.id);
         return (
           <figure key={p.id} className="card" style={{ margin: 0, background: C.white, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(28,38,64,.08)", opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
             <div style={{ position: "relative" }}>
@@ -25,6 +38,13 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
               )}
               {!p.kept && !pending && (
                 <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.belowThreshold")}</span>
+              )}
+              {onLike && !pending && (
+                <button type="button" onClick={() => onLike(p.id)} aria-label={t("react.heart")} aria-pressed={isLiked}
+                  style={{ position: "absolute", bottom: 8, right: 8, display: "flex", alignItems: "center", gap: 5, background: "rgba(28,38,64,.6)", border: "none", borderRadius: 999, padding: "5px 9px", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                  <Heart filled={isLiked} />
+                  {n > 0 && <span style={{ color: C.white, fontSize: 12, fontWeight: 700 }}>{n}</span>}
+                </button>
               )}
             </div>
             <figcaption style={{ padding: "8px 10px", fontSize: 11, color: C.second, display: "flex", justifyContent: "space-between" }}>

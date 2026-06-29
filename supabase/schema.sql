@@ -118,3 +118,39 @@ alter table photos add column if not exists has_minors boolean not null default 
 alter table events add column if not exists moderation_mode text not null default 'off'; -- off | review
 alter table events add column if not exists protect_minors boolean not null default true;-- hold child-flagged photos for review
 create index if not exists idx_photos_status on photos(status);
+
+-- ============================================================
+-- HALO V2 — Phase 2: engagement (reactions, moment, recurring QR, connect CTA)
+-- Additive + idempotent.
+-- ============================================================
+-- Reactions (hearts). One per device per photo (enforced by unique constraint).
+create table if not exists reactions (
+  id          uuid primary key default gen_random_uuid(),
+  photo_id    uuid not null references photos(id) on delete cascade,
+  event_id    uuid not null references events(id) on delete cascade,
+  device_id   text not null,
+  created_at  timestamptz not null default now(),
+  unique (photo_id, device_id)
+);
+create index if not exists idx_reactions_event on reactions(event_id);
+create index if not exists idx_reactions_photo on reactions(photo_id);
+
+alter table reactions enable row level security;
+drop policy if exists "read reactions" on reactions;
+create policy "read reactions" on reactions for select using (true);
+drop policy if exists "create reaction" on reactions;
+create policy "create reaction" on reactions for insert with check (true);
+
+-- Moment of the service (admin-pinned, or auto top-hearted)
+alter table events add column if not exists featured_photo_id uuid references photos(id) on delete set null;
+
+-- Recurring service: one persistent QR/code, archived weekly sessions
+alter table events add column if not exists is_recurring boolean not null default false;
+alter table events add column if not exists current_session text;   -- e.g. '2026-06-28'; null = single session
+alter table photos add column if not exists session_label text;     -- which session the upload belongs to
+create index if not exists idx_photos_session on photos(session_label);
+
+-- "Connect" call-to-action shown after upload
+alter table events add column if not exists connect_label text;
+alter table events add column if not exists connect_label_es text;
+alter table events add column if not exists connect_url text;
