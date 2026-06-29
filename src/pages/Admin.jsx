@@ -403,6 +403,7 @@ function EventDetail({ event, token, back }) {
   const kept = photos.filter((p) => p.kept);
   const rejected = photos.filter((p) => !p.kept);
   const pending = photos.filter((p) => p.status === "pending");
+  const dupCount = photos.filter((p) => p.is_burst_dup).length;
   const editedCount = photos.filter((p) => p.edited_url).length;
   const sessions = Array.from(new Set(photos.map((p) => p.session_label).filter(Boolean)));
   const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter));
@@ -537,7 +538,7 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>{t("admin.collection")}</h3>
-              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}</div>
+              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` · ${dupCount} ${t("admin.duplicates")}` : ""}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {sessions.length > 0 && (
@@ -594,6 +595,8 @@ function EventDetail({ event, token, back }) {
                     )}
                     {statusLabel ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
+                    ) : p.is_burst_dup ? (
+                      <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
                     ) : !selectMode && (
                       <button onClick={(e) => { e.stopPropagation(); isFeatured ? clearMoment() : pinMoment(p.id); }} title={t("admin.pinMoment")}
                         style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(28,38,64,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>

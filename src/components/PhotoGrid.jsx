@@ -36,7 +36,10 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
               {pending && (
                 <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: 0.5 }}>{t("grid.pending")}</span>
               )}
-              {!p.kept && !pending && (
+              {p.is_burst_dup && !pending && (
+                <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.duplicate")}</span>
+              )}
+              {!p.kept && !pending && !p.is_burst_dup && (
                 <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.belowThreshold")}</span>
               )}
               {onLike && !pending && (

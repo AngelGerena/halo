@@ -154,3 +154,11 @@ create index if not exists idx_photos_session on photos(session_label);
 alter table events add column if not exists connect_label text;
 alter table events add column if not exists connect_label_es text;
 alter table events add column if not exists connect_url text;
+
+-- ============================================================
+-- HALO V2 — Phase 3a: smarter curation (noise-aware score + best-of-burst)
+-- Additive + idempotent.
+-- ============================================================
+alter table photos add column if not exists phash text;                         -- perceptual hash (dHash) for burst dedup
+alter table photos add column if not exists is_burst_dup boolean not null default false; -- near-duplicate of a kept shot
+create index if not exists idx_photos_phash on photos(phash);

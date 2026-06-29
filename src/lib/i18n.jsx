@@ -214,6 +214,10 @@ const STRINGS = {
   "admin.saving": { en: "Saving\u2026", es: "Guardando\u2026" },
   "admin.saved": { en: "Saved", es: "Guardado" },
   "admin.saveFailed": { en: "Could not save settings", es: "No se pudieron guardar los ajustes" },
+  // ---- V2 Phase 3a: smarter curation ----
+  "grid.duplicate": { en: "Duplicate", es: "Duplicada" },
+  "admin.duplicateBadge": { en: "Duplicate", es: "Duplicada" },
+  "admin.duplicates": { en: "duplicates", es: "duplicadas" },
 };
 
 const LANG_KEY = "halo_lang";

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
-import { scoreImage, C } from "../lib/score.js";
+import { scoreImage, C, hamming } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
@@ -22,6 +22,7 @@ export default function EventPage() {
   const [showAll, setShowAll] = useState(false);
   const [kidsInFrame, setKidsInFrame] = useState(false); // V2 consent: children in these photos
   const inputRef = useRef(null);
+  const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
   useEffect(() => {
@@ -82,7 +83,16 @@ export default function EventPage() {
     for (const f of files) {
       try {
         const s = await scoreImage(f);
-        const kept = s.quality >= (event.keep_threshold ?? 45);
+        // Best-of-burst: if this shot near-matches an already-kept one this session,
+        // and the earlier one is at least as good, file it as a duplicate (not kept).
+        let isBurstDup = false;
+        if (s.phash) {
+          for (const h of burstRef.current) {
+            if (hamming(h.phash, s.phash) <= 10 && h.quality >= s.quality) { isBurstDup = true; break; }
+          }
+        }
+        const kept = !isBurstDup && s.quality >= (event.keep_threshold ?? 45);
+        if (kept && s.phash) burstRef.current.push({ phash: s.phash, quality: s.quality });
         const path = `${event.id}/${contributor.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
         const up = await supabase.storage.from("halo").upload(path, f, { contentType: f.type, upsert: false });
         if (up.error) throw up.error;
@@ -95,6 +105,8 @@ export default function EventPage() {
           has_minors: kidsInFrame,
           status: initialStatus,
           session_label: sessionLabel,
+          phash: s.phash,
+          is_burst_dup: isBurstDup,
         }).select().single();
         if (error) throw error;
         setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
