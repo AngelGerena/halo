@@ -153,7 +153,7 @@ export default function SlideshowPage() {
       )}
       <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />
 
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(28,38,64,.55) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(11,20,38,.6) 100%)", pointerEvents: "none" }} />
 
       {/* Moment of the Service ribbon */}
       {isMoment && (
@@ -217,7 +217,7 @@ function Frame({ src, fading, variant = 0 }) {
 
 function Stage({ children, ...rest }) {
   return (
-    <div {...rest} style={{ position: "fixed", inset: 0, background: "#0d1426", overflow: "hidden", cursor: "default" }}>
+    <div {...rest} style={{ position: "fixed", inset: 0, background: C.inkDeep, overflow: "hidden", cursor: "default" }}>
       {children}
     </div>
   );

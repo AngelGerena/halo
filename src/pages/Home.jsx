@@ -37,7 +37,7 @@ export default function Home() {
 
 function Feature({ n, d }) {
   return (
-    <div style={{ background: C.white, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(28,38,64,.08)" }}>
+    <div style={{ background: C.white, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(22,41,76,.08)" }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, textTransform: "uppercase", letterSpacing: 1.5 }}>{n}</div>
       <div style={{ fontSize: 13, color: C.text, marginTop: 4 }}>{d}</div>
     </div>

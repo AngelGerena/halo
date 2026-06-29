@@ -26,7 +26,7 @@ export function LangToggle() {
 export function Header({ right }) {
   const { t } = useI18n();
   return (
-    <header style={{ background: C.ink, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <header style={{ background: C.headerGrad, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
         <HaloMark />
         <div>
@@ -44,7 +44,7 @@ export function Header({ right }) {
 
 export function Stat({ label, value, gold }) {
   return (
-    <div style={{ flex: 1, background: C.white, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(28,38,64,.08)" }}>
+    <div style={{ flex: 1, background: C.white, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(22,41,76,.08)" }}>
       <div className="serif" style={{ fontSize: 30, fontWeight: 700, color: gold ? C.gold : C.ink, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 12, color: C.second, textTransform: "uppercase", letterSpacing: 1, marginTop: 4 }}>{label}</div>
     </div>

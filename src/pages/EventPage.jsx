@@ -158,17 +158,17 @@ export default function EventPage() {
           <h1 className="serif" style={{ fontSize: 44, color: C.ink, margin: "14px 0 6px", lineHeight: 1.06 }}>{ev(event, "name")}</h1>
           <p style={{ color: C.second, margin: 0 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
 
-          <div style={{ background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 24, textAlign: "left", marginTop: 24 }}>
+          <div style={{ background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 24, textAlign: "left", marginTop: 24 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{t("event.yourName")}</label>
             <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("event.yourName.help")}</p>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")}
               onKeyDown={(e) => e.key === "Enter" && startSession()}
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginBottom: 14 }} />
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginBottom: 14 }} />
             <label style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{t("event.email")} <span style={{ color: C.second, fontWeight: 400 }}>{t("event.optional")}</span></label>
             <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("event.email.help")}</p>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com"
               onKeyDown={(e) => e.key === "Enter" && startSession()}
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginBottom: 14 }} />
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginBottom: 14 }} />
             <button onClick={startSession} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15 }}>{t("event.start")}</button>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function EventPage() {
           type="button"
           onClick={() => setKidsInFrame((v) => !v)}
           aria-pressed={kidsInFrame}
-          style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: kidsInFrame ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${kidsInFrame ? C.gold : "rgba(28,38,64,.15)"}`, borderRadius: 12, padding: "12px 14px", margin: "4px 0 14px" }}>
+          style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: kidsInFrame ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${kidsInFrame ? C.gold : "rgba(22,41,76,.15)"}`, borderRadius: 12, padding: "12px 14px", margin: "4px 0 14px" }}>
           <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 14, fontWeight: 700 }}>{kidsInFrame ? "✓" : ""}</span>
           <span>
             <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.ink }}>{t("up.kidsToggle")}</span>

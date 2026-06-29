@@ -1,11 +1,14 @@
 // HALO brand tokens (Finesse OS design language)
 export const C = {
-  ink: "#1C2640",
-  gold: "#C5A44B",
-  bg: "#F2ECE4",
-  second: "#6B8CAE",
-  text: "#3A3530",
+  ink: "#16294C",        // church navy
+  gold: "#C9A24B",       // church gold
+  goldLight: "#E6C879",  // highlight gold (gradients, accents on navy)
+  inkDeep: "#0E1B36",    // deepest navy (slideshow / gradient base)
+  bg: "#F6F1E8",         // warm ivory
+  second: "#5E6E8C",     // navy-grey (secondary text)
+  text: "#3A3A42",
   white: "#ffffff",
+  headerGrad: "linear-gradient(120deg, #0E1B36, #1E3461 60%, #2A4A6E)", // flame-inspired header
 };
 
 // ---- helpers ----

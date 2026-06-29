@@ -50,13 +50,13 @@ function Gate({ onAuth, verify }) {
     if (ok) onAuth(pass); else setErr(t("admin.incorrect"));
   }
   return (
-    <div style={{ maxWidth: 380, margin: "40px auto 0", background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 26 }}>
+    <div style={{ maxWidth: 380, margin: "40px auto 0", background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 26 }}>
       <div style={{ display: "inline-flex", padding: "5px 12px", borderRadius: 999, background: C.ink, color: C.gold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>{t("admin.super")}</div>
       <h2 className="serif" style={{ fontSize: 28, color: C.ink, margin: "12px 0 4px" }}>{t("admin.enterPasscode")}</h2>
       <p style={{ fontSize: 13, color: C.second, marginTop: 0 }}>{t("admin.passcode.help")}</p>
       <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("admin.passcode")}
         onKeyDown={(e) => e.key === "Enter" && submit()}
-        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginBottom: 10 }} />
+        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginBottom: 10 }} />
       {err && <div style={{ color: "#b3261e", fontSize: 13, marginBottom: 10 }}>{err}</div>}
       <button onClick={submit} disabled={busy} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.checking2") : t("admin.unlock")}</button>
     </div>
@@ -97,7 +97,7 @@ function Dashboard({ token, onLogout }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14, marginTop: 22 }}>
           {events.map((e) => (
             <button key={e.id} onClick={() => setSelected(e)} className="card"
-              style={{ textAlign: "left", background: C.white, border: "1px solid rgba(28,38,64,.08)", borderRadius: 14, padding: 18 }}>
+              style={{ textAlign: "left", background: C.white, border: "1px solid rgba(22,41,76,.08)", borderRadius: 14, padding: 18 }}>
               <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " · ↻" : ""}</div>
               <div className="serif" style={{ fontSize: 22, color: C.ink, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
               <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" · ")}</div>
@@ -112,7 +112,7 @@ function Dashboard({ token, onLogout }) {
 function Toggle({ on, onClick, title, help }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${on ? C.gold : "rgba(28,38,64,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
+      style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${on ? C.gold : "rgba(22,41,76,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
       <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 14, fontWeight: 700 }}>{on ? "✓" : ""}</span>
       <span>
         <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.ink }}>{title}</span>
@@ -188,12 +188,12 @@ function CreateEvent({ token, onCreated }) {
     return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
   }
 
-  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginTop: 4 };
+  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginTop: 4 };
   const lab = { fontSize: 12, fontWeight: 600, color: C.ink };
   const hasEnglish = name.trim() || host.trim() || date.trim();
 
   return (
-    <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 22 }}>
+    <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 22 }}>
       <h3 className="serif" style={{ fontSize: 22, color: C.ink, margin: "0 0 12px" }}>{t("admin.newEvent")}</h3>
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
         <div style={{ gridColumn: "1 / -1" }}>
@@ -206,7 +206,7 @@ function CreateEvent({ token, onCreated }) {
         <div><label style={lab}>{t("admin.keepThreshold")} ({threshold})</label><input type="range" min="0" max="80" value={threshold} onChange={(e) => setThreshold(e.target.value)} style={{ width: "100%", marginTop: 10 }} /></div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 10 }}>{t("admin.safety")}</div>
         <div style={{ display: "grid", gap: 10 }}>
           <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
@@ -214,7 +214,7 @@ function CreateEvent({ token, onCreated }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.spanishVersion")}</div>
           <button onClick={autoTranslate} disabled={translating || !hasEnglish}
@@ -291,7 +291,7 @@ function EventDetail({ event, token, back }) {
   }
 
   useEffect(() => {
-    QRCode.toDataURL(eventUrl, { width: 320, margin: 1, color: { dark: "#1C2640", light: "#ffffff" } }).then(setQr);
+    QRCode.toDataURL(eventUrl, { width: 320, margin: 1, color: { dark: "#16294C", light: "#ffffff" } }).then(setQr);
     (async () => {
       const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
         supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
@@ -460,7 +460,7 @@ function EventDetail({ event, token, back }) {
   const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter) && (tagFilter === "all" || (p.tags || []).includes(tagFilter)));
   const featured = photos.find((p) => p.id === featuredId);
 
-  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(28,38,64,.2)", marginTop: 4 };
+  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginTop: 4 };
   const slab = { fontSize: 12, fontWeight: 600, color: C.ink };
 
   return (
@@ -470,7 +470,7 @@ function EventDetail({ event, token, back }) {
         <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.ink : "transparent", color: settingsOpen ? C.bg : C.ink, border: `1px solid ${C.ink}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.white, border: "1px solid rgba(28,38,64,.1)", borderRadius: 16, padding: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
           {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10 }} />}
           <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center" }}>
@@ -503,7 +503,7 @@ function EventDetail({ event, token, back }) {
 
       {/* V2 Settings panel: recurring sessions + connect CTA */}
       {settingsOpen && (
-        <div style={{ marginTop: 16, background: C.white, border: "1px solid rgba(28,38,64,.12)", borderRadius: 16, padding: 20 }}>
+        <div style={{ marginTop: 16, background: C.white, border: "1px solid rgba(22,41,76,.12)", borderRadius: 16, padding: 20 }}>
           <h3 className="serif" style={{ fontSize: 20, color: C.ink, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
           <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
           {isRecurring && (
@@ -513,7 +513,7 @@ function EventDetail({ event, token, back }) {
             </div>
           )}
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(28,38,64,.1)" }}>
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.connectCta")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.connectHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
@@ -532,7 +532,7 @@ function EventDetail({ event, token, back }) {
 
       {/* V2 Moment of the service strip */}
       {photos.length > 0 && (
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.white, border: `1px solid ${featured ? C.gold : "rgba(28,38,64,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.white, border: `1px solid ${featured ? C.gold : "rgba(22,41,76,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.moment")}</span>
           {featured ? (
             <>
@@ -623,7 +623,7 @@ function EventDetail({ event, token, back }) {
           </div>
 
           {selectMode && (
-            <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(28,38,64,.12)`, borderRadius: 12 }}>
+            <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(22,41,76,.12)`, borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -649,7 +649,7 @@ function EventDetail({ event, token, back }) {
               const n = counts[p.id] || 0;
               return (
                 <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
-                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(28,38,64,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
+                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(22,41,76,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
                     <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
                     <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
@@ -657,15 +657,15 @@ function EventDetail({ event, token, back }) {
                       <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
                     )}
                     {version === "edited" && !p.edited_url && (
-                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(28,38,64,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(22,41,76,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
                     )}
                     {statusLabel ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
                     ) : p.is_burst_dup ? (
-                      <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(28,38,64,.85)", color: C.bg, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
+                      <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(22,41,76,.85)", color: C.bg, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
                     ) : !selectMode && (
                       <button onClick={(e) => { e.stopPropagation(); isFeatured ? clearMoment() : pinMoment(p.id); }} title={t("admin.pinMoment")}
-                        style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(28,38,64,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                        style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(22,41,76,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>
                         {isFeatured ? "★" : "☆"}{n > 0 ? ` ${n}` : ""}
                       </button>
                     )}
@@ -679,7 +679,7 @@ function EventDetail({ event, token, back }) {
                     {(p.tags || []).length > 0 && (
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                         {p.tags.map((tg) => (
-                          <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(28,38,64,.08)", color: C.ink, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
+                          <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(22,41,76,.08)", color: C.ink, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
                             {t("tag." + tg)}<span onClick={(e) => { e.stopPropagation(); tagPhotos([p.id], tg, "remove"); }} aria-label={t("admin.removeTag")} style={{ cursor: "pointer", color: C.second }}>×</span>
                           </span>
                         ))}
