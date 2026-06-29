@@ -89,7 +89,7 @@ export default function Home() {
       <Header right={<button onClick={scrollToForm} style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 600 }}>{t.early}</button>} />
 
       {/* HERO */}
-      <div style={{ background: C.headerGrad, color: C.bg, padding: "54px 24px 76px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(125deg, rgba(14,27,54,.77), rgba(27,52,100,.77) 55%, rgba(38,70,112,.77)), url('/halo-hero.jpg') center/cover no-repeat", color: C.bg, padding: "64px 24px 88px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 340, height: 340, background: "radial-gradient(circle, rgba(230,200,121,.20), transparent 62%)", pointerEvents: "none" }} />
         <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.inkDeep, background: C.goldLight, padding: "6px 16px", borderRadius: 999 }}>{t.cs}</span>
         <h1 className="serif" style={{ fontSize: 54, lineHeight: 1.04, margin: "20px 0 12px", fontWeight: 700 }}>{t.h1}</h1>
