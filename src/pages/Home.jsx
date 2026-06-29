@@ -9,7 +9,7 @@ export default function Home() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header />
       <main className="wrap" style={{ flex: 1, textAlign: "center", maxWidth: 620 }}>
-        <div style={{ margin: "30px auto 0", display: "inline-flex" }}><HaloMark size={64} /></div>
+        <div style={{ margin: "30px auto 10px", display: "inline-flex" }}><img src="/halo-logo.png" alt="HALO" style={{ height: 72, width: "auto" }} /></div>
         <h1 className="serif" style={{ fontSize: 52, color: C.ink, margin: "18px 0 8px", lineHeight: 1.04 }}>
           {t("home.title")}
         </h1>

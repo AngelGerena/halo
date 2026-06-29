@@ -28,11 +28,8 @@ export function Header({ right }) {
   return (
     <header style={{ background: C.headerGrad, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
-        <HaloMark />
-        <div>
-          <div className="serif" style={{ color: C.bg, fontSize: 26, fontWeight: 700, letterSpacing: 1, lineHeight: 1 }}>HALO</div>
-          <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>{t("brand.tagline")}</div>
-        </div>
+        <img src="/halo-logo.png" alt="HALO" style={{ height: 40, width: "auto", display: "block" }} />
+        <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", alignSelf: "center" }}>{t("brand.tagline")}</div>
       </a>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {right}
