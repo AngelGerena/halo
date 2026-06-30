@@ -4,13 +4,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}:root{color-scheme:light;--ink:#16294C;--deep:#0E1B36;--gold:#C9A24B;--gl:#E6C879;--bg:#F6F1E8;--sec:#5E6E8C;--grad:linear-gradient(125deg,#0E1B36,#1E3461 58%,#2A4A6E)}
+html,body{max-width:100%;overflow-x:hidden}
 body{font-family:Manrope,sans-serif;color:var(--ink);background:var(--bg)}
 .serif{font-family:'Cormorant Garamond',serif}
-.bar{background:var(--grad);padding:15px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
-.brand{display:flex;align-items:center;gap:12px;color:#F4EEDF}
+.bar{background:var(--grad);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:20;max-width:100%}
+.brand{display:flex;align-items:center;gap:10px;color:#F4EEDF;min-width:0}
 .ring{width:32px;height:32px;border-radius:50%;border:2.5px solid var(--gl);position:relative}.ring:after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--gl);opacity:.3}
 .logo{font:700 23px Manrope;letter-spacing:1px}.tagm{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--gl)}
-.nav{display:flex;align-items:center;gap:14px}
+.nav{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.tg{flex-shrink:0}
 .tg{display:inline-flex;border:1px solid rgba(244,238,223,.3);border-radius:999px;overflow:hidden;font:700 10px Manrope;color:#F4EEDF}.tg span{padding:5px 10px;cursor:pointer}.tg .on{background:var(--gold);color:var(--ink)}
 .navbtn{background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:9px 16px;font:600 12px Manrope;cursor:pointer}
 .hero{background:var(--grad);color:#F4EEDF;padding:54px 28px 78px;text-align:center;position:relative;overflow:hidden}
@@ -54,6 +56,13 @@ body{font-family:Manrope,sans-serif;color:var(--ink);background:var(--bg)}
 .sbm{background:var(--gold);color:var(--ink);border:0;border-radius:12px;padding:14px;font:600 15px Manrope;cursor:pointer}
 .priv{text-align:center;font-size:11px;color:#8ea0c1;margin-top:12px}
 .foot{text-align:center;color:var(--sec);font-size:12px;padding:26px;border-top:1px solid rgba(22,41,76,.08)}
+@media(max-width:560px){
+  .bar{padding:12px 14px;gap:8px}
+  .tagm{display:none}
+  .logo{font-size:20px}
+  .nav .navbtn{display:none}
+  .nav{gap:8px}
+}
 </style></head>
 <body>
 <div class="bar"><div class="brand"><div class="ring"></div><div><div class="logo">HALO</div><div class="tagm" data-i="tag">Holy moments, auto-curated</div></div></div>
