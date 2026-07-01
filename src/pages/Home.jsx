@@ -109,7 +109,7 @@ export default function Home() {
           <p style={{ color: C.second, maxWidth: 560, margin: "0 auto 36px", fontSize: 15 }}>{t.bl}</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 18 }}>
             {[[t.s1t, t.s1p], [t.s2t, t.s2p], [t.s3t, t.s3p]].map((s, i) => (
-              <div key={i} className="card" style={{ background: C.white, border: "1px solid rgba(22,41,76,.08)", borderRadius: 18, padding: "24px 20px", boxShadow: "0 10px 30px rgba(22,41,76,.06)", position: "relative", textAlign: "left" }}>
+              <div key={i} className="card" style={{ background: C.white, border: "1px solid rgba(22,41,76,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 16, padding: "26px 22px", boxShadow: "0 14px 34px rgba(22,41,76,.12)", position: "relative", textAlign: "left" }}>
                 <div style={{ position: "absolute", top: 14, right: 18, fontFamily: "'Cormorant Garamond',serif", fontSize: 42, fontWeight: 700, color: "rgba(201,162,75,.28)" }}>{i + 1}</div>
                 <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: "0 0 5px" }}>{s[0]}</h3>
                 <p style={{ color: C.second, fontSize: 14, lineHeight: 1.5, margin: 0 }}>{s[1]}</p>
@@ -125,7 +125,7 @@ export default function Home() {
           <p style={{ color: C.second, maxWidth: 580, margin: "0 auto 36px", fontSize: 15 }}>{t.pl}</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 16, alignItems: "stretch" }}>
             {t.tiers.map((tier, i) => (
-              <div key={i} style={{ background: C.white, border: tier.feat ? `2px solid ${C.gold}` : "1px solid rgba(22,41,76,.1)", borderRadius: 18, padding: "24px 20px", position: "relative", textAlign: "left", boxShadow: tier.feat ? "0 16px 40px rgba(201,162,75,.16)" : "none", display: "flex", flexDirection: "column" }}>
+              <div key={i} style={{ background: C.white, border: tier.feat ? `2px solid ${C.gold}` : "1px solid rgba(22,41,76,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 16, padding: "26px 22px", position: "relative", textAlign: "left", boxShadow: tier.feat ? "0 18px 44px rgba(201,162,75,.20)" : "0 12px 30px rgba(22,41,76,.10)", display: "flex", flexDirection: "column" }}>
                 {tier.feat && <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "5px 12px", borderRadius: 999, whiteSpace: "nowrap" }}>{t.popular}</span>}
                 <span style={{ alignSelf: "flex-start", fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: C.second, background: "rgba(22,41,76,.07)", padding: "3px 9px", borderRadius: 999, marginBottom: 10 }}>{t.cs}</span>
                 <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>{tier.n}</h3>
