@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 
 const STRINGS = {
   // header / brand
-  "brand.tagline": { en: "Holy moments, auto-curated", es: "Momentos sagrados, curados automáticamente" },
+  "brand.tagline": { en: "Every moment, beautifully gathered", es: "Cada momento, bellamente reunido" },
   "nav.myGallery": { en: "My Gallery", es: "Mi Galería" },
   "nav.admin": { en: "Admin", es: "Administrador" },
   "footer.scripture": { en: '"For I know the plans I have for you" — Jeremiah 29:11', es: '"Porque yo sé los planes que tengo para ustedes" — Jeremías 29:11' },
@@ -238,6 +238,37 @@ const STRINGS = {
   "admin.deleteEventMismatch": { en: "Code did not match \u2014 nothing was deleted.", es: "El c\u00f3digo no coincide \u2014 no se elimin\u00f3 nada." },
   "admin.deletingEvent": { en: "Deleting event\u2026", es: "Eliminando evento\u2026" },
   "admin.deleteEventFailed": { en: "Could not delete the event", es: "No se pudo eliminar el evento" },
+  // ---- Landing hero carousel (admin) ----
+  "admin.heroManage": { en: "Landing hero images", es: "Im\u00e1genes del hero de inicio" },
+  "admin.heroHelp": { en: "Upload images for the homepage hero carousel. Active images rotate in order.", es: "Sube im\u00e1genes para el carrusel del hero. Las activas rotan en orden." },
+  "admin.heroUpload": { en: "Upload images", es: "Subir im\u00e1genes" },
+  "admin.heroUploading": { en: "Uploading\u2026", es: "Subiendo\u2026" },
+  "admin.heroEmpty": { en: "No hero images yet — the default image is shown.", es: "A\u00fan no hay im\u00e1genes — se muestra la predeterminada." },
+  "admin.heroActive": { en: "Active", es: "Activa" },
+  // ---- Event type + slideshow music ----
+  "admin.category": { en: "Event type", es: "Tipo de evento" },
+  "cat.wedding": { en: "Wedding", es: "Boda" },
+  "cat.quinceanera": { en: "Quincea\u00f1era", es: "Quincea\u00f1era" },
+  "cat.church": { en: "Church service", es: "Servicio de iglesia" },
+  "cat.corporate": { en: "Corporate", es: "Corporativo" },
+  "cat.gala": { en: "Gala / Fundraiser", es: "Gala / Recaudaci\u00f3n" },
+  "cat.other": { en: "Other", es: "Otro" },
+  "admin.music": { en: "Slideshow music", es: "M\u00fasica de la presentaci\u00f3n" },
+  "admin.musicHelp": { en: "Plays on the live slideshow. Auto matches your event type, or pick a track. Upload your own only if you have the rights.", es: "Se reproduce en la presentaci\u00f3n en vivo. Coincide autom\u00e1ticamente con tu tipo de evento, o elige una pista. Sube la tuya solo si tienes los derechos." },
+  "admin.musicAuto": { en: "Auto (match event type)", es: "Autom\u00e1tico (seg\u00fan el tipo)" },
+  "admin.musicNone": { en: "No music", es: "Sin m\u00fasica" },
+  "admin.musicUpload": { en: "Upload your own track", es: "Sube tu propia pista" },
+  "admin.musicUploading": { en: "Uploading\u2026", es: "Subiendo\u2026" },
+  "admin.musicCustom": { en: "Custom track uploaded", es: "Pista personalizada subida" },
+  "music.elegant": { en: "Elegant", es: "Elegante" },
+  "music.uplifting": { en: "Uplifting", es: "Alegre" },
+  "music.worship": { en: "Worshipful", es: "Adoraci\u00f3n" },
+  "live.musicOn": { en: "Music on", es: "M\u00fasica activada" },
+  "live.musicOff": { en: "Music off", es: "M\u00fasica desactivada" },
+  // ---- Rights acknowledgment + legal ----
+  "admin.musicRights": { en: "I confirm I own or have the rights to use this track, and I take responsibility for its use.", es: "Confirmo que poseo o tengo los derechos para usar esta pista y asumo la responsabilidad de su uso." },
+  "admin.musicRightsNeeded": { en: "Check the box above to upload your own track.", es: "Marca la casilla de arriba para subir tu propia pista." },
+  "footer.legal": { en: "Terms & Privacy", es: "T\u00e9rminos y Privacidad" },
 };
 
 const LANG_KEY = "halo_lang";

@@ -5,6 +5,16 @@ import { C } from "../lib/score.js";
 import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
 
+// Slideshow music: explicit choice wins; otherwise auto-match by event type.
+const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/uplifting.mp3", church: "/music/worship.mp3", corporate: "/music/uplifting.mp3", gala: "/music/elegant.mp3", other: "/music/elegant.mp3" };
+function resolveMusic(ev) {
+  if (!ev) return null;
+  const m = ev.music_url;
+  if (m === "none") return null;
+  if (m) return (m.startsWith("/") || m.startsWith("http")) ? m : publicUrl(m);
+  return CAT_MUSIC[ev.category] || null;
+}
+
 // HALO Live — a projector-ready slideshow of approved, kept photos.
 // Auto-advances with a slow Ken Burns drift, cross-fades between shots,
 // polls for new uploads, shows live heart counts, and spotlights the
@@ -24,6 +34,8 @@ export default function SlideshowPage() {
   const seen = useRef(new Set());
   const chromeTimer = useRef(null);
   const eventRef = useRef(null);
+  const audioRef = useRef(null);
+  const [musicOn, setMusicOn] = useState(false);
 
   const HOLD = 6500; // ms per photo
 
@@ -95,6 +107,13 @@ export default function SlideshowPage() {
     });
   }
 
+  function toggleMusic() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (musicOn) { a.pause(); setMusicOn(false); }
+    else { a.volume = 0.6; a.play().then(() => setMusicOn(true)).catch(() => {}); }
+  }
+
   async function likeCurrent() {
     const cur = photos[idx];
     if (!cur || !event || liked.has(cur.id)) return;
@@ -142,12 +161,14 @@ export default function SlideshowPage() {
 
   const cur = photos[idx];
   const prev = prevIdx != null ? photos[prevIdx] : null;
+  const musicSrc = resolveMusic(event);
   const isMoment = event && event.featured_photo_id && cur.id === event.featured_photo_id;
   const curCount = counts[cur.id] || 0;
   const curLiked = liked.has(cur.id);
 
   return (
     <Stage onMouseMove={wake} onClick={wake}>
+      {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
         <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading />
       )}
@@ -182,6 +203,7 @@ export default function SlideshowPage() {
               </svg>
               {curCount > 0 && <span>{curCount}</span>}
             </button>
+{musicSrc && <Ctrl onClick={toggleMusic}>{musicOn ? t("live.musicOff") : t("live.musicOn")}</Ctrl>}
             <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? t("live.play") : t("live.pause")}</Ctrl>
             <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>
           </div>

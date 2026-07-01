@@ -171,3 +171,46 @@ alter table photos add column if not exists crops jsonb;                        
 alter table photos add column if not exists auto_flagged boolean not null default false; -- in-browser model flagged as explicit
 alter table photos add column if not exists tags text[] not null default '{}';    -- worship | baptism | kids | fellowship
 create index if not exists idx_photos_tags on photos using gin (tags);
+
+-- ============================================================
+-- HALO — Early-access leads (marketing waitlist)
+-- Written only by the request-access function (service role).
+-- ============================================================
+create table if not exists leads (
+  id          uuid primary key default gen_random_uuid(),
+  church      text,
+  name        text,
+  email       text,
+  size        text,
+  event_type  text,
+  budget      text,
+  created_at  timestamptz not null default now()
+);
+alter table leads enable row level security;  -- no anon policies: only service role can read/write
+
+-- ============================================================
+-- HALO — Landing hero carousel images (admin-managed)
+-- Public can read active images; only the service-role function writes.
+-- ============================================================
+create table if not exists hero_images (
+  id           uuid primary key default gen_random_uuid(),
+  storage_path text not null,
+  sort         int not null default 0,
+  active       boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+alter table hero_images enable row level security;
+drop policy if exists "read hero" on hero_images;
+create policy "read hero" on hero_images for select using (true);
+
+-- ============================================================
+-- HALO — Event type + slideshow music
+-- ============================================================
+alter table events add column if not exists category text;   -- wedding | quinceanera | church | corporate | gala | other
+alter table events add column if not exists music_url text;  -- null=auto by type, "none"=off, "/music/x.mp3"=preset, or storage path=upload
+
+-- ============================================================
+-- HALO — Music/content rights acknowledgment (paper trail)
+-- ============================================================
+alter table events add column if not exists music_rights_ack boolean not null default false;
+alter table events add column if not exists music_rights_ack_at timestamptz;

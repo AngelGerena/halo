@@ -9,6 +9,7 @@ import EventPage from "./pages/EventPage.jsx";
 import GalleryPage from "./pages/GalleryPage.jsx";
 import Admin from "./pages/Admin.jsx";
 import SlideshowPage from "./pages/SlideshowPage.jsx";
+import Legal from "./pages/Legal.jsx";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/g/:contributorId" element={<GalleryPage />} />
           <Route path="/live/:code" element={<SlideshowPage />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/legal" element={<Legal />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -10,7 +10,7 @@ export async function handler(event) {
   const {
     passcode, name, host, event_date, code, keep_threshold,
     name_es, host_es, event_date_es,
-    moderation_mode, protect_minors,
+    moderation_mode, protect_minors, category, music_url,
   } = body;
 
   if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
@@ -29,6 +29,8 @@ export async function handler(event) {
     keep_threshold: Number.isFinite(keep_threshold) ? keep_threshold : 45,
     moderation_mode: moderation_mode === "review" ? "review" : "off",
     protect_minors: protect_minors !== false,
+    category: category || null,
+    music_url: music_url || null,
   }).select().single();
 
   if (error) {

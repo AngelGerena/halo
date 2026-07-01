@@ -2,7 +2,7 @@
 // mirroring the other admin functions so the public bundle can never write events.
 import { createClient } from "@supabase/supabase-js";
 
-const ALLOWED = ["featured_photo_id", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url"];
+const ALLOWED = ["featured_photo_id", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "music_url", "music_rights_ack", "music_rights_ack_at"];
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };

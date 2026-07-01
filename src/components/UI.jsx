@@ -74,7 +74,7 @@ export function Footer({ code }) {
   const { t } = useI18n();
   return (
     <footer style={{ textAlign: "center", padding: 20, color: C.second, fontSize: 12 }}>
-      HALO by Finesse Media{code ? ` · ${code}` : ""} · {t("footer.scripture")}
+      HALO by Finesse Media{code ? ` · ${code}` : ""} · {t("footer.scripture")} · <a href="/legal" style={{ color: C.second }}>{t("footer.legal")}</a>
     </footer>
   );
 }

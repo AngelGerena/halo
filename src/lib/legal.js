@@ -1,0 +1,43 @@
+// HALO legal content — STARTER DRAFTS for attorney review. Bracketed items are placeholders.
+export const LEGAL = [
+  { id: "terms", title: "Terms of Service", body: [
+    "Effective date: [Month DD, 2026]. These Terms govern your use of HALO, a photo-gathering and event gallery service operated by [Finesse Media LLC] (\"HALO\", \"we\", \"us\").",
+    "1. Acceptance. By using HALO — creating an event, uploading photos or audio, or viewing a gallery — you agree to these Terms, the Acceptable Use Policy, and the Privacy Policy. If you do not agree, do not use the service.",
+    "2. The service. HALO lets hosts create events, collect photos from guests via a QR code, auto-curate and edit them, display a live slideshow, and share galleries. Features and pricing may change.",
+    "3. Hosts. Event hosts and administrators are responsible for their events, their guests, the content collected, and the settings they choose (including music).",
+    "4. Your content & license. You and your guests retain ownership of the photos, audio, and other content you upload (\"User Content\"). You grant HALO a limited, non-exclusive license to host, process, display, and deliver that content solely to operate the service for your event. We do not sell your content.",
+    "5. Your responsibility & indemnification. You represent that you have all rights necessary to upload and use your User Content, including any music, and that it does not infringe any third party's rights. You agree to defend, indemnify, and hold harmless [Finesse Media LLC] and its owners from any claim, loss, or expense (including reasonable attorneys' fees) arising from your User Content or your use of the service.",
+    "6. Music. HALO's built-in music library is provided for use within the service. If you upload your own audio, you are solely responsible for confirming you hold the rights to it. Music played at events or attached to shareable videos may be muted or flagged by third-party platforms if it is not properly licensed.",
+    "7. Disclaimers. The service is provided \"as is\" without warranties of any kind. We do not guarantee uninterrupted or error-free operation, or that any photo will be captured, kept, or delivered.",
+    "8. Limitation of liability. To the maximum extent permitted by law, [Finesse Media LLC] will not be liable for indirect, incidental, or consequential damages, and our total liability will not exceed the amount you paid us in the three months before the claim.",
+    "9. Termination. We may suspend or terminate access for violations of these Terms or the Acceptable Use Policy.",
+    "10. Governing law. These Terms are governed by the laws of the State of [State], without regard to conflict-of-laws rules.",
+    "11. Changes. We may update these Terms; continued use after changes means acceptance.",
+    "Contact: [finessemediapro@gmail.com].",
+  ]},
+  { id: "aup", title: "Acceptable Use Policy", body: [
+    "When using HALO, you agree not to upload, share, or display content that:",
+    "- Infringes anyone's copyright, trademark, or other rights — including music, songs, or recordings you do not have a license to use.",
+    "- Is unlawful, defamatory, harassing, hateful, sexually explicit, or violent.",
+    "- Depicts or sexualizes minors, or violates any person's privacy or publicity rights.",
+    "- Contains malware or attempts to disrupt, overload, or gain unauthorized access to the service.",
+    "You are responsible for obtaining any consents needed to photograph and share images of attendees, and for extra care with images of children. We may remove content and suspend accounts that violate this policy, and we cooperate with valid legal requests.",
+  ]},
+  { id: "rights", title: "Music & Content Rights", body: [
+    "Library music. Tracks provided within HALO are intended for use inside the service for your event.",
+    "Your own uploads. If you upload audio or other content, you confirm you own it or hold a valid license for your intended use, and you accept responsibility for it. HALO records your acknowledgment when you upload.",
+    "Social sharing. Galleries or videos shared to platforms such as Instagram, YouTube, or Facebook are subject to those platforms' automated rights systems (e.g., Content ID). Unlicensed popular music may be muted, blocked, or result in a strike against your account. We recommend using only cleared or royalty-free music for anything you intend to post publicly.",
+    "Reporting. If you believe content on HALO infringes your rights, see the Copyright / DMCA section in our Privacy Policy for how to submit a notice.",
+  ]},
+  { id: "privacy", title: "Privacy Policy", body: [
+    "Effective date: [Month DD, 2026]. This describes how [Finesse Media LLC] handles information in HALO.",
+    "What we collect: (a) photos and audio you or your guests upload; (b) a name and optional email guests provide to receive their gallery; (c) event details a host enters; (d) basic technical and usage data; (e) early-access form submissions.",
+    "How we use it: to operate the service — curate and deliver galleries, run the live slideshow, email gallery links and updates through our email provider, and improve the product.",
+    "Children. Events may include images of minors. Hosts control a consent-first setting and review before anything is shown publicly, and are responsible for obtaining parental or guardian consent where required. We do not knowingly collect personal information directly from children.",
+    "Storage & processing. Content is stored with our infrastructure providers (including Supabase and Netlify) and email is sent via Resend, which process data on our behalf.",
+    "Sharing. We do not sell personal information. We share it only with service providers who help operate HALO, or when required by law.",
+    "Retention & deletion. Hosts can delete photos and entire events, which removes the associated files. Contact us to request deletion of your information.",
+    "Copyright / DMCA. We respond to valid notices under the Digital Millennium Copyright Act and terminate repeat infringers. To submit a notice, email our designated agent at [photos@icgg.us] with: your contact information, identification of the work, the location (URL) of the material, a good-faith-belief statement, a statement under penalty of perjury that the information is accurate and you are authorized to act, and your signature. (Registering a DMCA agent with the U.S. Copyright Office is recommended.)",
+    "Contact: [finessemediapro@gmail.com].",
+  ]},
+];

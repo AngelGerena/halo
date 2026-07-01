@@ -68,6 +68,9 @@ function Dashboard({ token, onLogout }) {
   const [events, setEvents] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [heroList, setHeroList] = useState([]);
+  const [heroOpen, setHeroOpen] = useState(false);
+  const [heroBusy, setHeroBusy] = useState(false);
 
   async function loadEvents() {
     const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
@@ -75,6 +78,45 @@ function Dashboard({ token, onLogout }) {
     setLoading(false);
   }
   useEffect(() => { loadEvents(); }, []);
+
+  async function loadHero() {
+    const { data } = await supabase.from("hero_images").select("*").order("sort", { ascending: true });
+    setHeroList(data || []);
+  }
+  useEffect(() => { loadHero(); }, []);
+
+  async function heroAction(body) {
+    const r = await fetch("/.netlify/functions/manage-hero", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: token, ...body }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Failed");
+    return j;
+  }
+  async function uploadHero(files) {
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    setHeroBusy(true);
+    try {
+      for (const f of list) {
+        const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
+        const up = await supabase.storage.from("halo").upload(path, f, { contentType: f.type, upsert: false });
+        if (up.error) throw up.error;
+        await heroAction({ action: "add", storage_path: path });
+      }
+      await loadHero();
+    } catch (e) { alert(e.message); } finally { setHeroBusy(false); }
+  }
+  async function toggleHero(h) { try { await heroAction({ action: "toggle", id: h.id, active: !h.active }); await loadHero(); } catch (e) { alert(e.message); } }
+  async function removeHero(h) { if (!confirm("Remove this hero image?")) return; try { await heroAction({ action: "remove", id: h.id }); await loadHero(); } catch (e) { alert(e.message); } }
+  async function moveHero(idx, dir) {
+    const arr = [...heroList]; const j = idx + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[idx], arr[j]] = [arr[j], arr[idx]];
+    setHeroList(arr);
+    try { await heroAction({ action: "reorder", ids: arr.map((x) => x.id) }); } catch (e) { alert(e.message); loadHero(); }
+  }
 
   if (loading) return <Spinner label={t("admin.loadingEvents")} />;
   if (selected) return <EventDetail event={selected} token={token} back={() => { setSelected(null); loadEvents(); }} />;
@@ -90,6 +132,42 @@ function Dashboard({ token, onLogout }) {
       </div>
 
       <CreateEvent token={token} onCreated={loadEvents} />
+
+      {/* Landing hero carousel manager */}
+      <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHeroOpen((v) => !v)}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{t("admin.heroManage")} <span style={{ color: C.second, fontWeight: 400 }}>({heroList.length})</span></div>
+          <span style={{ color: C.second, fontSize: 18 }}>{heroOpen ? "\u2013" : "+"}</span>
+        </div>
+        {heroOpen && (
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.heroHelp")}</p>
+            <label style={{ display: "inline-block", background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: heroBusy ? 0.6 : 1 }}>
+              {heroBusy ? t("admin.heroUploading") : t("admin.heroUpload")}
+              <input type="file" accept="image/*" multiple hidden disabled={heroBusy} onChange={(e) => { uploadHero(e.target.files); e.target.value = ""; }} />
+            </label>
+            {heroList.length === 0 ? (
+              <p style={{ fontSize: 13, color: C.second, marginTop: 12 }}>{t("admin.heroEmpty")}</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12, marginTop: 14 }}>
+                {heroList.map((h, i) => (
+                  <div key={h.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${h.active ? C.gold : "rgba(22,41,76,.12)"}` }}>
+                    <img src={publicUrl(h.storage_path)} alt="" style={{ width: "100%", height: 110, objectFit: "cover", display: "block", opacity: h.active ? 1 : 0.45 }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", gap: 6 }}>
+                      <button onClick={() => toggleHero(h)} style={{ background: h.active ? C.ink : "transparent", color: h.active ? C.bg : C.second, border: `1px solid ${h.active ? C.ink : C.second}`, padding: "5px 10px", borderRadius: 999, fontSize: 11 }}>{t("admin.heroActive")}</button>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={() => moveHero(i, -1)} disabled={i === 0} style={{ background: "transparent", border: `1px solid ${C.second}`, color: C.second, borderRadius: 8, padding: "4px 8px", fontSize: 12, opacity: i === 0 ? 0.4 : 1 }}>\u2191</button>
+                        <button onClick={() => moveHero(i, 1)} disabled={i === heroList.length - 1} style={{ background: "transparent", border: `1px solid ${C.second}`, color: C.second, borderRadius: 8, padding: "4px 8px", fontSize: 12, opacity: i === heroList.length - 1 ? 0.4 : 1 }}>\u2193</button>
+                        <button onClick={() => removeHero(h)} style={{ background: "transparent", border: "1px solid #b3261e", color: "#b3261e", borderRadius: 8, padding: "4px 8px", fontSize: 12 }}>\uD83D\uDDD1</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {events.length === 0 ? (
         <Empty title={t("admin.noEvents.title")} sub={t("admin.noEvents.sub")} />
@@ -130,6 +208,7 @@ function CreateEvent({ token, onCreated }) {
   const [date, setDate] = useState("");
   const [code, setCode] = useState("");
   const [threshold, setThreshold] = useState(45);
+  const [category, setCategory] = useState("");
   const [nameEs, setNameEs] = useState("");
   const [hostEs, setHostEs] = useState("");
   const [dateEs, setDateEs] = useState("");
@@ -172,13 +251,13 @@ function CreateEvent({ token, onCreated }) {
         body: JSON.stringify({
           passcode: token, name: name.trim(), host: host.trim(), event_date: date.trim(),
           name_es: nameEs.trim(), host_es: hostEs.trim(), event_date_es: dateEs.trim(),
-          code: finalCode, keep_threshold: Number(threshold),
+          code: finalCode, keep_threshold: Number(threshold), category: category || null,
           moderation_mode: requireReview ? "review" : "off",
           protect_minors: protectMinors,
         }),
       });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || t("admin.failedCreate")); }
-      setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45);
+      setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45); setCategory("");
       setNameEs(""); setHostEs(""); setDateEs(""); setRequireReview(false); setProtectMinors(true); setOpen(false);
       onCreated();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -199,6 +278,13 @@ function CreateEvent({ token, onCreated }) {
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={lab}>{t("admin.eventName")} *</label>
           <input style={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="Resurrection Sunday Service" />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={lab}>{t("admin.category")}</label>
+          <select style={field} value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">—</option>
+            {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
+          </select>
         </div>
         <div><label style={lab}>{t("admin.hostChurch")}</label><input style={field} value={host} onChange={(e) => setHost(e.target.value)} placeholder="Iglesia Cristiana Gracia y Gloria" /></div>
         <div><label style={lab}>{t("admin.dateDisplay")}</label><input style={field} value={date} onChange={(e) => setDate(e.target.value)} placeholder="March 31, 2026" /></div>
@@ -269,6 +355,10 @@ function EventDetail({ event, token, back }) {
   const [connectLabel, setConnectLabel] = useState(event.connect_label || "");
   const [connectLabelEs, setConnectLabelEs] = useState(event.connect_label_es || "");
   const [connectUrl, setConnectUrl] = useState(event.connect_url || "");
+  const [category, setCategory] = useState(event.category || "");
+  const [musicUrl, setMusicUrl] = useState(event.music_url || "");
+  const [musicBusy, setMusicBusy] = useState(false);
+  const [musicRightsOk, setMusicRightsOk] = useState(!!event.music_rights_ack);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [deletingEvent, setDeletingEvent] = useState(false);
@@ -345,11 +435,27 @@ function EventDetail({ event, token, back }) {
         connect_label: connectLabel.trim() || null,
         connect_label_es: connectLabelEs.trim() || null,
         connect_url: connectUrl.trim() || null,
+        category: category || null,
+        music_url: musicUrl || null,
+        music_rights_ack: !!musicRightsOk,
+        music_rights_ack_at: musicRightsOk ? new Date().toISOString() : null,
       };
       const updated = await updateEvent(patch);
       setCurrentSession(updated.current_session || "");
       setSavedMsg(t("admin.saved"));
     } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
+  }
+
+  async function uploadMusic(file) {
+    if (!file) return;
+    setMusicBusy(true);
+    try {
+      const ext = (file.name.split(".").pop() || "mp3").toLowerCase();
+      const path = `music/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+      const up = await supabase.storage.from("halo").upload(path, file, { contentType: file.type || "audio/mpeg", upsert: false });
+      if (up.error) throw up.error;
+      setMusicUrl(path);
+    } catch (e) { alert(e.message); } finally { setMusicBusy(false); }
   }
 
   async function deleteEvent() {
@@ -538,6 +644,41 @@ function EventDetail({ event, token, back }) {
               <div><label style={slab}>{t("admin.connectLabelEs")}</label><input style={sfield} value={connectLabelEs} onChange={(e) => setConnectLabelEs(e.target.value)} placeholder="¿Primera vez? Conéctate" /></div>
               <div style={{ gridColumn: "1 / -1" }}><label style={slab}>{t("admin.connectUrl")}</label><input style={sfield} value={connectUrl} onChange={(e) => setConnectUrl(e.target.value)} placeholder="https://icgg.us/connect" /></div>
             </div>
+          </div>
+
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.music")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.musicHelp")}</p>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <label style={slab}>{t("admin.category")}</label>
+                <select style={sfield} value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <option value="">—</option>
+                  {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={slab}>{t("admin.music")}</label>
+                <select style={sfield} value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)}>
+                  <option value="">{t("admin.musicAuto")}</option>
+                  <option value="none">{t("admin.musicNone")}</option>
+                  <option value="/music/elegant.mp3">{t("music.elegant")}</option>
+                  <option value="/music/uplifting.mp3">{t("music.uplifting")}</option>
+                  <option value="/music/worship.mp3">{t("music.worship")}</option>
+                  {musicUrl && !["none", "/music/elegant.mp3", "/music/uplifting.mp3", "/music/worship.mp3"].includes(musicUrl) && (
+                    <option value={musicUrl}>{t("admin.musicCustom")}</option>
+                  )}
+                </select>
+              </div>
+            </div>
+            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, cursor: "pointer" }}>
+              <input type="checkbox" checked={musicRightsOk} onChange={(e) => setMusicRightsOk(e.target.checked)} style={{ marginTop: 3 }} />
+              <span style={{ fontSize: 12, color: C.second }}>{t("admin.musicRights")}</span>
+            </label>
+            <label style={{ display: "inline-block", marginTop: 10, background: "transparent", color: C.ink, border: `1px solid ${musicRightsOk ? C.ink : C.second}`, padding: "8px 14px", borderRadius: 999, fontSize: 12, cursor: musicRightsOk ? "pointer" : "not-allowed", opacity: musicBusy || !musicRightsOk ? 0.55 : 1 }} title={!musicRightsOk ? t("admin.musicRightsNeeded") : ""}>
+              {musicBusy ? t("admin.musicUploading") : t("admin.musicUpload")}
+              <input type="file" accept="audio/*" hidden disabled={musicBusy || !musicRightsOk} onChange={(e) => { uploadMusic(e.target.files[0]); e.target.value = ""; }} />
+            </label>
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
