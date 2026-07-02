@@ -13,7 +13,7 @@ function resolveMusic(ev) {
   const m = ev.music_url;
   if (m === "none") return null;
   if (m) return (m.startsWith("/") || m.startsWith("http")) ? m : publicUrl(m);
-  return CAT_MUSIC[ev.category] || null;
+  return null; // host-upload / library only — no synth fallback
 }
 
 // HALO Live — a projector-ready slideshow of approved, kept photos.

@@ -255,7 +255,7 @@ const STRINGS = {
   "cat.other": { en: "Other", es: "Otro" },
   "admin.music": { en: "Slideshow music", es: "M\u00fasica de la presentaci\u00f3n" },
   "admin.musicHelp": { en: "Plays on the live slideshow. Auto matches your event type, or pick a track. Upload your own only if you have the rights.", es: "Se reproduce en la presentaci\u00f3n en vivo. Coincide autom\u00e1ticamente con tu tipo de evento, o elige una pista. Sube la tuya solo si tienes los derechos." },
-  "admin.musicAuto": { en: "Auto (match event type)", es: "Autom\u00e1tico (seg\u00fan el tipo)" },
+  "admin.musicAuto": { en: "Auto (use my library, if any)", es: "Autom\u00e1tico (usar mi biblioteca, si hay)" },
   "admin.musicNone": { en: "No music", es: "Sin m\u00fasica" },
   "admin.musicUpload": { en: "Upload your own track", es: "Sube tu propia pista" },
   "admin.musicUploading": { en: "Uploading\u2026", es: "Subiendo\u2026" },
@@ -280,6 +280,7 @@ const STRINGS = {
   "admin.musicGenerating": { en: "Generating\u2026", es: "Generando\u2026" },
   "admin.musicLibEmpty": { en: "No tracks yet. Pick a mood and generate.", es: "A\u00fan no hay pistas. Elige un estado de \u00e1nimo y genera." },
   "admin.musicFromLib": { en: "Library", es: "Biblioteca" },
+  "admin.musicUploadTips": { en: "Tip: license a track you can use from Uppbeat, the YouTube Audio Library, or Pixabay Music, then upload it here.", es: "Consejo: licencia una pista que puedas usar de Uppbeat, la biblioteca de audio de YouTube o Pixabay Music, y s\u00fabela aqu\u00ed." },
 };
 
 const LANG_KEY = "halo_lang";

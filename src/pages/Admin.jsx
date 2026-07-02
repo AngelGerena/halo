@@ -719,16 +719,10 @@ function EventDetail({ event, token, back }) {
               <div>
                 <label style={slab}>{t("admin.music")}</label>
                 <select style={sfield} value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)}>
-                  <option value="">{t("admin.musicAuto")}</option>
                   <option value="none">{t("admin.musicNone")}</option>
-                  <option value="/music/elegant.mp3">{t("music.elegant")}</option>
-                  <option value="/music/celebration.mp3">{t("music.celebration")}</option>
-                  <option value="/music/worship.mp3">{t("music.worship")}</option>
-                  <option value="/music/corporate.mp3">{t("music.corporate")}</option>
-                  <option value="/music/cinematic.mp3">{t("music.cinematic")}</option>
-                  <option value="/music/acoustic.mp3">{t("music.acoustic")}</option>
+                  <option value="">{t("admin.musicAuto")}</option>
                   {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("admin.musicFromLib")}: {t("music." + tr.mood)}</option>)}
-                  {musicUrl && !["none", "/music/elegant.mp3", "/music/celebration.mp3", "/music/worship.mp3", "/music/corporate.mp3", "/music/cinematic.mp3", "/music/acoustic.mp3"].includes(musicUrl) && !libTracks.some((tr) => tr.storage_path === musicUrl) && (
+                  {musicUrl && musicUrl !== "none" && !libTracks.some((tr) => tr.storage_path === musicUrl) && (
                     <option value={musicUrl}>{t("admin.musicCustom")}</option>
                   )}
                 </select>
@@ -742,6 +736,7 @@ function EventDetail({ event, token, back }) {
               {musicBusy ? t("admin.musicUploading") : t("admin.musicUpload")}
               <input type="file" accept="audio/*" hidden disabled={musicBusy || !musicRightsOk} onChange={(e) => { uploadMusic(e.target.files[0]); e.target.value = ""; }} />
             </label>
+            <p style={{ fontSize: 11, color: C.second, margin: "8px 0 0" }}>{t("admin.musicUploadTips")}</p>
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
