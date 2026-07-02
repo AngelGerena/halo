@@ -71,6 +71,10 @@ function Dashboard({ token, onLogout }) {
   const [heroList, setHeroList] = useState([]);
   const [heroOpen, setHeroOpen] = useState(false);
   const [heroBusy, setHeroBusy] = useState(false);
+  const [libRows, setLibRows] = useState([]);
+  const [libOpen, setLibOpen] = useState(false);
+  const [libMood, setLibMood] = useState("elegant");
+  const [libBusy, setLibBusy] = useState(false);
 
   async function loadEvents() {
     const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
@@ -118,6 +122,23 @@ function Dashboard({ token, onLogout }) {
     try { await heroAction({ action: "reorder", ids: arr.map((x) => x.id) }); } catch (e) { alert(e.message); loadHero(); }
   }
 
+  async function loadLib() {
+    const { data } = await supabase.from("music_library").select("*").order("created_at", { ascending: false });
+    setLibRows(data || []);
+  }
+  useEffect(() => { loadLib(); }, []);
+  async function libAction(body) {
+    const r = await fetch("/.netlify/functions/generate-music", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, ...body }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Failed");
+    return j;
+  }
+  async function genMusic() { setLibBusy(true); try { await libAction({ action: "generate", mood: libMood, count: 1 }); await loadLib(); } catch (e) { alert(e.message); } finally { setLibBusy(false); } }
+  async function toggleLib(x) { try { await libAction({ action: "toggle", id: x.id, active: !x.active }); await loadLib(); } catch (e) { alert(e.message); } }
+  async function removeLib(x) { if (!confirm("Delete this track?")) return; try { await libAction({ action: "remove", id: x.id }); await loadLib(); } catch (e) { alert(e.message); } }
+
   if (loading) return <Spinner label={t("admin.loadingEvents")} />;
   if (selected) return <EventDetail event={selected} token={token} back={() => { setSelected(null); loadEvents(); }} />;
 
@@ -161,6 +182,39 @@ function Dashboard({ token, onLogout }) {
                         <button onClick={() => removeHero(h)} style={{ background: "transparent", border: "1px solid #b3261e", color: "#b3261e", borderRadius: 8, padding: "4px 8px", fontSize: 12 }}>\uD83D\uDDD1</button>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Music library manager (Mubert) */}
+      <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setLibOpen((v) => !v)}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{t("admin.musicLib")} <span style={{ color: C.second, fontWeight: 400 }}>({libRows.length})</span></div>
+          <span style={{ color: C.second, fontSize: 18 }}>{libOpen ? "\u2013" : "+"}</span>
+        </div>
+        {libOpen && (
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.musicLibHelp")}</p>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={libMood} onChange={(e) => setLibMood(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "8px 12px", fontSize: 13, color: C.ink, background: C.white }}>
+                {["elegant", "celebration", "worship", "corporate", "cinematic", "acoustic"].map((m) => <option key={m} value={m}>{t("music." + m)}</option>)}
+              </select>
+              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
+            </div>
+            {libRows.length === 0 ? (
+              <p style={{ fontSize: 13, color: C.second, marginTop: 12 }}>{t("admin.musicLibEmpty")}</p>
+            ) : (
+              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                {libRows.map((x) => (
+                  <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "8px 12px", border: `1px solid ${x.active ? C.gold : "rgba(22,41,76,.12)"}` }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.ink, minWidth: 90 }}>{t("music." + x.mood)}</span>
+                    <audio controls preload="none" src={publicUrl(x.storage_path)} style={{ height: 34, flex: 1, minWidth: 180 }} />
+                    <button onClick={() => toggleLib(x)} style={{ background: x.active ? C.ink : "transparent", color: x.active ? C.bg : C.second, border: `1px solid ${x.active ? C.ink : C.second}`, padding: "5px 10px", borderRadius: 999, fontSize: 11 }}>{t("admin.heroActive")}</button>
+                    <button onClick={() => removeLib(x)} style={{ background: "transparent", border: "1px solid #b3261e", color: "#b3261e", borderRadius: 8, padding: "5px 9px", fontSize: 12 }}>\uD83D\uDDD1</button>
                   </div>
                 ))}
               </div>
@@ -359,6 +413,7 @@ function EventDetail({ event, token, back }) {
   const [musicUrl, setMusicUrl] = useState(event.music_url || "");
   const [musicBusy, setMusicBusy] = useState(false);
   const [musicRightsOk, setMusicRightsOk] = useState(!!event.music_rights_ack);
+  const [libTracks, setLibTracks] = useState([]);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [deletingEvent, setDeletingEvent] = useState(false);
@@ -396,6 +451,10 @@ function EventDetail({ event, token, back }) {
       setContributors(co || []);
       setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, ownerName: names[p.contributor_id] || "Unknown" })));
       setLoading(false);
+    })();
+    (async () => {
+      const { data: lib } = await supabase.from("music_library").select("*").eq("active", true).order("created_at", { ascending: false });
+      setLibTracks(lib || []);
     })();
   }, [event.id]);
 
@@ -663,9 +722,13 @@ function EventDetail({ event, token, back }) {
                   <option value="">{t("admin.musicAuto")}</option>
                   <option value="none">{t("admin.musicNone")}</option>
                   <option value="/music/elegant.mp3">{t("music.elegant")}</option>
-                  <option value="/music/uplifting.mp3">{t("music.uplifting")}</option>
+                  <option value="/music/celebration.mp3">{t("music.celebration")}</option>
                   <option value="/music/worship.mp3">{t("music.worship")}</option>
-                  {musicUrl && !["none", "/music/elegant.mp3", "/music/uplifting.mp3", "/music/worship.mp3"].includes(musicUrl) && (
+                  <option value="/music/corporate.mp3">{t("music.corporate")}</option>
+                  <option value="/music/cinematic.mp3">{t("music.cinematic")}</option>
+                  <option value="/music/acoustic.mp3">{t("music.acoustic")}</option>
+                  {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("admin.musicFromLib")}: {t("music." + tr.mood)}</option>)}
+                  {musicUrl && !["none", "/music/elegant.mp3", "/music/celebration.mp3", "/music/worship.mp3", "/music/corporate.mp3", "/music/cinematic.mp3", "/music/acoustic.mp3"].includes(musicUrl) && !libTracks.some((tr) => tr.storage_path === musicUrl) && (
                     <option value={musicUrl}>{t("admin.musicCustom")}</option>
                   )}
                 </select>

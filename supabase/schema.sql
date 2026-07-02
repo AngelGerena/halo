@@ -214,3 +214,19 @@ alter table events add column if not exists music_url text;  -- null=auto by typ
 -- ============================================================
 alter table events add column if not exists music_rights_ack boolean not null default false;
 alter table events add column if not exists music_rights_ack_at timestamptz;
+
+-- ============================================================
+-- HALO — Music library (Mubert-generated tracks cached in storage)
+-- ============================================================
+create table if not exists music_library (
+  id           uuid primary key default gen_random_uuid(),
+  mood         text,
+  title        text,
+  storage_path text not null,
+  source       text,
+  active       boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+alter table music_library enable row level security;
+drop policy if exists "read music" on music_library;
+create policy "read music" on music_library for select using (true);

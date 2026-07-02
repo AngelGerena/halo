@@ -269,6 +269,17 @@ const STRINGS = {
   "admin.musicRights": { en: "I confirm I own or have the rights to use this track, and I take responsibility for its use.", es: "Confirmo que poseo o tengo los derechos para usar esta pista y asumo la responsabilidad de su uso." },
   "admin.musicRightsNeeded": { en: "Check the box above to upload your own track.", es: "Marca la casilla de arriba para subir tu propia pista." },
   "footer.legal": { en: "Terms & Privacy", es: "T\u00e9rminos y Privacidad" },
+  "music.celebration": { en: "Celebration", es: "Celebraci\u00f3n" },
+  "music.corporate": { en: "Corporate", es: "Corporativo" },
+  "music.cinematic": { en: "Cinematic", es: "Cinematogr\u00e1fico" },
+  "music.acoustic": { en: "Acoustic", es: "Ac\u00fastico" },
+  // ---- Mubert music library (admin) ----
+  "admin.musicLib": { en: "Music library (AI-generated)", es: "Biblioteca de m\u00fasica (IA)" },
+  "admin.musicLibHelp": { en: "Generate royalty-free tracks by mood (via Mubert) and cache them for hosts to pick.", es: "Genera pistas libres de regal\u00edas por estado de \u00e1nimo (v\u00eda Mubert) y gu\u00e1rdalas para que los anfitriones elijan." },
+  "admin.musicGenerate": { en: "Generate", es: "Generar" },
+  "admin.musicGenerating": { en: "Generating\u2026", es: "Generando\u2026" },
+  "admin.musicLibEmpty": { en: "No tracks yet. Pick a mood and generate.", es: "A\u00fan no hay pistas. Elige un estado de \u00e1nimo y genera." },
+  "admin.musicFromLib": { en: "Library", es: "Biblioteca" },
 };
 
 const LANG_KEY = "halo_lang";

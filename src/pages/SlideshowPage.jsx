@@ -6,7 +6,8 @@ import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
-const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/uplifting.mp3", church: "/music/worship.mp3", corporate: "/music/uplifting.mp3", gala: "/music/elegant.mp3", other: "/music/elegant.mp3" };
+const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
+const CAT_MOOD = { wedding: "elegant", quinceanera: "celebration", church: "worship", corporate: "corporate", gala: "elegant", other: "cinematic" };
 function resolveMusic(ev) {
   if (!ev) return null;
   const m = ev.music_url;
@@ -36,6 +37,7 @@ export default function SlideshowPage() {
   const eventRef = useRef(null);
   const audioRef = useRef(null);
   const [musicOn, setMusicOn] = useState(false);
+  const [libTracks, setLibTracks] = useState([]);
 
   const HOLD = 6500; // ms per photo
 
@@ -45,6 +47,8 @@ export default function SlideshowPage() {
       const { data: evrow } = await supabase.from("events").select("*").eq("code", code).single();
       setEvent(evrow || false);
       eventRef.current = evrow || null;
+      const { data: lib } = await supabase.from("music_library").select("*").eq("active", true);
+      setLibTracks(lib || []);
       if (evrow) await refresh(evrow.id, true);
       setReady(true);
     })();
@@ -161,7 +165,15 @@ export default function SlideshowPage() {
 
   const cur = photos[idx];
   const prev = prevIdx != null ? photos[prevIdx] : null;
-  const musicSrc = resolveMusic(event);
+  let musicSrc = null;
+  if (event) {
+    if (event.music_url) { musicSrc = resolveMusic(event); }
+    else {
+      const mood = CAT_MOOD[event.category];
+      const hit = mood && libTracks.find((x) => x.mood === mood);
+      musicSrc = hit ? publicUrl(hit.storage_path) : resolveMusic(event);
+    }
+  }
   const isMoment = event && event.featured_photo_id && cur.id === event.featured_photo_id;
   const curCount = counts[cur.id] || 0;
   const curLiked = liked.has(cur.id);
