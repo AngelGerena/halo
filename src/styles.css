@@ -53,3 +53,62 @@ input:focus-visible, select:focus-visible {
 }
 
 .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* ---- HALO angled responsive header ---- */
+:root { --grad: linear-gradient(120deg, #0E1B36, #1E3461 60%, #2A4A6E); }
+
+.halo-header {
+  position: relative;
+  height: 152px;
+  --thin: 50px; --tall: 148px; --gthin: 53px; --gtall: 151px;
+  --dx1: 20%; --dx2: 33%;
+  --logo-h: 140px; --logo-left: 2px; --logo-top: 4px; --right-top: 12px;
+}
+.halo-header .hh-gold, .halo-header .hh-bg {
+  position: absolute; left: 0; right: 0; top: 0;
+}
+.halo-header .hh-gold {
+  height: var(--gtall); background: var(--gold);
+  clip-path: polygon(0 0, 100% 0, 100% var(--gthin), calc(var(--dx2) + 2px) var(--gthin), var(--dx1) var(--gtall), 0 var(--gtall));
+}
+.halo-header .hh-bg {
+  height: var(--tall); background: var(--grad);
+  clip-path: polygon(0 0, 100% 0, 100% var(--thin), var(--dx2) var(--thin), var(--dx1) var(--tall), 0 var(--tall));
+}
+.halo-header .hh-logo {
+  position: absolute; left: var(--logo-left); top: var(--logo-top);
+  display: flex; align-items: center; gap: 14px; text-decoration: none;
+}
+.halo-header .hh-logo img { height: var(--logo-h); width: auto; display: block; }
+.halo-header .hh-tag {
+  color: var(--gold); font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  align-self: center; line-height: 1.4; white-space: nowrap;
+}
+.halo-header .hh-right {
+  position: absolute; right: 16px; top: var(--right-top);
+  display: flex; align-items: center; gap: 10px;
+}
+
+/* hide long tagline before it can collide with the right controls */
+@media (max-width: 1040px) { .halo-header .hh-tag { display: none; } }
+
+/* tablet */
+@media (max-width: 900px) {
+  .halo-header {
+    height: 120px;
+    --thin: 44px; --tall: 116px; --gthin: 47px; --gtall: 119px;
+    --dx1: 24%; --dx2: 42%;
+    --logo-h: 94px; --logo-top: 8px; --right-top: 9px;
+  }
+}
+
+/* phone */
+@media (max-width: 560px) {
+  .halo-header {
+    height: 80px;
+    --thin: 34px; --tall: 76px; --gthin: 37px; --gtall: 79px;
+    --dx1: 26%; --dx2: 52%;
+    --logo-h: 64px; --logo-top: 6px; --right-top: 6px;
+  }
+  .halo-header .hh-cta { display: none; } /* hero has the primary CTA on mobile */
+}

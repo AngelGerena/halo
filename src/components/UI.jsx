@@ -26,13 +26,15 @@ export function LangToggle() {
 export function Header({ right }) {
   const { t } = useI18n();
   return (
-    <header style={{ background: C.headerGrad, padding: "2px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
-        <img src="/halo-logo.png" alt="HALO" style={{ height: 72, width: "auto", display: "block" }} />
-        <div style={{ color: C.gold, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", alignSelf: "center" }}>{t("brand.tagline")}</div>
+    <header className="halo-header">
+      <div className="hh-gold" />
+      <div className="hh-bg" />
+      <a href="/" className="hh-logo">
+        <img src="/halo-logo.png" alt="HALO" />
+        <div className="hh-tag">{t("brand.tagline")}</div>
       </a>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {right}
+      <div className="hh-right">
+        <span className="hh-cta">{right}</span>
         <LangToggle />
       </div>
     </header>
