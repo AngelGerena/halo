@@ -58,57 +58,56 @@ input:focus-visible, select:focus-visible {
 :root { --grad: linear-gradient(120deg, #0E1B36, #1E3461 60%, #2A4A6E); }
 
 .halo-header {
-  position: relative;
-  height: 152px;
+  position: relative; height: 152px;
   --thin: 50px; --tall: 148px; --gthin: 53px; --gtall: 151px;
   --dx1: 20%; --dx2: 33%;
   --logo-h: 140px; --logo-left: 2px; --logo-top: 4px; --right-top: 12px;
 }
-.halo-header .hh-gold, .halo-header .hh-bg {
-  position: absolute; left: 0; right: 0; top: 0;
-}
-.halo-header .hh-gold {
-  height: var(--gtall); background: var(--gold);
-  clip-path: polygon(0 0, 100% 0, 100% var(--gthin), calc(var(--dx2) + 2px) var(--gthin), var(--dx1) var(--gtall), 0 var(--gtall));
-}
-.halo-header .hh-bg {
-  height: var(--tall); background: var(--grad);
-  clip-path: polygon(0 0, 100% 0, 100% var(--thin), var(--dx2) var(--thin), var(--dx1) var(--tall), 0 var(--tall));
-}
-.halo-header .hh-logo {
-  position: absolute; left: var(--logo-left); top: var(--logo-top);
-  display: flex; align-items: center; gap: 14px; text-decoration: none;
-}
+.halo-header .hh-gold, .halo-header .hh-bg { position: absolute; left: 0; right: 0; top: 0; }
+.halo-header .hh-gold { height: var(--gtall); background: var(--gold);
+  clip-path: polygon(0 0,100% 0,100% var(--gthin),calc(var(--dx2) + 2px) var(--gthin),var(--dx1) var(--gtall),0 var(--gtall)); }
+.halo-header .hh-bg { height: var(--tall); background: var(--grad);
+  clip-path: polygon(0 0,100% 0,100% var(--thin),var(--dx2) var(--thin),var(--dx1) var(--tall),0 var(--tall)); }
+.halo-header .hh-logo { position: absolute; left: var(--logo-left); top: var(--logo-top); display: flex; align-items: center; text-decoration: none; z-index: 5; }
 .halo-header .hh-logo img { height: var(--logo-h); width: auto; display: block; }
-.halo-header .hh-tag {
-  color: var(--gold); font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-  align-self: center; line-height: 1.4; white-space: nowrap;
-}
-.halo-header .hh-right {
-  position: absolute; right: 16px; top: var(--right-top);
-  display: flex; align-items: center; gap: 10px;
-}
+.halo-header .hh-right { position: absolute; right: 16px; top: var(--right-top); display: flex; align-items: center; gap: 10px; z-index: 5; }
 
-/* hide long tagline before it can collide with the right controls */
-@media (max-width: 1040px) { .halo-header .hh-tag { display: none; } }
-
-/* tablet */
 @media (max-width: 900px) {
-  .halo-header {
-    height: 120px;
-    --thin: 44px; --tall: 116px; --gthin: 47px; --gtall: 119px;
-    --dx1: 24%; --dx2: 42%;
-    --logo-h: 94px; --logo-top: 8px; --right-top: 9px;
-  }
+  .halo-header { height: 120px; --thin: 44px; --tall: 116px; --gthin: 47px; --gtall: 119px; --dx1: 24%; --dx2: 42%; --logo-h: 94px; --logo-top: 8px; --right-top: 9px; }
+}
+@media (max-width: 560px) {
+  .halo-header { height: 80px; --thin: 34px; --tall: 76px; --gthin: 37px; --gtall: 79px; --dx1: 26%; --dx2: 52%; --logo-h: 64px; --logo-top: 6px; --right-top: 6px; }
+  .halo-header .hh-cta { display: none; }
 }
 
-/* phone */
-@media (max-width: 560px) {
-  .halo-header {
-    height: 80px;
-    --thin: 34px; --tall: 76px; --gthin: 37px; --gtall: 79px;
-    --dx1: 26%; --dx2: 52%;
-    --logo-h: 64px; --logo-top: 6px; --right-top: 6px;
-  }
-  .halo-header .hh-cta { display: none; } /* hero has the primary CTA on mobile */
+/* ---- Header overlaying a hero (Home only) ---- */
+.halo-header.on-hero { position: absolute; top: 0; left: 0; right: 0; background: transparent; z-index: 5; }
+.halo-header.on-hero .hh-bleed {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--tall); z-index: 1; pointer-events: none;
+  background: linear-gradient(103deg, rgba(6,12,26,.92) 0%, rgba(6,12,26,.82) 30%, rgba(6,12,26,.62) 46%, rgba(6,12,26,.28) 58%, rgba(6,12,26,0) 68%);
 }
+.halo-header.on-hero .hh-gold { z-index: 2; }
+.halo-header.on-hero .hh-bg   { z-index: 3; }
+
+/* tagline: rendered only over the hero; absolutely placed clear to the RIGHT of the diagonal */
+.halo-header .hh-tag {
+  position: absolute; z-index: 5;
+  left: calc(var(--dx2) + 30px);
+  top: calc(var(--thin) + 12px);
+  max-width: 250px;
+  color: #E6C879; text-shadow: 0 1px 6px rgba(0,0,0,.82);
+  text-transform: uppercase; white-space: normal; line-height: 1.32;
+  font-size: 12px; letter-spacing: 2.4px;
+}
+@media (max-width: 900px) {
+  .halo-header .hh-tag { left: calc(var(--dx2) + 24px); top: calc(var(--thin) + 8px); font-size: 10px; letter-spacing: 1.4px; max-width: 128px; }
+}
+@media (max-width: 560px) {
+  .halo-header.on-hero { height: 128px; --thin: 40px; --tall: 124px; --gthin: 43px; --gtall: 127px; --dx1: 40%; --dx2: 74%; --logo-h: 60px; --logo-top: 8px; --right-top: 8px; }
+  .halo-header .hh-tag { left: 10px; top: calc(var(--logo-top) + var(--logo-h) + 8px); max-width: 58%; font-size: 9px; letter-spacing: 1.2px; }
+}
+
+/* hero top padding so its content clears the overlaid header */
+.hero-under-header { padding-top: 182px; }
+@media (max-width: 900px) { .hero-under-header { padding-top: 152px; } }
+@media (max-width: 560px) { .hero-under-header { padding-top: 156px; } }

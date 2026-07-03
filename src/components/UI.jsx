@@ -23,16 +23,17 @@ export function LangToggle() {
   );
 }
 
-export function Header({ right }) {
+export function Header({ right, onHero = false }) {
   const { t } = useI18n();
   return (
-    <header className="halo-header">
+    <header className={"halo-header" + (onHero ? " on-hero" : "")}>
+      {onHero && <div className="hh-bleed" />}
       <div className="hh-gold" />
       <div className="hh-bg" />
       <a href="/" className="hh-logo">
         <img src="/halo-logo.png" alt="HALO" />
-        <div className="hh-tag">{t("brand.tagline")}</div>
       </a>
+      {onHero && <div className="hh-tag">{t("brand.tagline")}</div>}
       <div className="hh-right">
         <span className="hh-cta">{right}</span>
         <LangToggle />

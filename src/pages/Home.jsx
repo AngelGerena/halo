@@ -132,15 +132,14 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Header right={<button onClick={scrollToForm} style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 600 }}>{t.early}</button>} />
-
-      {/* HERO — admin-managed image carousel + overlay */}
-      <div style={{ position: "relative", overflow: "hidden", color: C.bg, padding: "64px 24px 88px", textAlign: "center" }}>
+      {/* HERO — admin-managed image carousel with the header overlaid on top */}
+      <div className="hero-under-header" style={{ position: "relative", overflow: "hidden", color: C.bg, paddingLeft: 24, paddingRight: 24, paddingBottom: 88, textAlign: "center" }}>
         {heroImgs.map((src, i) => (
           <div key={i} aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center", opacity: i === heroIdx ? 1 : 0, transition: "opacity 1.2s ease" }} />
         ))}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(125deg, rgba(14,27,54,.77), rgba(27,52,100,.77) 55%, rgba(38,70,112,.77))" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(14,27,54,.34) 0px, rgba(14,27,54,.55) 160px, rgba(14,27,54,.80) 330px)" }} />
         <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 340, height: 340, background: "radial-gradient(circle, rgba(230,200,121,.20), transparent 62%)", pointerEvents: "none" }} />
+        <Header onHero right={<button onClick={scrollToForm} style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 600 }}>{t.early}</button>} />
         <div style={{ position: "relative", zIndex: 2 }}>
           <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.inkDeep, background: C.goldLight, padding: "6px 16px", borderRadius: 999 }}>{t.cs}</span>
           <h1 className="serif" style={{ fontSize: 54, lineHeight: 1.04, margin: "20px 0 12px", fontWeight: 700 }}>{t.h1}</h1>
