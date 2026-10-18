@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { supabase, publicUrl } from "../lib/supabase.js";
+import { signAdminUpload, putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
@@ -104,9 +105,10 @@ function Dashboard({ token, onLogout }) {
     setHeroBusy(true);
     try {
       for (const f of list) {
-        const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-        const up = await supabase.storage.from("halo").upload(path, f, { contentType: f.type, upsert: false });
-        if (up.error) throw up.error;
+        const { uploadUrl, path, contentType } = await signAdminUpload({
+          passcode: token, kind: "hero", filename: f.name, contentType: f.type || "image/jpeg",
+        });
+        await putToR2(uploadUrl, f, contentType);
         await heroAction({ action: "add", storage_path: path });
       }
       await loadHero();
@@ -510,10 +512,10 @@ function EventDetail({ event, token, back }) {
     if (!file) return;
     setMusicBusy(true);
     try {
-      const ext = (file.name.split(".").pop() || "mp3").toLowerCase();
-      const path = `music/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-      const up = await supabase.storage.from("halo").upload(path, file, { contentType: file.type || "audio/mpeg", upsert: false });
-      if (up.error) throw up.error;
+      const { uploadUrl, path, contentType } = await signAdminUpload({
+        passcode: token, kind: "music", filename: file.name, contentType: file.type || "audio/mpeg",
+      });
+      await putToR2(uploadUrl, file, contentType);
       setMusicUrl(path);
     } catch (e) { alert(e.message); } finally { setMusicBusy(false); }
   }

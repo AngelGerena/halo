@@ -3,6 +3,7 @@
 // their storage paths. Service-role; idempotent (re-uses existing crops).
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { getObjectBuffer, putObject } from "./_r2.js";
 
 const RATIOS = { "1x1": [1080, 1080], "4x5": [1080, 1350], "9x16": [1080, 1920], "16x9": [1920, 1080] };
 
@@ -26,9 +27,12 @@ export async function handler(event) {
   }
 
   const source = photo.edited_path || photo.storage_path;
-  const { data: file, error: dErr } = await supabase.storage.from("halo").download(source);
-  if (dErr || !file) return { statusCode: 500, body: JSON.stringify({ error: "Could not read source image" }) };
-  const input = Buffer.from(await file.arrayBuffer());
+  let input;
+  try {
+    input = await getObjectBuffer(source);
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: "Could not read source image: " + e.message }) };
+  }
 
   const base = photo.storage_path.replace(/(\.[a-z0-9]+)?$/i, "");
   const crops = {};
@@ -38,8 +42,7 @@ export async function handler(event) {
         .resize(w, h, { fit: "cover", position: sharp.strategy.attention })
         .jpeg({ quality: 92, mozjpeg: true }).toBuffer();
       const path = `${base}_crop_${key}.jpg`;
-      const upErr = (await supabase.storage.from("halo").upload(path, out, { contentType: "image/jpeg", upsert: true })).error;
-      if (upErr) throw new Error(upErr.message);
+      await putObject(path, out, "image/jpeg");
       crops[key] = path;
     }
   } catch (e) {

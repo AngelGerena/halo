@@ -4,6 +4,7 @@
 // Originals are never touched — admin chooses which to use.
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { getObjectBuffer, putObject } from "./_r2.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -23,10 +24,13 @@ export async function handler(event) {
     return { statusCode: 200, body: JSON.stringify({ edited_path: photo.edited_path, skipped: true }) };
   }
 
-  // 2. download the original
-  const { data: file, error: dErr } = await supabase.storage.from("halo").download(photo.storage_path);
-  if (dErr || !file) return { statusCode: 500, body: JSON.stringify({ error: "Could not read original" }) };
-  const inputBuffer = Buffer.from(await file.arrayBuffer());
+  // 2. download the original from R2
+  let inputBuffer;
+  try {
+    inputBuffer = await getObjectBuffer(photo.storage_path);
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: "Could not read original: " + e.message }) };
+  }
 
   // 3. apply corrections
   let outBuffer;
@@ -36,12 +40,13 @@ export async function handler(event) {
     return { statusCode: 500, body: JSON.stringify({ error: "Edit failed: " + e.message }) };
   }
 
-  // 4. upload edited copy alongside the original
+  // 4. upload edited copy alongside the original (in R2)
   const editedPath = photo.storage_path.replace(/(\.[a-z0-9]+)?$/i, "") + "_edited.jpg";
-  const upErr = (await supabase.storage.from("halo").upload(editedPath, outBuffer, {
-    contentType: "image/jpeg", upsert: true,
-  })).error;
-  if (upErr) return { statusCode: 500, body: JSON.stringify({ error: "Upload failed: " + upErr.message }) };
+  try {
+    await putObject(editedPath, outBuffer, "image/jpeg");
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: "Upload failed: " + e.message }) };
+  }
 
   // 5. record it
   const { error: uErr } = await supabase.from("photos").update({ edited_path: editedPath }).eq("id", photoId);
