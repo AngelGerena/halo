@@ -1,6 +1,7 @@
 // Manages the landing hero carousel images. Service-role + passcode gated.
 // Actions: add | toggle | remove | reorder | list
 import { createClient } from "@supabase/supabase-js";
+import { deleteObjects } from "./_r2.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -28,7 +29,7 @@ export async function handler(event) {
     }
     if (action === "remove") {
       const { data: row } = await supabase.from("hero_images").select("storage_path").eq("id", id).single();
-      if (row && row.storage_path) { await supabase.storage.from("halo").remove([row.storage_path]); }
+      if (row && row.storage_path) { try { await deleteObjects([row.storage_path]); } catch (e) { console.error("R2 remove warning:", e.message); } }
       const { error } = await supabase.from("hero_images").delete().eq("id", id);
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
+import { signPhotoUploads, putToR2 } from "../lib/r2upload.js";
 import { scoreImage, C, hamming } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
@@ -103,9 +104,13 @@ export default function EventPage() {
         const status = (needsReview || flagged) ? "pending" : "approved";
         const tags = kidsInFrame ? ["kids"] : []; // reliable auto-tag from the consent flag
 
-        const path = `${event.id}/${contributor.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-        const up = await supabase.storage.from("halo").upload(path, f, { contentType: f.type, upsert: false });
-        if (up.error) throw up.error;
+        // Upload the file straight to R2 via a short-lived presigned URL.
+        // The server builds the object key; the client never holds the R2 secret.
+        const [signed] = await signPhotoUploads({
+          eventId: event.id, contributorId: contributor.id, count: 1, contentType: f.type || "image/jpeg",
+        });
+        const path = signed.path;
+        await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
         const { data: row, error } = await supabase.from("photos").insert({
           event_id: event.id,
           contributor_id: contributor.id,

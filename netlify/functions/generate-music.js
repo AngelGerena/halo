@@ -2,6 +2,7 @@
 // caches it in Supabase storage, and records it. Service-role + passcode gated.
 // Requires Netlify env vars: MUBERT_CUSTOMER_ID, MUBERT_ACCESS_TOKEN.
 import { createClient } from "@supabase/supabase-js";
+import { putObject, deleteObjects } from "./_r2.js";
 
 // Mood -> Mubert generation params. Adjust `prompt` / `playlist_index` to taste
 // (playlist codes come from your Mubert dashboard; prompt drives text-to-music).
@@ -49,7 +50,7 @@ export async function handler(event) {
     }
     if (action === "remove") {
       const { data: row } = await supabase.from("music_library").select("storage_path").eq("id", id).single();
-      if (row && row.storage_path) await supabase.storage.from("halo").remove([row.storage_path]);
+      if (row && row.storage_path) { try { await deleteObjects([row.storage_path]); } catch (e) { console.error("R2 remove warning:", e.message); } }
       const { error } = await supabase.from("music_library").delete().eq("id", id);
       if (error) throw error;
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };
@@ -75,8 +76,7 @@ export async function handler(event) {
       const audio = await fetch(url);
       const buf = Buffer.from(await audio.arrayBuffer());
       const path = `music/library/${mood}-${Date.now()}-${i}.mp3`;
-      const up = await supabase.storage.from("halo").upload(path, buf, { contentType: "audio/mpeg", upsert: true });
-      if (up.error) throw up.error;
+      await putObject(path, buf, "audio/mpeg");
       const { data, error } = await supabase.from("music_library").insert({ mood, title: `${mood} ${new Date().toISOString().slice(0, 10)}`, storage_path: path, source: "mubert", active: true }).select().single();
       if (error) throw error;
       made.push(data);

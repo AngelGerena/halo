@@ -2,6 +2,7 @@
 // (originals, edited copies, social crops), then deletes the event row, which
 // cascades to its contributors, photos, and reactions. Service-role + passcode.
 import { createClient } from "@supabase/supabase-js";
+import { deleteObjects } from "./_r2.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -30,12 +31,9 @@ export async function handler(event) {
     }
   }
 
-  // 2. remove files in chunks (don't hard-fail on storage errors)
-  for (let i = 0; i < paths.length; i += 100) {
-    const chunk = paths.slice(i, i + 100);
-    const { error: rmErr } = await supabase.storage.from("halo").remove(chunk);
-    if (rmErr) console.error("Storage remove warning:", rmErr.message);
-  }
+  // 2. remove files from R2 (batched inside the helper; don't hard-fail on errors)
+  try { await deleteObjects(paths); }
+  catch (e) { console.error("R2 remove warning:", e.message); }
 
   // 3. delete the event row — cascades to contributors, photos, reactions
   const { error: delErr } = await supabase.from("events").delete().eq("id", eventId);
