@@ -19,6 +19,9 @@ export const C = {
   line: "rgba(255,255,255,.1)",
   line2: "rgba(255,255,255,.18)",
   white: "#ffffff",
+  // dark-UI semantic helpers (used by the admin after the redesign):
+  card: "#140a20",       // raised card/panel surface (replaces old white cards)
+  onInk: "#ffffff",      // readable text on dark primary buttons / ink surfaces
   headerGrad: "linear-gradient(120deg, #06030b, #140a20 60%, #1a1020)", // dark cinematic header
 };
 

@@ -51,15 +51,15 @@ function Gate({ onAuth, verify }) {
     if (ok) onAuth(pass); else setErr(t("admin.incorrect"));
   }
   return (
-    <div style={{ maxWidth: 380, margin: "40px auto 0", background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 26 }}>
+    <div style={{ maxWidth: 380, margin: "40px auto 0", background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 26 }}>
       <div style={{ display: "inline-flex", padding: "5px 12px", borderRadius: 999, background: C.ink, color: C.gold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>{t("admin.super")}</div>
-      <h2 className="serif" style={{ fontSize: 28, color: C.ink, margin: "12px 0 4px" }}>{t("admin.enterPasscode")}</h2>
+      <h2 className="serif" style={{ fontSize: 28, color: C.text, margin: "12px 0 4px" }}>{t("admin.enterPasscode")}</h2>
       <p style={{ fontSize: 13, color: C.second, marginTop: 0 }}>{t("admin.passcode.help")}</p>
       <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("admin.passcode")}
         onKeyDown={(e) => e.key === "Enter" && submit()}
-        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginBottom: 10 }} />
+        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginBottom: 10 }} />
       {err && <div style={{ color: "#b3261e", fontSize: 13, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} disabled={busy} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.checking2") : t("admin.unlock")}</button>
+      <button onClick={submit} disabled={busy} style={{ width: "100%", background: C.gold, color: C.text, padding: "13px", borderRadius: 10, fontSize: 15, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.checking2") : t("admin.unlock")}</button>
     </div>
   );
 }
@@ -149,7 +149,7 @@ function Dashboard({ token, onLogout }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div>
           <div style={{ display: "inline-flex", padding: "5px 12px", borderRadius: 999, background: C.ink, color: C.gold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>{t("admin.super")}</div>
-          <h2 className="serif" style={{ fontSize: 32, color: C.ink, margin: "8px 0 0" }}>{t("admin.yourEvents")}</h2>
+          <h2 className="serif" style={{ fontSize: 32, color: C.text, margin: "8px 0 0" }}>{t("admin.yourEvents")}</h2>
         </div>
         <button onClick={onLogout} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "8px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.lock")}</button>
       </div>
@@ -157,15 +157,15 @@ function Dashboard({ token, onLogout }) {
       <CreateEvent token={token} onCreated={(newEvent) => { loadEvents(); if (newEvent) setSelected(newEvent); }} />
 
       {/* Landing hero carousel manager */}
-      <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 18 }}>
+      <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHeroOpen((v) => !v)}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{t("admin.heroManage")} <span style={{ color: C.second, fontWeight: 400 }}>({heroList.length})</span></div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{t("admin.heroManage")} <span style={{ color: C.second, fontWeight: 400 }}>({heroList.length})</span></div>
           <span style={{ color: C.second, fontSize: 18 }}>{heroOpen ? "\u2013" : "+"}</span>
         </div>
         {heroOpen && (
           <div style={{ marginTop: 12 }}>
             <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.heroHelp")}</p>
-            <label style={{ display: "inline-block", background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: heroBusy ? 0.6 : 1 }}>
+            <label style={{ display: "inline-block", background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: heroBusy ? 0.6 : 1 }}>
               {heroBusy ? t("admin.heroUploading") : t("admin.heroUpload")}
               <input type="file" accept="image/*" multiple hidden disabled={heroBusy} onChange={(e) => { uploadHero(e.target.files); e.target.value = ""; }} />
             </label>
@@ -174,7 +174,7 @@ function Dashboard({ token, onLogout }) {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12, marginTop: 14 }}>
                 {heroList.map((h, i) => (
-                  <div key={h.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${h.active ? C.gold : "rgba(22,41,76,.12)"}` }}>
+                  <div key={h.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${h.active ? C.gold : "rgba(255,255,255,.12)"}` }}>
                     <img src={publicUrl(h.storage_path)} alt="" style={{ width: "100%", height: 110, objectFit: "cover", display: "block", opacity: h.active ? 1 : 0.45 }} />
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", gap: 6 }}>
                       <button onClick={() => toggleHero(h)} style={{ background: h.active ? C.ink : "transparent", color: h.active ? C.bg : C.second, border: `1px solid ${h.active ? C.ink : C.second}`, padding: "5px 10px", borderRadius: 999, fontSize: 11 }}>{t("admin.heroActive")}</button>
@@ -193,27 +193,27 @@ function Dashboard({ token, onLogout }) {
       </div>
 
       {/* Music library manager (Mubert) */}
-      <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 18 }}>
+      <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setLibOpen((v) => !v)}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{t("admin.musicLib")} <span style={{ color: C.second, fontWeight: 400 }}>({libRows.length})</span></div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{t("admin.musicLib")} <span style={{ color: C.second, fontWeight: 400 }}>({libRows.length})</span></div>
           <span style={{ color: C.second, fontSize: 18 }}>{libOpen ? "\u2013" : "+"}</span>
         </div>
         {libOpen && (
           <div style={{ marginTop: 12 }}>
             <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.musicLibHelp")}</p>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={libMood} onChange={(e) => setLibMood(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "8px 12px", fontSize: 13, color: C.ink, background: C.white }}>
+              <select value={libMood} onChange={(e) => setLibMood(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "8px 12px", fontSize: 13, color: C.text, background: C.card }}>
                 {["elegant", "celebration", "worship", "corporate", "cinematic", "acoustic"].map((m) => <option key={m} value={m}>{t("music." + m)}</option>)}
               </select>
-              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
+              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
             </div>
             {libRows.length === 0 ? (
               <p style={{ fontSize: 13, color: C.second, marginTop: 12 }}>{t("admin.musicLibEmpty")}</p>
             ) : (
               <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
                 {libRows.map((x) => (
-                  <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "8px 12px", border: `1px solid ${x.active ? C.gold : "rgba(22,41,76,.12)"}` }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.ink, minWidth: 90 }}>{t("music." + x.mood)}</span>
+                  <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "8px 12px", border: `1px solid ${x.active ? C.gold : "rgba(255,255,255,.12)"}` }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text, minWidth: 90 }}>{t("music." + x.mood)}</span>
                     <audio controls preload="none" src={publicUrl(x.storage_path)} style={{ height: 34, flex: 1, minWidth: 180 }} />
                     <button onClick={() => toggleLib(x)} style={{ background: x.active ? C.ink : "transparent", color: x.active ? C.bg : C.second, border: `1px solid ${x.active ? C.ink : C.second}`, padding: "5px 10px", borderRadius: 999, fontSize: 11 }}>{t("admin.heroActive")}</button>
                     <button onClick={() => removeLib(x)} style={{ background: "transparent", border: "1px solid #b3261e", color: "#b3261e", borderRadius: 8, padding: "5px 9px", fontSize: 12 }}>\uD83D\uDDD1</button>
@@ -231,9 +231,9 @@ function Dashboard({ token, onLogout }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14, marginTop: 22 }}>
           {events.map((e) => (
             <button key={e.id} onClick={() => setSelected(e)} className="card"
-              style={{ textAlign: "left", background: C.white, border: "1px solid rgba(22,41,76,.08)", borderRadius: 14, padding: 18 }}>
+              style={{ textAlign: "left", background: C.card, border: "1px solid rgba(255,255,255,.08)", borderRadius: 14, padding: 18 }}>
               <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " Â· â†»" : ""}</div>
-              <div className="serif" style={{ fontSize: 22, color: C.ink, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
+              <div className="serif" style={{ fontSize: 22, color: C.text, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
               <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" Â· ")}</div>
             </button>
           ))}
@@ -246,10 +246,10 @@ function Dashboard({ token, onLogout }) {
 function Toggle({ on, onClick, title, help }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(197,164,75,.12)" : C.white, border: `1px solid ${on ? C.gold : "rgba(22,41,76,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
-      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 14, fontWeight: 700 }}>{on ? "âœ“" : ""}</span>
+      style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)", border: `1px solid ${on ? C.gold : "rgba(255,255,255,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
+      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 14, fontWeight: 700 }}>{on ? "âœ“" : ""}</span>
       <span>
-        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.ink }}>{title}</span>
+        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.text }}>{title}</span>
         <span style={{ display: "block", fontSize: 12, color: C.second, marginTop: 2 }}>{help}</span>
       </span>
     </button>
@@ -321,16 +321,16 @@ function CreateEvent({ token, onCreated }) {
   }
 
   if (!open) {
-    return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
+    return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.text, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
   }
 
-  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginTop: 4 };
-  const lab = { fontSize: 12, fontWeight: 600, color: C.ink };
+  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4 };
+  const lab = { fontSize: 12, fontWeight: 600, color: C.text };
   const hasEnglish = name.trim() || host.trim() || date.trim();
 
   return (
-    <div style={{ marginTop: 18, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 22 }}>
-      <h3 className="serif" style={{ fontSize: 22, color: C.ink, margin: "0 0 12px" }}>{t("admin.newEvent")}</h3>
+    <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
+      <h3 className="serif" style={{ fontSize: 22, color: C.text, margin: "0 0 12px" }}>{t("admin.newEvent")}</h3>
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={lab}>{t("admin.eventName")} *</label>
@@ -349,19 +349,19 @@ function CreateEvent({ token, onCreated }) {
         <div><label style={lab}>{t("admin.keepThreshold")} ({threshold})</label><input type="range" min="0" max="80" value={threshold} onChange={(e) => setThreshold(e.target.value)} style={{ width: "100%", marginTop: 10 }} /></div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 10 }}>{t("admin.safety")}</div>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>{t("admin.safety")}</div>
         <div style={{ display: "grid", gap: 10 }}>
           <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
           <Toggle on={protectMinors} onClick={() => setProtectMinors((v) => !v)} title={t("admin.protectMinors")} help={t("admin.protectMinors.help")} />
         </div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.spanishVersion")}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.spanishVersion")}</div>
           <button onClick={autoTranslate} disabled={translating || !hasEnglish}
-            style={{ background: C.ink, color: C.bg, padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: translating || !hasEnglish ? 0.5 : 1 }}>
+            style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: translating || !hasEnglish ? 0.5 : 1 }}>
             {translating ? t("admin.translating") : t("admin.autoTranslate")}
           </button>
         </div>
@@ -378,7 +378,7 @@ function CreateEvent({ token, onCreated }) {
 
       {err && <div style={{ color: "#b3261e", fontSize: 13, marginTop: 10 }}>{err}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-        <button onClick={create} disabled={busy} style={{ background: C.ink, color: C.bg, padding: "11px 18px", borderRadius: 10, fontSize: 14, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.creating") : t("admin.createGenerate")}</button>
+        <button onClick={create} disabled={busy} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 10, fontSize: 14, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.creating") : t("admin.createGenerate")}</button>
         <button onClick={() => setOpen(false)} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "11px 18px", borderRadius: 10, fontSize: 14 }}>{t("admin.cancel")}</button>
       </div>
     </div>
@@ -661,23 +661,23 @@ function EventDetail({ event, token, back }) {
   const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter) && (tagFilter === "all" || (p.tags || []).includes(tagFilter)));
   const featured = photos.find((p) => p.id === featuredId);
 
-  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(22,41,76,.2)", marginTop: 4 };
-  const slab = { fontSize: 12, fontWeight: 600, color: C.ink };
+  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4 };
+  const slab = { fontSize: 12, fontWeight: 600, color: C.text };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
-        <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.ink : "transparent", color: settingsOpen ? C.bg : C.ink, border: `1px solid ${C.ink}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.white, border: "1px solid rgba(22,41,76,.1)", borderRadius: 16, padding: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
           {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10 }} />}
           <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center" }}>
             {qr && (
               <a href={qr} download={`HALO-QR-${event.code}.png`} style={{ textDecoration: "none" }}>
-                <button style={{ background: C.ink, color: C.bg, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
+                <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
               </a>
             )}
             <button onClick={() => { navigator.clipboard?.writeText(eventUrl); alert(t("admin.linkCopied") + "\n" + eventUrl); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.copyLink")}</button>
@@ -685,7 +685,7 @@ function EventDetail({ event, token, back }) {
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` Â· ${t("admin.session")} ${currentSession || today()}` : ""}</div>
-          <h2 className="serif" style={{ fontSize: 30, color: C.ink, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
+          <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
           <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" Â· ")}</p>
           <div style={{ display: "flex", gap: 12 }}>
             <Stat label={t("admin.photos")} value={photos.length} />
@@ -694,9 +694,9 @@ function EventDetail({ event, token, back }) {
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
             <a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-              <button style={{ background: C.ink, color: C.bg, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.launchSlideshow")}</button>
+              <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.launchSlideshow")}</button>
             </a>
-            <button onClick={publish} disabled={publishing} style={{ background: C.gold, color: C.ink, padding: "10px 16px", borderRadius: 10, fontSize: 13, opacity: publishing ? 0.6 : 1 }}>
+            <button onClick={publish} disabled={publishing} style={{ background: C.gold, color: C.text, padding: "10px 16px", borderRadius: 10, fontSize: 13, opacity: publishing ? 0.6 : 1 }}>
               {publishing ? t("admin.publishing") : event.published_at ? t("admin.resendEmails") : t("admin.publishNotify")}
             </button>
             {publishMsg && <span style={{ fontSize: 12, color: C.second }}>{publishMsg}</span>}
@@ -706,7 +706,7 @@ function EventDetail({ event, token, back }) {
 
       {/* V2 Settings panel: recurring sessions + connect CTA */}
       {settingsOpen && (
-        <div style={{ marginTop: 16, background: C.white, border: "1px solid rgba(22,41,76,.12)", borderRadius: 16, padding: 20 }}>
+        <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 20 }}>
           <h3 className="serif" style={{ fontSize: 20, color: C.text, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
 
           {/* Event cover photo — the host sets this; guests see it as their welcome hero */}
@@ -719,7 +719,7 @@ function EventDetail({ event, token, back }) {
                   : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <label style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>
+                <label style={{ background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>
                   {coverBusy ? t("admin.cover.uploading") : (coverPath ? t("admin.cover.change") : t("admin.cover.add"))}
                   <input type="file" accept="image/*" hidden disabled={coverBusy} onChange={(e) => { uploadCover(e.target.files[0]); e.target.value = ""; }} />
                 </label>
@@ -734,13 +734,13 @@ function EventDetail({ event, token, back }) {
           <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
           {isRecurring && (
             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: C.second }}>{t("admin.session")}: <strong style={{ color: C.ink }}>{currentSession || today()}</strong></span>
-              <button onClick={startNewSession} style={{ background: C.ink, color: C.bg, padding: "8px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.startSession")}</button>
+              <span style={{ fontSize: 13, color: C.second }}>{t("admin.session")}: <strong style={{ color: C.text }}>{currentSession || today()}</strong></span>
+              <button onClick={startNewSession} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.startSession")}</button>
             </div>
           )}
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.connectCta")}</div>
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.connectCta")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.connectHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
               <div><label style={slab}>{t("admin.connectLabel")}</label><input style={sfield} value={connectLabel} onChange={(e) => setConnectLabel(e.target.value)} placeholder="New here? Get connected" /></div>
@@ -749,8 +749,8 @@ function EventDetail({ event, token, back }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(22,41,76,.1)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.music")}</div>
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.music")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.musicHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
               <div>
@@ -776,7 +776,7 @@ function EventDetail({ event, token, back }) {
               <input type="checkbox" checked={musicRightsOk} onChange={(e) => setMusicRightsOk(e.target.checked)} style={{ marginTop: 3 }} />
               <span style={{ fontSize: 12, color: C.second }}>{t("admin.musicRights")}</span>
             </label>
-            <label style={{ display: "inline-block", marginTop: 10, background: "transparent", color: C.ink, border: `1px solid ${musicRightsOk ? C.ink : C.second}`, padding: "8px 14px", borderRadius: 999, fontSize: 12, cursor: musicRightsOk ? "pointer" : "not-allowed", opacity: musicBusy || !musicRightsOk ? 0.55 : 1 }} title={!musicRightsOk ? t("admin.musicRightsNeeded") : ""}>
+            <label style={{ display: "inline-block", marginTop: 10, background: "transparent", color: C.text, border: `1px solid ${musicRightsOk ? C.line2 : C.second}`, padding: "8px 14px", borderRadius: 999, fontSize: 12, cursor: musicRightsOk ? "pointer" : "not-allowed", opacity: musicBusy || !musicRightsOk ? 0.55 : 1 }} title={!musicRightsOk ? t("admin.musicRightsNeeded") : ""}>
               {musicBusy ? t("admin.musicUploading") : t("admin.musicUpload")}
               <input type="file" accept="audio/*" hidden disabled={musicBusy || !musicRightsOk} onChange={(e) => { uploadMusic(e.target.files[0]); e.target.value = ""; }} />
             </label>
@@ -784,7 +784,7 @@ function EventDetail({ event, token, back }) {
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
-            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
+            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.text, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
           </div>
 
@@ -798,8 +798,8 @@ function EventDetail({ event, token, back }) {
 
       {/* V2 Moment of the service strip */}
       {photos.length > 0 && (
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.white, border: `1px solid ${featured ? C.gold : "rgba(22,41,76,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t("admin.moment")}</span>
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.card, border: `1px solid ${featured ? C.gold : "rgba(255,255,255,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.moment")}</span>
           {featured ? (
             <>
               <img src={featured.edited_url || featured.url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" }} />
@@ -807,22 +807,22 @@ function EventDetail({ event, token, back }) {
               <button onClick={clearMoment} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clearMoment")}</button>
             </>
           ) : <span style={{ fontSize: 12, color: C.second }}>{t("admin.momentNone")}</span>}
-          <button onClick={pinTopMoment} style={{ marginLeft: "auto", background: C.ink, color: C.bg, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.pinTopMoment")}</button>
+          <button onClick={pinTopMoment} style={{ marginLeft: "auto", background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.pinTopMoment")}</button>
         </div>
       )}
 
       {/* V2 Review queue */}
       {pending.length > 0 && (
-        <div style={{ marginTop: 18, background: C.white, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ marginTop: 18, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
             <div>
-              <h3 className="serif" style={{ fontSize: 22, color: C.ink, margin: 0 }}>
-                {t("admin.reviewQueue")} <span style={{ fontSize: 12, fontWeight: 700, color: C.ink, background: C.gold, padding: "2px 9px", borderRadius: 999, verticalAlign: "middle" }}>{pending.length} {t("admin.pendingCount")}</span>
+              <h3 className="serif" style={{ fontSize: 22, color: C.text, margin: 0 }}>
+                {t("admin.reviewQueue")} <span style={{ fontSize: 12, fontWeight: 700, color: C.text, background: C.gold, padding: "2px 9px", borderRadius: 999, verticalAlign: "middle" }}>{pending.length} {t("admin.pendingCount")}</span>
               </h3>
               <p style={{ fontSize: 12, color: C.second, margin: "4px 0 0" }}>{t("admin.reviewHintQueue")}</p>
             </div>
             <button onClick={() => moderate(pending.map((p) => p.id), "approved")} disabled={moderating}
-              style={{ background: C.ink, color: C.bg, padding: "9px 16px", borderRadius: 999, fontSize: 13, opacity: moderating ? 0.6 : 1 }}>
+              style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "9px 16px", borderRadius: 999, fontSize: 13, opacity: moderating ? 0.6 : 1 }}>
               {moderating ? t("admin.moderating") : t("admin.approveAll")}
             </button>
           </div>
@@ -839,9 +839,9 @@ function EventDetail({ event, token, back }) {
                   )}
                 </div>
                 <div style={{ padding: "8px 10px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{p.ownerName}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 8 }}>{p.ownerName}</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => moderate([p.id], "approved")} disabled={moderating} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
+                    <button onClick={() => moderate([p.id], "approved")} disabled={moderating} style={{ flex: 1, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                     <button onClick={() => moderate([p.id], "hidden")} disabled={moderating} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.hide")}</button>
                   </div>
                 </div>
@@ -857,17 +857,17 @@ function EventDetail({ event, token, back }) {
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
-              <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>{t("admin.collection")}</h3>
+              <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: 0 }}>{t("admin.collection")}</h3>
               <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` Â· ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` Â· ${dupCount} ${t("admin.duplicates")}` : ""}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {sessions.length > 0 && (
-                <select value={sessionFilter} onChange={(e) => setSessionFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.ink, background: C.white }}>
+                <select value={sessionFilter} onChange={(e) => setSessionFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.text, background: C.card }}>
                   <option value="all">{t("admin.allSessions")}</option>
                   {sessions.map((s) => <option key={s} value={s}>{t("admin.session")} {s}</option>)}
                 </select>
               )}
-              <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.ink, background: C.white }}>
+              <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "7px 12px", fontSize: 12, color: C.text, background: C.card }}>
                 <option value="all">{t("admin.tagFilter")}</option>
                 {TAGS.map((tg) => <option key={tg} value={tg}>{t("tag." + tg)}</option>)}
               </select>
@@ -876,11 +876,11 @@ function EventDetail({ event, token, back }) {
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
               </div>
               <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
-              <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.download")} {filter === "all" ? t("admin.all").toLowerCase() : t("admin.kept").toLowerCase()} ({version})</button>
+              <button onClick={downloadAll} style={{ background: C.gold, color: C.text, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.download")} {filter === "all" ? t("admin.all").toLowerCase() : t("admin.kept").toLowerCase()} ({version})</button>
               {!selectMode ? (
-                <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
+                <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
               ) : (
-                <button onClick={exitSelect} style={{ background: C.ink, color: C.bg, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.done")}</button>
+                <button onClick={exitSelect} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.done")}</button>
               )}
               {rejected.length > 0 && (
                 <button onClick={deleteAllRejected} disabled={deleting} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.clearRejected")} {rejected.length} {t("admin.rejected")}</button>
@@ -889,9 +889,9 @@ function EventDetail({ event, token, back }) {
           </div>
 
           {selectMode && (
-            <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, border: `1px solid rgba(22,41,76,.12)`, borderRadius: 12 }}>
+            <div style={{ marginTop: 12, padding: "10px 14px", background: C.card, border: `1px solid rgba(255,255,255,.12)`, borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, color: C.ink, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
+                <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{selected.size} {t("admin.selected")}</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button onClick={selectAllShown} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.selectAllShown")}</button>
                   <button onClick={() => setSelected(new Set())} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clear")}</button>
@@ -901,7 +901,7 @@ function EventDetail({ event, token, back }) {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: C.second }}>{t("admin.tagged")}:</span>
                 {TAGS.map((tg) => (
-                  <button key={tg} onClick={() => tagPhotos([...selected], tg, "add")} disabled={tagging || selected.size === 0} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "5px 11px", borderRadius: 999, fontSize: 12, opacity: tagging || selected.size === 0 ? 0.5 : 1 }}>{t("tag." + tg)}</button>
+                  <button key={tg} onClick={() => tagPhotos([...selected], tg, "add")} disabled={tagging || selected.size === 0} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "5px 11px", borderRadius: 999, fontSize: 12, opacity: tagging || selected.size === 0 ? 0.5 : 1 }}>{t("tag." + tg)}</button>
                 ))}
               </div>
             </div>
@@ -915,37 +915,37 @@ function EventDetail({ event, token, back }) {
               const n = counts[p.id] || 0;
               return (
                 <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
-                  style={{ background: C.white, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(22,41,76,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
+                  style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(255,255,255,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
                     <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
-                    <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
+                    <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.text, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
                     {version === "edited" && p.edited_url && (
                       <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
                     )}
                     {version === "edited" && !p.edited_url && (
-                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(22,41,76,.7)", color: C.bg, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processingâ€¦</span>
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processingâ€¦</span>
                     )}
                     {statusLabel ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` Â· ${t("admin.kidsBadge")}` : ""}</span>
                     ) : p.is_burst_dup ? (
-                      <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(22,41,76,.85)", color: C.bg, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
+                      <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(10,4,16,.85)", color: C.onInk, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
                     ) : !selectMode && (
                       <button onClick={(e) => { e.stopPropagation(); isFeatured ? clearMoment() : pinMoment(p.id); }} title={t("admin.pinMoment")}
-                        style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(22,41,76,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                        style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: isFeatured ? C.gold : "rgba(10,4,16,.6)", color: isFeatured ? C.ink : C.bg, border: "none", borderRadius: 999, padding: "3px 8px", fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>
                         {isFeatured ? "â˜…" : "â˜†"}{n > 0 ? ` ${n}` : ""}
                       </button>
                     )}
                     {selectMode && (
-                      <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 700 }}>{isSel ? "âœ“" : ""}</span>
+                      <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 13, fontWeight: 700 }}>{isSel ? "âœ“" : ""}</span>
                     )}
                   </div>
                   <div style={{ padding: "8px 10px" }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{p.ownerName}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{p.ownerName}</div>
                     <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} Â· exp {p.exposure}</div>
                     {(p.tags || []).length > 0 && (
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                         {p.tags.map((tg) => (
-                          <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(22,41,76,.08)", color: C.ink, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
+                          <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,.08)", color: C.text, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
                             {t("tag." + tg)}<span onClick={(e) => { e.stopPropagation(); tagPhotos([p.id], tg, "remove"); }} aria-label={t("admin.removeTag")} style={{ cursor: "pointer", color: C.second }}>Ã—</span>
                           </span>
                         ))}
@@ -953,13 +953,13 @@ function EventDetail({ event, token, back }) {
                     )}
                     {!selectMode && (
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <button onClick={() => download(p)} style={{ flex: 1, background: C.ink, color: C.bg, padding: "7px", borderRadius: 8, fontSize: 12 }}>{t("admin.download")}</button>
+                        <button onClick={() => download(p)} style={{ flex: 1, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px", borderRadius: 8, fontSize: 12 }}>{t("admin.download")}</button>
                         {p.status === "approved" ? (
                           <button onClick={() => moderate([p.id], "hidden")} disabled={moderating} title={t("admin.hide")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.hide")}</button>
                         ) : (
-                          <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
+                          <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                         )}
-                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.ink, border: `1px solid ${C.ink}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : "â›¶"}</button>
+                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : "â›¶"}</button>
                         <button onClick={() => deleteOne(p.id)} disabled={deleting} title="Delete" aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 13, opacity: deleting ? 0.6 : 1 }}>ðŸ—‘</button>
                       </div>
                     )}

@@ -82,7 +82,7 @@ input:focus-visible, select:focus-visible {
 }
 
 .card { transition: transform .18s ease, box-shadow .18s ease; }
-.card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(22,41,76,.18); }
+.card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,.45); }
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -94,7 +94,7 @@ input:focus-visible, select:focus-visible {
 .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
 
 /* ---- HALO angled responsive header ---- */
-:root { --grad: linear-gradient(120deg, #0E1B36, #1E3461 60%, #2A4A6E); }
+:root { --grad: linear-gradient(120deg, #06030b, #140a20 60%, #1a1020); }
 
 .halo-header {
   position: relative; height: 152px;
