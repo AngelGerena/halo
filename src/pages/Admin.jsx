@@ -413,6 +413,8 @@ function EventDetail({ event, token, back }) {
   const [connectLabelEs, setConnectLabelEs] = useState(event.connect_label_es || "");
   const [connectUrl, setConnectUrl] = useState(event.connect_url || "");
   const [category, setCategory] = useState(event.category || "");
+  const [coverPath, setCoverPath] = useState(event.cover_path || "");
+  const [coverBusy, setCoverBusy] = useState(false);
   const [musicUrl, setMusicUrl] = useState(event.music_url || "");
   const [musicBusy, setMusicBusy] = useState(false);
   const [musicRightsOk, setMusicRightsOk] = useState(!!event.music_rights_ack);
@@ -498,6 +500,7 @@ function EventDetail({ event, token, back }) {
         connect_label_es: connectLabelEs.trim() || null,
         connect_url: connectUrl.trim() || null,
         category: category || null,
+        cover_path: coverPath || null,
         music_url: musicUrl || null,
         music_rights_ack: !!musicRightsOk,
         music_rights_ack_at: musicRightsOk ? new Date().toISOString() : null,
@@ -506,6 +509,19 @@ function EventDetail({ event, token, back }) {
       setCurrentSession(updated.current_session || "");
       setSavedMsg(t("admin.saved"));
     } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
+  }
+
+  async function uploadCover(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    setCoverBusy(true);
+    try {
+      const { uploadUrl, path, contentType } = await signAdminUpload({
+        passcode: token, kind: "cover", filename: file.name, contentType: file.type || "image/jpeg",
+      });
+      await putToR2(uploadUrl, file, contentType);
+      setCoverPath(path);
+      await updateEvent({ cover_path: path }); // save immediately so guests see it right away
+    } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
   }
 
   async function uploadMusic(file) {
@@ -691,7 +707,30 @@ function EventDetail({ event, token, back }) {
       {/* V2 Settings panel: recurring sessions + connect CTA */}
       {settingsOpen && (
         <div style={{ marginTop: 16, background: C.white, border: "1px solid rgba(22,41,76,.12)", borderRadius: 16, padding: 20 }}>
-          <h3 className="serif" style={{ fontSize: 20, color: C.ink, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
+          <h3 className="serif" style={{ fontSize: 20, color: C.text, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
+
+          {/* Event cover photo — the host sets this; guests see it as their welcome hero */}
+          <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: `1px solid ${C.line}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.cover")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.cover.help")}</p>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ width: 120, height: 76, borderRadius: 10, overflow: "hidden", flexShrink: 0, border: `1px solid ${C.line2}`, background: C.panel, display: "grid", placeItems: "center" }}>
+                {coverPath ? <img src={publicUrl(coverPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <label style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>
+                  {coverBusy ? t("admin.cover.uploading") : (coverPath ? t("admin.cover.change") : t("admin.cover.add"))}
+                  <input type="file" accept="image/*" hidden disabled={coverBusy} onChange={(e) => { uploadCover(e.target.files[0]); e.target.value = ""; }} />
+                </label>
+                {coverPath && !coverBusy && (
+                  <button onClick={async () => { try { await updateEvent({ cover_path: null }); setCoverPath(""); } catch (e) { alert(e.message); } }}
+                    style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "9px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.cover.remove")}</button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
           {isRecurring && (
             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>

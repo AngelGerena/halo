@@ -1,14 +1,25 @@
-// HALO brand tokens (Finesse OS design language)
+// HALO brand tokens — dark cinematic (matches the halo-ring landing page).
+// Every page imports C and styles from it, so this object re-skins the whole app.
+// Legacy key names (ink, gold, bg, second, text, white, headerGrad, inkDeep,
+// goldLight) are KEPT so existing components keep working — their VALUES moved
+// to the landing palette, with meanings adjusted for a dark UI.
 export const C = {
-  ink: "#16294C",        // church navy
-  gold: "#C9A24B",       // church gold
-  goldLight: "#E6C879",  // highlight gold (gradients, accents on navy)
-  inkDeep: "#0E1B36",    // deepest navy (slideshow / gradient base)
-  bg: "#F6F1E8",         // warm ivory
-  second: "#5E6E8C",     // navy-grey (secondary text)
-  text: "#3A3A42",
+  ink: "#0a0410",        // base background (deep near-black plum) — was the dark text color
+  inkDeep: "#06030b",    // deepest background (bars, slideshow base)
+  panel: "#140a20",      // raised panel / card surface
+  panel2: "#1a1020",     // warm charcoal-plum (welcome background)
+  gold: "#ffb86b",       // champagne gold accent
+  goldLight: "#ffd9a8",  // lighter gold (hovers, highlights)
+  pink: "#ff3d81",       // halo pink
+  purple: "#7b2ff7",     // halo purple
+  teal: "#00c2cb",       // halo teal
+  bg: "#06030b",         // app background
+  second: "#b9b2c4",     // muted/secondary text (light on dark)
+  text: "#ffffff",       // primary text (white on dark)
+  line: "rgba(255,255,255,.1)",
+  line2: "rgba(255,255,255,.18)",
   white: "#ffffff",
-  headerGrad: "linear-gradient(120deg, #0E1B36, #1E3461 60%, #2A4A6E)", // flame-inspired header
+  headerGrad: "linear-gradient(120deg, #06030b, #140a20 60%, #1a1020)", // dark cinematic header
 };
 
 // ---- helpers ----

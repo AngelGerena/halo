@@ -55,6 +55,20 @@ const STRINGS = {
   "up.copyShareLink": { en: "Copy share link", es: "Copiar enlace para compartir" },
   "up.linkCopied": { en: "Share link copied:", es: "Enlace copiado:" },
 
+  // redesigned guest app (welcome + tabbed)
+  "event.coverEmpty.title": { en: "Add a cover photo", es: "Agrega una foto de portada" },
+  "event.coverEmpty.sub": { en: "The host sets the vibe — tap to upload", es: "El anfitrión marca el tono — toca para subir" },
+  "event.welcomeQuote": { en: "Every photo you take tonight becomes part of the story.", es: "Cada foto que tomes esta noche se vuelve parte de la historia." },
+  "event.welcomeNote": { en: "No app · No account · Yours to download for 60 days", es: "Sin app · Sin cuenta · Tuyas para descargar por 60 días" },
+  "tab.add": { en: "Add", es: "Agregar" },
+  "tab.gallery": { en: "Gallery", es: "Galería" },
+  "tab.mine": { en: "Mine", es: "Mías" },
+  "up.tapGallery": { en: "See the keepers in", es: "Mira las mejores en" },
+  "up.allYours": { en: "All your photos", es: "Todas tus fotos" },
+  "up.keptGallery": { en: "The keepers", es: "Las mejores" },
+  "up.emptyTitle": { en: "Nothing here yet", es: "Nada aquí todavía" },
+  "up.emptySub": { en: "Add your first photos and HALO keeps the best ones.", es: "Agrega tus primeras fotos y HALO conserva las mejores." },
+
   // gallery (public)
   "gal.notFound.title": { en: "Gallery not found", es: "Galería no encontrada" },
   "gal.notFound.sub": { en: "This share link may be invalid.", es: "Este enlace para compartir puede no ser válido." },
@@ -193,6 +207,13 @@ const STRINGS = {
   "connect.sub": { en: "Tap to take your next step with us.", es: "Toca para dar tu siguiente paso con nosotros." },
   // admin settings
   "admin.settings": { en: "Event settings", es: "Ajustes del evento" },
+  "admin.cover": { en: "Event cover photo", es: "Foto de portada del evento" },
+  "admin.cover.help": { en: "Guests see this as the welcome hero when they scan in. A couple photo, the venue, a logo — your call.", es: "Los invitados la ven como portada al escanear. Una foto de la pareja, el lugar, un logo — tú decides." },
+  "admin.cover.none": { en: "No cover yet", es: "Sin portada" },
+  "admin.cover.add": { en: "Upload cover", es: "Subir portada" },
+  "admin.cover.change": { en: "Change cover", es: "Cambiar portada" },
+  "admin.cover.remove": { en: "Remove", es: "Quitar" },
+  "admin.cover.uploading": { en: "Uploading…", es: "Subiendo…" },
   "admin.recurring": { en: "Repeats weekly (keep the same QR)", es: "Se repite cada semana (mismo QR)" },
   "admin.recurring.help": { en: "Keep one QR for a weekly service. Start a new session each week; past weeks stay archived.", es: "Mant\u00e9n un QR para un servicio semanal. Inicia una nueva sesi\u00f3n cada semana; las semanas pasadas quedan archivadas." },
   "admin.startSession": { en: "Start new session", es: "Iniciar nueva sesi\u00f3n" },
