@@ -3,6 +3,15 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Canonical host: send the old netlify.app address to the real domain so
+# every client-facing link and QR code lives on halo.finessemedia.pro.
+# (Only fires for the netlify.app host, so no loop on the custom domain.)
+[[redirects]]
+  from = "https://halo-frame.netlify.app/*"
+  to = "https://halo.finessemedia.pro/:splat"
+  status = 301
+  force = true
+
 # The app is product-only. The bare root is not a marketing page —
 # bounce it to the real landing site (halo-gallery-site).
 [[redirects]]
