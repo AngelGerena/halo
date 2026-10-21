@@ -83,7 +83,7 @@ export default function SlideshowPage() {
   // poll for new uploads every 12s
   useEffect(() => {
     if (!event) return;
-    const tmr = setInterval(() => refresh(event.id, false), 12000);
+    const tmr = setInterval(() => refresh(event.id, false), 7000);
     return () => clearInterval(tmr);
   }, [event, refresh]);
 
