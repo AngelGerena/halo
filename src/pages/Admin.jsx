@@ -84,6 +84,24 @@ function Dashboard({ token, onLogout }) {
   }
   useEffect(() => { loadEvents(); }, []);
 
+  const [deletingId, setDeletingId] = useState(null);
+  async function deleteFromList(ev2) {
+    const typed = window.prompt(`${t("admin.deleteEventConfirm")} ${ev2.code}`);
+    if (typed === null) return;
+    if (typed.trim().toUpperCase() !== String(ev2.code).toUpperCase()) { alert(t("admin.deleteEventMismatch")); return; }
+    setDeletingId(ev2.id);
+    try {
+      const r = await fetch("/.netlify/functions/delete-event", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: token, eventId: ev2.id }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || t("admin.deleteEventFailed"));
+      await loadEvents();
+    } catch (e) { alert(e.message); }
+    finally { setDeletingId(null); }
+  }
+
   async function loadHero() {
     const { data } = await supabase.from("hero_images").select("*").order("sort", { ascending: true });
     setHeroList(data || []);
@@ -230,12 +248,19 @@ function Dashboard({ token, onLogout }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14, marginTop: 22 }}>
           {events.map((e) => (
-            <button key={e.id} onClick={() => setSelected(e)} className="card"
-              style={{ textAlign: "left", background: C.card, border: "1px solid rgba(255,255,255,.08)", borderRadius: 14, padding: 18 }}>
-              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " Â· â†»" : ""}</div>
-              <div className="serif" style={{ fontSize: 22, color: C.text, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
-              <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" Â· ")}</div>
-            </button>
+            <div key={e.id} className="card"
+              style={{ display: "flex", flexDirection: "column", background: C.card, border: "1px solid rgba(255,255,255,.08)", borderRadius: 14, padding: 18 }}>
+              <button onClick={() => setSelected(e)}
+                style={{ textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer", width: "100%" }}>
+                <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " Â· â†»" : ""}</div>
+                <div className="serif" style={{ fontSize: 22, color: C.text, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
+                <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" Â· ")}</div>
+              </button>
+              <button onClick={() => deleteFromList(e)} disabled={deletingId === e.id}
+                style={{ marginTop: 14, alignSelf: "flex-start", background: "transparent", color: "#ff6b6b", border: "1px solid #ff6b6b", padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: deletingId === e.id ? 0.5 : 1 }}>
+                {deletingId === e.id ? t("admin.deleting") : t("admin.delete")}
+              </button>
+            </div>
           ))}
         </div>
       )}
