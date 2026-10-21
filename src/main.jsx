@@ -10,27 +10,20 @@ import Admin from "./pages/Admin.jsx";
 import SlideshowPage from "./pages/SlideshowPage.jsx";
 import Legal from "./pages/Legal.jsx";
 
-// The app is product-only. The marketing/landing page lives on the separate
-// halo-gallery-site. Any hit to the bare root (or an unknown route) bounces
-// there instead of showing a duplicate marketing page.
-const LANDING_URL = "https://halo-gallery-site.netlify.app";
-function ToLanding() {
-  React.useEffect(() => { window.location.replace(LANDING_URL); }, []);
-  return null;
-}
-
+// The marketing/landing page is served as a static file at the site root by
+// Netlify (public/landing.html -> "/"), so React only owns the real app
+// routes below. A hit to an unknown path falls through to the static landing
+// page via the netlify.toml rewrite, so there is no in-app redirect to run.
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <I18nProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<ToLanding />} />
           <Route path="/e/:code" element={<EventPage />} />
           <Route path="/g/:contributorId" element={<GalleryPage />} />
           <Route path="/live/:code" element={<SlideshowPage />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/legal" element={<Legal />} />
-          <Route path="*" element={<ToLanding />} />
         </Routes>
       </BrowserRouter>
     </I18nProvider>
