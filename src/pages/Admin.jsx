@@ -95,8 +95,10 @@ function Dashboard({ token, onLogout }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passcode: token, eventId: ev2.id }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || t("admin.deleteEventFailed"));
+      const raw = await r.text();
+      let j = {};
+      try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON response */ }
+      if (!r.ok) throw new Error(j.error || `${t("admin.deleteEventFailed")} (${r.status})${raw && !j.error ? `: ${raw.slice(0, 180)}` : ""}`);
       await loadEvents();
     } catch (e) { alert(e.message); }
     finally { setDeletingId(null); }
@@ -252,9 +254,9 @@ function Dashboard({ token, onLogout }) {
               style={{ display: "flex", flexDirection: "column", background: C.card, border: "1px solid rgba(255,255,255,.08)", borderRadius: 14, padding: 18 }}>
               <button onClick={() => setSelected(e)}
                 style={{ textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer", width: "100%" }}>
-                <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " Â· â†»" : ""}</div>
+                <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " · ↻" : ""}</div>
                 <div className="serif" style={{ fontSize: 22, color: C.text, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
-                <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" Â· ")}</div>
+                <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" · ")}</div>
               </button>
               <button onClick={() => deleteFromList(e)} disabled={deletingId === e.id}
                 style={{ marginTop: 14, alignSelf: "flex-start", background: "transparent", color: "#ff6b6b", border: "1px solid #ff6b6b", padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: deletingId === e.id ? 0.5 : 1 }}>
@@ -272,7 +274,7 @@ function Toggle({ on, onClick, title, help }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
       style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start", background: on ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)", border: `1px solid ${on ? C.gold : "rgba(255,255,255,.15)"}`, borderRadius: 12, padding: "11px 13px" }}>
-      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 14, fontWeight: 700 }}>{on ? "âœ“" : ""}</span>
+      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 14, fontWeight: 700 }}>{on ? "✓" : ""}</span>
       <span>
         <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.text }}>{title}</span>
         <span style={{ display: "block", fontSize: 12, color: C.second, marginTop: 2 }}>{help}</span>
@@ -364,7 +366,7 @@ function CreateEvent({ token, onCreated }) {
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={lab}>{t("admin.category")}</label>
           <select style={field} value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="">â€”</option>
+            <option value="">—</option>
             {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
           </select>
         </div>
@@ -394,7 +396,7 @@ function CreateEvent({ token, onCreated }) {
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={lab}>{t("admin.eventNameEs")}</label>
-            <input style={field} value={nameEs} onChange={(e) => setNameEs(e.target.value)} placeholder="Servicio del Domingo de ResurrecciÃ³n" />
+            <input style={field} value={nameEs} onChange={(e) => setNameEs(e.target.value)} placeholder="Servicio del Domingo de Resurrección" />
           </div>
           <div><label style={lab}>{t("admin.hostEs")}</label><input style={field} value={hostEs} onChange={(e) => setHostEs(e.target.value)} placeholder="" /></div>
           <div><label style={lab}>{t("admin.dateEs")}</label><input style={field} value={dateEs} onChange={(e) => setDateEs(e.target.value)} placeholder="31 de marzo de 2026" /></div>
@@ -462,7 +464,7 @@ function EventDetail({ event, token, back }) {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || t("admin.publishFailed"));
-      setPublishMsg(`${t("admin.published")} Â· ${j.sent} ${j.sent === 1 ? t("admin.emailSent") : t("admin.emailsSent")}${j.failed ? `, ${j.failed} ${t("admin.failed")}` : ""}.`);
+      setPublishMsg(`${t("admin.published")} · ${j.sent} ${j.sent === 1 ? t("admin.emailSent") : t("admin.emailsSent")}${j.failed ? `, ${j.failed} ${t("admin.failed")}` : ""}.`);
     } catch (e) { setPublishMsg(e.message); } finally { setPublishing(false); }
   }
 
@@ -709,9 +711,9 @@ function EventDetail({ event, token, back }) {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` Â· ${t("admin.session")} ${currentSession || today()}` : ""}</div>
+          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
-          <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" Â· ")}</p>
+          <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
           <div style={{ display: "flex", gap: 12 }}>
             <Stat label={t("admin.photos")} value={photos.length} />
             <Stat label={t("admin.kept")} value={kept.length} gold />
@@ -769,7 +771,7 @@ function EventDetail({ event, token, back }) {
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.connectHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
               <div><label style={slab}>{t("admin.connectLabel")}</label><input style={sfield} value={connectLabel} onChange={(e) => setConnectLabel(e.target.value)} placeholder="New here? Get connected" /></div>
-              <div><label style={slab}>{t("admin.connectLabelEs")}</label><input style={sfield} value={connectLabelEs} onChange={(e) => setConnectLabelEs(e.target.value)} placeholder="Â¿Primera vez? ConÃ©ctate" /></div>
+              <div><label style={slab}>{t("admin.connectLabelEs")}</label><input style={sfield} value={connectLabelEs} onChange={(e) => setConnectLabelEs(e.target.value)} placeholder="¿Primera vez? Conéctate" /></div>
               <div style={{ gridColumn: "1 / -1" }}><label style={slab}>{t("admin.connectUrl")}</label><input style={sfield} value={connectUrl} onChange={(e) => setConnectUrl(e.target.value)} placeholder="https://icgg.us/connect" /></div>
             </div>
           </div>
@@ -781,7 +783,7 @@ function EventDetail({ event, token, back }) {
               <div>
                 <label style={slab}>{t("admin.category")}</label>
                 <select style={sfield} value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <option value="">â€”</option>
+                  <option value="">—</option>
                   {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
                 </select>
               </div>
@@ -828,7 +830,7 @@ function EventDetail({ event, token, back }) {
           {featured ? (
             <>
               <img src={featured.edited_url || featured.url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" }} />
-              <span style={{ fontSize: 12, color: C.second }}>{featured.ownerName} Â· {counts[featured.id] || 0} â™¥</span>
+              <span style={{ fontSize: 12, color: C.second }}>{featured.ownerName} · {counts[featured.id] || 0} ♥</span>
               <button onClick={clearMoment} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clearMoment")}</button>
             </>
           ) : <span style={{ fontSize: 12, color: C.second }}>{t("admin.momentNone")}</span>}
@@ -883,7 +885,7 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: 0 }}>{t("admin.collection")}</h3>
-              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` Â· ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` Â· ${dupCount} ${t("admin.duplicates")}` : ""}</div>
+              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` · ${dupCount} ${t("admin.duplicates")}` : ""}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {sessions.length > 0 && (
@@ -948,10 +950,10 @@ function EventDetail({ event, token, back }) {
                       <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
                     )}
                     {version === "edited" && !p.edited_url && (
-                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processingâ€¦</span>
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
                     )}
                     {statusLabel ? (
-                      <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` Â· ${t("admin.kidsBadge")}` : ""}</span>
+                      <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
                     ) : p.is_burst_dup ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(10,4,16,.85)", color: C.onInk, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.duplicateBadge")}</span>
                     ) : !selectMode && (
@@ -961,12 +963,12 @@ function EventDetail({ event, token, back }) {
                       </button>
                     )}
                     {selectMode && (
-                      <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 13, fontWeight: 700 }}>{isSel ? "âœ“" : ""}</span>
+                      <span style={{ position: "absolute", bottom: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: isSel ? C.gold : "rgba(255,255,255,.85)", border: `2px solid ${isSel ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.text, fontSize: 13, fontWeight: 700 }}>{isSel ? "✓" : ""}</span>
                     )}
                   </div>
                   <div style={{ padding: "8px 10px" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{p.ownerName}</div>
-                    <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} Â· exp {p.exposure}</div>
+                    <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} · exp {p.exposure}</div>
                     {(p.tags || []).length > 0 && (
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                         {p.tags.map((tg) => (
