@@ -56,6 +56,18 @@ input, select, textarea {
   color: var(--text);
   background: rgba(255,255,255,.05);
 }
+/* The open dropdown list is painted with a solid (not translucent) colour,
+   or the OS falls back to white. Force dark background + light text on the
+   select and every option so the choices are always readable. */
+select {
+  background-color: var(--panel);
+  color: var(--text);
+  color-scheme: dark; /* make the native option popup render dark on every OS/browser */
+}
+select option, select optgroup {
+  background-color: #1a1020;
+  color: #ffffff;
+}
 /* keep native controls (checkboxes, radios, range, file) with their default look */
 input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"] {
   background: transparent;
