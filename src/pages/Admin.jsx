@@ -95,8 +95,10 @@ function Dashboard({ token, onLogout }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passcode: token, eventId: ev2.id }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || t("admin.deleteEventFailed"));
+      const raw = await r.text();
+      let j = {};
+      try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON response */ }
+      if (!r.ok) throw new Error(j.error || `${t("admin.deleteEventFailed")} (${r.status})${raw && !j.error ? `: ${raw.slice(0, 180)}` : ""}`);
       await loadEvents();
     } catch (e) { alert(e.message); }
     finally { setDeletingId(null); }
