@@ -45,7 +45,7 @@ const STRINGS = {
   "up.welcome": { en: "Welcome", es: "Bienvenido" },
   "up.uploadEverything": { en: "upload everything, HALO keeps the best.", es: "sube todo, HALO conserva las mejores." },
   "up.tapToAdd": { en: "Tap to add photos", es: "Toca para agregar fotos" },
-  "up.dragHere": { en: "or drag them here · JPG, PNG, HEIC", es: "o arrástralas aquí · JPG, PNG, HEIC" },
+  "up.dragHere": { en: "Pick several at once — tap each photo, then “Add” · JPG, PNG, HEIC", es: "Elige varias a la vez — toca cada foto y luego “Agregar” · JPG, PNG, HEIC" },
   "up.uploading": { en: "Uploading", es: "Subiendo" },
   "up.uploaded": { en: "Uploaded", es: "Subidas" },
   "up.keptByHalo": { en: "Kept by HALO", es: "Conservadas por HALO" },
