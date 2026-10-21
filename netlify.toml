@@ -18,11 +18,15 @@
 # page. No external redirect, so no netlify.app URL is ever shown.
 
 # Root -> the static marketing page (rewrite, status 200, so the URL stays
-# halo.finessemedia.pro/ with no redirect hop).
+# halo.finessemedia.pro/ with no redirect hop). force = true is REQUIRED:
+# Vite builds a dist/index.html, so a real file exists at "/", and Netlify
+# serves an existing file before applying a non-forced rule. Forcing makes
+# the rewrite win so the root shows the landing page, not the app shell.
 [[redirects]]
   from = "/"
   to = "/landing.html"
   status = 200
+  force = true
 
 # Real app routes load the React SPA. Static files at the build root
 # (favicon, og-image, /landing/* assets) and the Netlify functions
