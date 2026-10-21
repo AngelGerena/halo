@@ -127,26 +127,26 @@ export default function Home() {
     return () => clearInterval(id);
   }, [heroImgs]);
 
-  const inp = { width: "100%", padding: "13px 14px", borderRadius: 11, border: "1px solid rgba(244,238,223,.25)", background: "rgba(244,238,223,.06)", color: C.bg, fontSize: 14, fontFamily: "Manrope, sans-serif" };
+  const inp = { width: "100%", padding: "13px 14px", borderRadius: 11, border: "1px solid rgba(244,238,223,.25)", background: "rgba(244,238,223,.06)", color: C.text, fontSize: 14, fontFamily: "Manrope, sans-serif" };
   const cardTop = { borderTop: `4px solid ${C.gold}` };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* HERO — admin-managed image carousel with the header overlaid on top */}
-      <div className="hero-under-header" style={{ position: "relative", overflow: "hidden", color: C.bg, paddingLeft: 24, paddingRight: 24, paddingBottom: 88, textAlign: "center" }}>
+      <div className="hero-under-header" style={{ position: "relative", overflow: "hidden", color: C.text, paddingLeft: 24, paddingRight: 24, paddingBottom: 88, textAlign: "center" }}>
         {heroImgs.map((src, i) => (
           <div key={i} aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center", opacity: i === heroIdx ? 1 : 0, transition: "opacity 1.2s ease" }} />
         ))}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(14,27,54,.34) 0px, rgba(14,27,54,.55) 160px, rgba(14,27,54,.80) 330px)" }} />
         <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 340, height: 340, background: "radial-gradient(circle, rgba(230,200,121,.20), transparent 62%)", pointerEvents: "none" }} />
-        <Header onHero right={<button onClick={scrollToForm} style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 600 }}>{t.early}</button>} />
+        <Header onHero right={<button onClick={scrollToForm} style={{ background: C.gold, color: C.text, borderRadius: 999, padding: "9px 16px", fontSize: 12, fontWeight: 600 }}>{t.early}</button>} />
         <div style={{ position: "relative", zIndex: 2 }}>
           <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.inkDeep, background: C.goldLight, padding: "6px 16px", borderRadius: 999 }}>{t.cs}</span>
           <h1 className="serif" style={{ fontSize: 54, lineHeight: 1.04, margin: "20px 0 12px", fontWeight: 700 }}>{t.h1}</h1>
           <p style={{ maxWidth: 620, margin: "0 auto", fontSize: 17, color: "#dbe3ee", lineHeight: 1.55 }}>{t.hp}</p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
-            <button onClick={scrollToForm} style={{ background: C.gold, color: C.ink, border: 0, borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 600 }}>{t.early}</button>
-            <a href="#basics" style={{ textDecoration: "none" }}><button style={{ background: "transparent", color: C.bg, border: "1px solid rgba(244,238,223,.45)", borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 600 }}>{t.see}</button></a>
+            <button onClick={scrollToForm} style={{ background: C.gold, color: C.text, border: 0, borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 600 }}>{t.early}</button>
+            <a href="#basics" style={{ textDecoration: "none" }}><button style={{ background: "transparent", color: C.text, border: "1px solid rgba(244,238,223,.45)", borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 600 }}>{t.see}</button></a>
           </div>
           <div style={{ marginTop: 14, fontSize: 12, color: C.goldLight, letterSpacing: 1 }}>{t.note}</div>
           {heroImgs.length > 1 && (
@@ -163,10 +163,10 @@ export default function Home() {
         {/* USE CASES */}
         <section className="wrap" style={{ paddingTop: 52, paddingBottom: 10, textAlign: "center" }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.gold }}>{t.uw}</div>
-          <h2 className="serif" style={{ fontSize: 36, margin: "8px 0 26px", color: C.ink }}>{t.uh}</h2>
+          <h2 className="serif" style={{ fontSize: 36, margin: "8px 0 26px", color: C.text }}>{t.uh}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
             {t.uses.map((u, i) => (
-              <div key={i} style={{ background: C.white, border: "1px solid rgba(22,41,76,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 14, padding: "18px 12px", fontSize: 14, fontWeight: 600, color: C.ink, boxShadow: "0 12px 28px rgba(22,41,76,.10)" }}>{u}</div>
+              <div key={i} style={{ background: C.card, border: "1px solid rgba(255,255,255,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 14, padding: "18px 12px", fontSize: 14, fontWeight: 600, color: C.text, boxShadow: "0 12px 28px rgba(255,255,255,.10)" }}>{u}</div>
             ))}
           </div>
         </section>
@@ -174,13 +174,13 @@ export default function Home() {
         {/* BASICS */}
         <section id="basics" className="wrap" style={{ paddingTop: 48, paddingBottom: 16, textAlign: "center" }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.gold }}>{t.bw}</div>
-          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 6px", color: C.ink }}>{t.bh}</h2>
+          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 6px", color: C.text }}>{t.bh}</h2>
           <p style={{ color: C.second, maxWidth: 560, margin: "0 auto 36px", fontSize: 15 }}>{t.bl}</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 18 }}>
             {[[t.s1t, t.s1p], [t.s2t, t.s2p], [t.s3t, t.s3p]].map((s, i) => (
-              <div key={i} className="card" style={{ background: C.white, border: "1px solid rgba(22,41,76,.10)", ...cardTop, borderRadius: 16, padding: "26px 22px", boxShadow: "0 14px 34px rgba(22,41,76,.12)", position: "relative", textAlign: "left" }}>
+              <div key={i} className="card" style={{ background: C.card, border: "1px solid rgba(255,255,255,.10)", ...cardTop, borderRadius: 16, padding: "26px 22px", boxShadow: "0 14px 34px rgba(0,0,0,.35)", position: "relative", textAlign: "left" }}>
                 <div style={{ position: "absolute", top: 14, right: 18, fontFamily: "'Cormorant Garamond',serif", fontSize: 42, fontWeight: 700, color: "rgba(201,162,75,.28)" }}>{i + 1}</div>
-                <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: "0 0 5px" }}>{s[0]}</h3>
+                <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: "0 0 5px" }}>{s[0]}</h3>
                 <p style={{ color: C.second, fontSize: 14, lineHeight: 1.5, margin: 0 }}>{s[1]}</p>
               </div>
             ))}
@@ -189,8 +189,8 @@ export default function Home() {
 
         {/* PROOF BAND */}
         <section className="wrap" style={{ paddingTop: 20, paddingBottom: 20 }}>
-          <div style={{ background: C.ink, color: C.bg, borderRadius: 18, padding: "26px 24px", textAlign: "center" }}>
-            <p className="serif" style={{ fontSize: 22, margin: "0 0 14px", color: C.bg }}>{t.proof}</p>
+          <div style={{ background: C.panel2, color: C.text, borderRadius: 18, padding: "26px 24px", textAlign: "center" }}>
+            <p className="serif" style={{ fontSize: 22, margin: "0 0 14px", color: C.text }}>{t.proof}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
               {t.pills.map((p, i) => (
                 <span key={i} style={{ background: "rgba(230,200,121,.14)", color: C.goldLight, border: "1px solid rgba(230,200,121,.35)", borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>{p}</span>
@@ -202,15 +202,15 @@ export default function Home() {
         {/* PRICING */}
         <section className="wrap" style={{ paddingTop: 28, paddingBottom: 16, textAlign: "center" }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.gold }}>{t.pw}</div>
-          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 6px", color: C.ink }}>{t.ph}</h2>
+          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 6px", color: C.text }}>{t.ph}</h2>
           <p style={{ color: C.second, maxWidth: 600, margin: "0 auto 36px", fontSize: 15 }}>{t.pl}</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 16, alignItems: "stretch" }}>
             {t.tiers.map((tier, i) => (
-              <div key={i} style={{ background: C.white, border: tier.feat ? `2px solid ${C.gold}` : "1px solid rgba(22,41,76,.10)", ...cardTop, borderRadius: 16, padding: "26px 22px", position: "relative", textAlign: "left", boxShadow: tier.feat ? "0 18px 44px rgba(201,162,75,.20)" : "0 12px 30px rgba(22,41,76,.10)", display: "flex", flexDirection: "column" }}>
-                {tier.feat && <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "5px 12px", borderRadius: 999, whiteSpace: "nowrap" }}>{t.popular}</span>}
-                <span style={{ alignSelf: "flex-start", fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: C.second, background: "rgba(22,41,76,.07)", padding: "3px 9px", borderRadius: 999, marginBottom: 10 }}>{t.cs}</span>
-                <h3 className="serif" style={{ fontSize: 24, color: C.ink, margin: 0 }}>{tier.n}</h3>
-                <div style={{ fontSize: 30, fontWeight: 700, color: C.ink, margin: "6px 0 2px" }}>{tier.a}{tier.per && <small style={{ fontSize: 13, color: C.second, fontWeight: 500 }}> {tier.per}</small>}</div>
+              <div key={i} style={{ background: C.card, border: tier.feat ? `2px solid ${C.gold}` : "1px solid rgba(255,255,255,.10)", ...cardTop, borderRadius: 16, padding: "26px 22px", position: "relative", textAlign: "left", boxShadow: tier.feat ? "0 18px 44px rgba(201,162,75,.20)" : "0 12px 30px rgba(255,255,255,.10)", display: "flex", flexDirection: "column" }}>
+                {tier.feat && <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.text, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "5px 12px", borderRadius: 999, whiteSpace: "nowrap" }}>{t.popular}</span>}
+                <span style={{ alignSelf: "flex-start", fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: C.second, background: "rgba(255,255,255,.07)", padding: "3px 9px", borderRadius: 999, marginBottom: 10 }}>{t.cs}</span>
+                <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: 0 }}>{tier.n}</h3>
+                <div style={{ fontSize: 30, fontWeight: 700, color: C.text, margin: "6px 0 2px" }}>{tier.a}{tier.per && <small style={{ fontSize: 13, color: C.second, fontWeight: 500 }}> {tier.per}</small>}</div>
                 <div style={{ color: C.second, fontSize: 12.5 }}>{tier.s}</div>
                 <ul style={{ color: C.second, fontSize: 13, lineHeight: 1.7, marginTop: 12, listStyle: "none", padding: 0 }}>
                   {tier.f.map((x, j) => <li key={j} style={{ paddingLeft: 20, position: "relative" }}><span style={{ position: "absolute", left: 0, color: C.gold, fontWeight: 700 }}>✓</span>{x}</li>)}
@@ -224,11 +224,11 @@ export default function Home() {
         {/* FAQ */}
         <section className="wrap" style={{ paddingTop: 28, paddingBottom: 16, textAlign: "center" }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: C.gold }}>{t.fw}</div>
-          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 26px", color: C.ink }}>{t.fh}</h2>
+          <h2 className="serif" style={{ fontSize: 38, margin: "8px 0 26px", color: C.text }}>{t.fh}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16, textAlign: "left" }}>
             {t.faq.map((q, i) => (
-              <div key={i} style={{ background: C.white, border: "1px solid rgba(22,41,76,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 12px 28px rgba(22,41,76,.10)" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 6 }}>{q[0]}</div>
+              <div key={i} style={{ background: C.card, border: "1px solid rgba(255,255,255,.10)", borderTop: `4px solid ${C.gold}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 12px 28px rgba(255,255,255,.10)" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{q[0]}</div>
                 <div style={{ fontSize: 14, color: C.second, lineHeight: 1.55 }}>{q[1]}</div>
               </div>
             ))}
@@ -237,7 +237,7 @@ export default function Home() {
 
         {/* FORM */}
         <section className="wrap" style={{ paddingTop: 28, paddingBottom: 48 }}>
-          <div ref={formRef} style={{ background: C.ink, color: C.bg, borderRadius: 24, padding: 42, scrollMarginTop: 80 }}>
+          <div ref={formRef} style={{ background: C.panel2, color: C.text, borderRadius: 24, padding: 42, scrollMarginTop: 80 }}>
             {done ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <div style={{ width: 56, height: 56, margin: "0 auto 14px", borderRadius: "50%", border: `3px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.goldLight, fontSize: 26 }}>✓</div>
@@ -256,7 +256,7 @@ export default function Home() {
                   <input style={{ ...inp, gridColumn: "1 / -1" }} placeholder={t.phEv} value={f.eventType} onChange={upd("eventType")} />
                   <input style={{ ...inp, gridColumn: "1 / -1" }} placeholder={t.phP} value={f.budget} onChange={upd("budget")} />
                   {err && <div style={{ gridColumn: "1 / -1", color: "#f2b8b5", fontSize: 13 }}>{err}</div>}
-                  <button onClick={submit} disabled={sending} style={{ gridColumn: "1 / -1", background: C.gold, color: C.ink, border: 0, borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, opacity: sending ? 0.6 : 1 }}>{sending ? t.fsending : t.fsub}</button>
+                  <button onClick={submit} disabled={sending} style={{ gridColumn: "1 / -1", background: C.gold, color: C.text, border: 0, borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, opacity: sending ? 0.6 : 1 }}>{sending ? t.fsending : t.fsub}</button>
                 </div>
                 <div style={{ textAlign: "center", fontSize: 11, color: "#8ea0c1", marginTop: 12 }}>{t.fp}</div>
               </>

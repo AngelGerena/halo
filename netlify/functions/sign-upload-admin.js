@@ -5,6 +5,7 @@ import { presignPut } from "./_r2.js";
 
 const KINDS = {
   hero:  { prefix: "hero",  ext: "jpg", ct: "image/jpeg" },
+  cover: { prefix: "covers", ext: "jpg", ct: "image/jpeg" }, // per-event cover photo
   music: { prefix: "music", ext: null,  ct: "audio/mpeg" }, // ext from filename
 };
 

@@ -157,7 +157,7 @@ export default function SlideshowPage() {
   if (photos.length === 0) return (
     <Stage>
       <Centered>
-        <div className="serif" style={{ fontSize: "4vw", color: C.bg, marginBottom: 12 }}>{ev(event, "name")}</div>
+        <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 12 }}>{ev(event, "name")}</div>
         <div style={{ color: C.gold, fontSize: "1.4vw", letterSpacing: 4, textTransform: "uppercase" }}>{t("live.waiting")}</div>
       </Centered>
     </Stage>
@@ -199,18 +199,18 @@ export default function SlideshowPage() {
         <div style={{ position: "absolute", top: "4vh", left: "4vw", display: "flex", alignItems: "center", gap: 14 }}>
           <img src="/halo-logo.png" alt="HALO" style={{ height: "3vw", width: "auto", display: "block" }} />
           <div>
-            <div className="serif" style={{ color: C.bg, fontSize: "1.9vw", lineHeight: 1, fontWeight: 700 }}>{ev(event, "name")}</div>
+            <div className="serif" style={{ color: C.text, fontSize: "1.9vw", lineHeight: 1, fontWeight: 700 }}>{ev(event, "name")}</div>
             <div style={{ color: C.gold, fontSize: ".8vw", letterSpacing: 3, textTransform: "uppercase", marginTop: 4 }}>HALO Live</div>
           </div>
         </div>
 
         <div style={{ position: "absolute", bottom: "4vh", left: "4vw", right: "4vw", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ color: C.bg, fontSize: ".95vw", opacity: .85 }}>
+          <div style={{ color: C.text, fontSize: ".95vw", opacity: .85 }}>
             {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
           <div style={{ display: "flex", gap: 10, pointerEvents: "auto", alignItems: "center" }}>
-            <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: C.bg, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.1vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
-              <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.bg} strokeWidth="2" style={{ width: "1.1vw", height: "1.1vw" }}>
+            <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: C.text, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.1vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
+              <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.white} strokeWidth="2" style={{ width: "1.1vw", height: "1.1vw" }}>
                 <path d="M12 21s-7.5-4.6-10-9.2C.7 9 1.6 5.6 4.6 4.7 6.7 4 8.8 4.9 12 8c3.2-3.1 5.3-4 7.4-3.3 3 .9 3.9 4.3 2.6 7.1C19.5 16.4 12 21 12 21z" />
               </svg>
               {curCount > 0 && <span>{curCount}</span>}
@@ -258,12 +258,12 @@ function Stage({ children, ...rest }) {
 }
 
 function Centered({ children }) {
-  return <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", color: C.bg, fontSize: "1.6vw" }}>{children}</div>;
+  return <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", color: C.text, fontSize: "1.6vw" }}>{children}</div>;
 }
 
 function Ctrl({ children, onClick }) {
   return (
-    <button onClick={onClick} style={{ background: "rgba(242,236,228,.12)", color: C.bg, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.2vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
+    <button onClick={onClick} style={{ background: "rgba(242,236,228,.12)", color: C.text, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.2vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
       {children}
     </button>
   );

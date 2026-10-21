@@ -48,7 +48,7 @@ export default function GalleryPage() {
         {loading ? <Spinner label={t("gal.loading")} /> :
           !contributor ? <Empty title={t("gal.notFound.title")} sub={t("gal.notFound.sub")} action={t("gal.goHome")} onAction={() => navigate("/")} /> :
           <>
-            <h1 className="serif" style={{ fontSize: 34, color: C.ink, marginBottom: 2 }}>{t("gal.titlePrefix")}{contributor.name}{t("gal.titleSuffix")}</h1>
+            <h1 className="serif" style={{ fontSize: 34, color: C.text, marginBottom: 2 }}>{t("gal.titlePrefix")}{contributor.name}{t("gal.titleSuffix")}</h1>
             <p style={{ color: C.second, marginTop: 0 }}>{photos.length} {photos.length === 1 ? t("gal.curatedPhoto") : t("gal.curatedPhotos")}</p>
             {photos.length === 0 ? <Empty title={t("gal.empty.title")} sub={t("gal.empty.sub")} /> : <PhotoGrid photos={photos} dimUnkept={false} counts={counts} liked={liked} onLike={onLike} />}
           </>}
