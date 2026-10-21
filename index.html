@@ -2,6 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Invisible root/stray-URL guard. Runs synchronously before the app
+         shell paints: if this isn't one of the real app routes, bounce to
+         the landing site immediately so the app never renders and the raw
+         netlify.app URL never flashes in the address bar. The server-side
+         301 in netlify.toml handles the bare root; this covers the SPA
+         fallback and any stray path, and runs first so there's no flash. -->
+    <script>
+      (function () {
+        try {
+          var p = window.location.pathname;
+          // Real app routes that should load the React app.
+          var ok = p === "/" && false; // bare root is handled server-side
+          if (/^\/(e|g|live)\/.+/.test(p) || p === "/admin" || p === "/legal") ok = true;
+          if (!ok) {
+            window.location.replace("https://halo-gallery-site.netlify.app");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#16294C" />
     <title>HALO — Every moment, gathered</title>
