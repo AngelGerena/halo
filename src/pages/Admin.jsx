@@ -59,7 +59,7 @@ function Gate({ onAuth, verify }) {
         onKeyDown={(e) => e.key === "Enter" && submit()}
         style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginBottom: 10 }} />
       {err && <div style={{ color: "#b3261e", fontSize: 13, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} disabled={busy} style={{ width: "100%", background: C.gold, color: C.text, padding: "13px", borderRadius: 10, fontSize: 15, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.checking2") : t("admin.unlock")}</button>
+      <button onClick={submit} disabled={busy} style={{ width: "100%", background: C.gold, color: C.ink, padding: "13px", borderRadius: 10, fontSize: 15, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.checking2") : t("admin.unlock")}</button>
     </div>
   );
 }
@@ -165,7 +165,7 @@ function Dashboard({ token, onLogout }) {
         {heroOpen && (
           <div style={{ marginTop: 12 }}>
             <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.heroHelp")}</p>
-            <label style={{ display: "inline-block", background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: heroBusy ? 0.6 : 1 }}>
+            <label style={{ display: "inline-block", background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: heroBusy ? 0.6 : 1 }}>
               {heroBusy ? t("admin.heroUploading") : t("admin.heroUpload")}
               <input type="file" accept="image/*" multiple hidden disabled={heroBusy} onChange={(e) => { uploadHero(e.target.files); e.target.value = ""; }} />
             </label>
@@ -205,7 +205,7 @@ function Dashboard({ token, onLogout }) {
               <select value={libMood} onChange={(e) => setLibMood(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "8px 12px", fontSize: 13, color: C.text, background: C.card }}>
                 {["elegant", "celebration", "worship", "corporate", "cinematic", "acoustic"].map((m) => <option key={m} value={m}>{t("music." + m)}</option>)}
               </select>
-              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
+              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
             </div>
             {libRows.length === 0 ? (
               <p style={{ fontSize: 13, color: C.second, marginTop: 12 }}>{t("admin.musicLibEmpty")}</p>
@@ -321,10 +321,10 @@ function CreateEvent({ token, onCreated }) {
   }
 
   if (!open) {
-    return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.text, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
+    return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
   }
 
-  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4 };
+  const field = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4, background: "rgba(255,255,255,.05)", color: C.text };
   const lab = { fontSize: 12, fontWeight: 600, color: C.text };
   const hasEnglish = name.trim() || host.trim() || date.trim();
 
@@ -661,7 +661,7 @@ function EventDetail({ event, token, back }) {
   const shown = photos.filter((p) => (filter === "all" || p.kept) && (sessionFilter === "all" || (p.session_label || "") === sessionFilter) && (tagFilter === "all" || (p.tags || []).includes(tagFilter)));
   const featured = photos.find((p) => p.id === featuredId);
 
-  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4 };
+  const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4, background: "rgba(255,255,255,.05)", color: C.text };
   const slab = { fontSize: 12, fontWeight: 600, color: C.text };
 
   return (
@@ -696,7 +696,7 @@ function EventDetail({ event, token, back }) {
             <a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
               <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.launchSlideshow")}</button>
             </a>
-            <button onClick={publish} disabled={publishing} style={{ background: C.gold, color: C.text, padding: "10px 16px", borderRadius: 10, fontSize: 13, opacity: publishing ? 0.6 : 1 }}>
+            <button onClick={publish} disabled={publishing} style={{ background: C.gold, color: C.ink, padding: "10px 16px", borderRadius: 10, fontSize: 13, opacity: publishing ? 0.6 : 1 }}>
               {publishing ? t("admin.publishing") : event.published_at ? t("admin.resendEmails") : t("admin.publishNotify")}
             </button>
             {publishMsg && <span style={{ fontSize: 12, color: C.second }}>{publishMsg}</span>}
@@ -719,7 +719,7 @@ function EventDetail({ event, token, back }) {
                   : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <label style={{ background: C.gold, color: C.text, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>
+                <label style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>
                   {coverBusy ? t("admin.cover.uploading") : (coverPath ? t("admin.cover.change") : t("admin.cover.add"))}
                   <input type="file" accept="image/*" hidden disabled={coverBusy} onChange={(e) => { uploadCover(e.target.files[0]); e.target.value = ""; }} />
                 </label>
@@ -784,7 +784,7 @@ function EventDetail({ event, token, back }) {
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
-            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.text, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
+            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
           </div>
 
@@ -876,7 +876,7 @@ function EventDetail({ event, token, back }) {
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
               </div>
               <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
-              <button onClick={downloadAll} style={{ background: C.gold, color: C.text, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.download")} {filter === "all" ? t("admin.all").toLowerCase() : t("admin.kept").toLowerCase()} ({version})</button>
+              <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.download")} {filter === "all" ? t("admin.all").toLowerCase() : t("admin.kept").toLowerCase()} ({version})</button>
               {!selectMode ? (
                 <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
               ) : (
