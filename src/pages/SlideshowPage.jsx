@@ -80,11 +80,29 @@ export default function SlideshowPage() {
     }
   }, [idx]);
 
-  // poll for new uploads every 12s
+  // New uploads arrive via Supabase Realtime (event-driven, near-instant) so we
+  // don't hammer the database with constant polling. A slow 60s fallback poll
+  // stays as a safety net in case the realtime socket drops.
   useEffect(() => {
     if (!event) return;
-    const tmr = setInterval(() => refresh(event.id, false), 12000);
-    return () => clearInterval(tmr);
+
+    // 1) Realtime: fire a refresh only when a photo for THIS event changes.
+    const channel = supabase
+      .channel(`live-${event.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "photos", filter: `event_id=eq.${event.id}` },
+        () => refresh(event.id, false)
+      )
+      .subscribe();
+
+    // 2) Fallback poll — slow, just in case the socket silently drops.
+    const tmr = setInterval(() => refresh(event.id, false), 60000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(tmr);
+    };
   }, [event, refresh]);
 
   // keep heart counts fresh as photos arrive (and on first load)
