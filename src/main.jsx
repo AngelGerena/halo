@@ -13,7 +13,7 @@ import Legal from "./pages/Legal.jsx";
 // The app is product-only. The marketing/landing page lives on the separate
 // halo-gallery-site. Any hit to the bare root (or an unknown route) bounces
 // there instead of showing a duplicate marketing page.
-const LANDING_URL = "https://halo-gallery-site.netlify.app";
+const LANDING_URL = "https://get.finessemedia.pro";
 function ToLanding() {
   React.useEffect(() => { window.location.replace(LANDING_URL); }, []);
   return null;

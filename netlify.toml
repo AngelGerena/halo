@@ -22,7 +22,7 @@
 # before React mounts — so no netlify URL is ever shown.
 [[redirects]]
   from = "/"
-  to = "https://halo-gallery-site.netlify.app"
+  to = "https://get.finessemedia.pro"
   status = 301
   force = true
 
