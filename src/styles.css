@@ -96,7 +96,7 @@ input:focus-visible, select:focus-visible {
   *, button:hover, .card:hover { transition: none !important; animation: none !important; transform: none !important; }
 }
 
-.wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+.wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
 
 /* ---- HALO angled responsive header ---- */
 :root { --grad: linear-gradient(120deg, #06030b, #140a20 60%, #1a1020); }
