@@ -3,7 +3,16 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# SPA fallback so React Router handles all routes
+# The app is product-only. The bare root is not a marketing page —
+# bounce it to the real landing site (halo-gallery-site).
+[[redirects]]
+  from = "/"
+  to = "https://halo-gallery-site.netlify.app"
+  status = 301
+  force = true
+
+# SPA fallback so React Router handles all the real app routes
+# (/e/:code, /g/:id, /live/:code, /admin, /legal).
 [[redirects]]
   from = "/*"
   to = "/index.html"
