@@ -307,6 +307,14 @@ em{font-style:italic}
   .how-img img,.events-img img{aspect-ratio:3/2}
 }
 
+/* ============ LANGUAGE TOGGLE (floating EN/ES) ============ */
+/* Fixed top-right pill, themed via accent. Sits above the hero on all themes. */
+.lang-toggle{position:fixed;top:16px;right:16px;z-index:40;display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.35);background:rgba(10,4,16,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.lang-btn{appearance:none;border:none;background:transparent;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;padding:7px 13px;cursor:pointer;border-radius:0;transition:background .2s,color .2s}
+.lang-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.lang-btn:not([aria-pressed="true"]):hover{background:rgba(255,255,255,.12)}
+@media(max-width:760px){.lang-toggle{top:12px;right:12px}.lang-btn{padding:6px 11px;font-size:11px}}
+
 /* ============ EARLY ACCESS SIGNUP FORM ============ */
 .signup-form{max-width:640px;margin:36px auto 0;text-align:left}
 .signup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
