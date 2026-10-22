@@ -5,6 +5,7 @@
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { getObjectBuffer, putObject } from "./_r2.js";
+import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -12,6 +13,11 @@ export async function handler(event) {
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch {}
   const { photoId } = body;
+
+  const auth = await authenticate(event);
+  if (!auth.ok) {
+    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
   if (!photoId) return { statusCode: 400, body: JSON.stringify({ error: "photoId required" }) };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -20,6 +26,11 @@ export async function handler(event) {
   const { data: photo, error: pErr } = await supabase
     .from("photos").select("*").eq("id", photoId).single();
   if (pErr || !photo) return { statusCode: 404, body: JSON.stringify({ error: "Photo not found" }) };
+
+  if (!(await ownsEventOrAdmin(supabase, photo.event_id, auth))) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+  }
+
   if (photo.edited_path) {
     return { statusCode: 200, body: JSON.stringify({ edited_path: photo.edited_path, skipped: true }) };
   }

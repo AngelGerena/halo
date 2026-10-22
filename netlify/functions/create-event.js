@@ -1,6 +1,8 @@
 // Creates + names an event. Runs server-side with the Supabase SERVICE ROLE
 // key so event creation can never be triggered from the public browser bundle.
+// Auth: per-user session (Supabase JWT) OR the transitional admin passcode.
 import { createClient } from "@supabase/supabase-js";
+import { authenticate } from "./_auth.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -8,12 +10,14 @@ export async function handler(event) {
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch {}
   const {
-    passcode, name, host, event_date, code, keep_threshold,
+    name, host, event_date, code, keep_threshold,
     name_es, host_es, event_date_es,
     moderation_mode, protect_minors, category, music_url,
+    ownerId, // admin-only: create an event on a specific client's behalf
   } = body;
 
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   if (!name || !code) {
@@ -31,6 +35,13 @@ export async function handler(event) {
     protect_minors: protect_minors !== false,
     category: category || null,
     music_url: music_url || null,
+    // Stamp ownership. An admin may create on a client's behalf by passing
+    // ownerId; otherwise the event is owned by the caller. A passcode admin
+    // (no user id, no ownerId) leaves it unowned (admin override) — admins
+    // still manage it. Non-admins can never set another owner.
+    owner_id: (auth.isAdmin && ownerId) ? ownerId : auth.userId,
+    // BILLING SEAM: when Stripe is live, non-admin create sets paid=false until checkout.
+    paid: true,
   }).select().single();
 
   if (error) {

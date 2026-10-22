@@ -133,7 +133,20 @@ const STRINGS = {
   "admin.kept": { en: "Kept", es: "Conservadas" },
   "admin.contributors": { en: "Contributors", es: "Colaboradores" },
   "admin.launchSlideshow": { en: "▶ Launch live slideshow", es: "▶ Iniciar presentación en vivo" },
+  "admin.viewGallery": { en: "View gallery", es: "Ver galería" },
   "admin.publishing": { en: "Publishing…", es: "Publicando…" },
+
+  // client dashboard (owner-scoped space)
+  "dash.myEvents": { en: "My Events", es: "Mis Eventos" },
+  "dash.space": { en: "Your space", es: "Tu espacio" },
+  "dash.signOut": { en: "Sign out", es: "Cerrar sesión" },
+  "dash.signedInAs": { en: "Signed in as", es: "Sesión iniciada como" },
+  "dash.loading": { en: "Loading your events…", es: "Cargando tus eventos…" },
+  "dash.noEvents.title": { en: "No events yet", es: "Aún no hay eventos" },
+  "dash.noEvents.sub": { en: "Create your first event and share its QR code with your guests.", es: "Crea tu primer evento y comparte su código QR con tus invitados." },
+  "dash.status.live": { en: "Live", es: "Activo" },
+  "dash.status.published": { en: "Published", es: "Publicado" },
+  "dash.manage": { en: "Manage", es: "Administrar" },
   "admin.resendEmails": { en: "Re-send gallery emails", es: "Reenviar correos de galería" },
   "admin.publishNotify": { en: "Publish + notify all", es: "Publicar + notificar a todos" },
   "admin.publishConfirm": { en: "Publish this gallery and email all contributors who left an address?", es: "¿Publicar esta galería y enviar correo a todos los colaboradores que dejaron su dirección?" },
@@ -302,6 +315,26 @@ const STRINGS = {
   "admin.musicLibEmpty": { en: "No tracks yet. Pick a mood and generate.", es: "A\u00fan no hay pistas. Elige un estado de \u00e1nimo y genera." },
   "admin.musicFromLib": { en: "Library", es: "Biblioteca" },
   "admin.musicUploadTips": { en: "Tip: license a track you can use from Uppbeat, the YouTube Audio Library, or Pixabay Music, then upload it here.", es: "Consejo: licencia una pista que puedas usar de Uppbeat, la biblioteca de audio de YouTube o Pixabay Music, y s\u00fabela aqu\u00ed." },
+
+  // admin \u2014 client accounts (owners + client list)
+  "admin.owner": { en: "Owner", es: "Propietario" },
+  "admin.ownerUnassigned": { en: "\u2014 (unassigned)", es: "\u2014 (sin asignar)" },
+  "admin.ownerYou": { en: "you", es: "t\u00fa" },
+  "admin.createFor": { en: "Owner (create on behalf of a client)", es: "Propietario (crear en nombre de un cliente)" },
+  "admin.createForSelf": { en: "Me (keep this event mine)", es: "Yo (mantener este evento m\u00edo)" },
+  "admin.createForHelp": { en: "Leave as yourself, or assign this event to a client account.", es: "D\u00e9jalo como t\u00fa, o asigna este evento a una cuenta de cliente." },
+  "admin.reassign": { en: "Reassign owner", es: "Reasignar propietario" },
+  "admin.reassignHelp": { en: "Change which client account owns this event.", es: "Cambia qu\u00e9 cuenta de cliente es due\u00f1a de este evento." },
+  "admin.reassignSave": { en: "Save owner", es: "Guardar propietario" },
+  "admin.reassignSaving": { en: "Saving\u2026", es: "Guardando\u2026" },
+  "admin.reassignDone": { en: "Owner updated.", es: "Propietario actualizado." },
+  "admin.clients": { en: "Clients", es: "Clientes" },
+  "admin.clientsHelp": { en: "Everyone with a HALO account, and how many events each owns.", es: "Todos los que tienen una cuenta HALO y cu\u00e1ntos eventos posee cada uno." },
+  "admin.clientsEmpty": { en: "No client accounts yet. They appear here once people sign up.", es: "A\u00fan no hay cuentas de clientes. Aparecer\u00e1n aqu\u00ed cuando la gente se registre." },
+  "admin.clientAdmin": { en: "Admin", es: "Administrador" },
+  "admin.clientEvents": { en: "events", es: "eventos" },
+  "admin.clientJoined": { en: "Joined", es: "Se uni\u00f3" },
+  "admin.clientNoName": { en: "(no name)", es: "(sin nombre)" },
 };
 
 const LANG_KEY = "halo_lang";
