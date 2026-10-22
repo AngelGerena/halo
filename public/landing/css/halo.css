@@ -167,12 +167,14 @@ em{font-style:italic}
    hero accent (eyebrow) still follows the theme for a touch of palette, but
    text/sub/niche/scroll are pinned light for contrast on the photo. */
 .hero .eyebrow{color:var(--accent-2)}
-/* Hero buttons sit on the dark photo, so pin them light-on-dark regardless of
-   theme (the themed button colors are for the CTA band lower down the page). */
-.hero .btn-primary{background:#fff;color:#0a0410;box-shadow:0 8px 30px rgba(0,0,0,.3)}
-.hero .btn-primary:hover{box-shadow:0 12px 40px rgba(0,0,0,.45)}
-.hero .btn-ghost{border-color:rgba(255,255,255,.55);color:#fff}
-.hero .btn-ghost:hover{background:rgba(255,255,255,.08)}
+/* Hero buttons follow the active theme's ACCENT (not its background), so they
+   recolor with the chosen palette while staying bright and readable on the dark
+   hero photo on every theme. Primary = accent fill with readable on-accent text;
+   ghost = accent-tinted border and text. */
+.hero .btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.hero .btn-primary:hover{box-shadow:0 12px 44px color-mix(in srgb,var(--accent) 45%,transparent)}
+.hero .btn-ghost{border-color:color-mix(in srgb,var(--accent-2) 70%,transparent);color:var(--accent-2)}
+.hero .btn-ghost:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .hero-mark{font-family:'Anton',sans-serif;letter-spacing:.03em;line-height:.82;font-size:clamp(90px,16vw,240px);margin:16px 0 20px;color:#fff;text-shadow:0 12px 60px rgba(0,0,0,.55)}
 .hero-sub{font-size:clamp(15px,1.7vw,19px);line-height:1.7;color:#e7e3ee;margin:0 0 28px;max-width:520px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
