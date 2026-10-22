@@ -34,17 +34,62 @@ export async function handler(event) {
   try { await sendEmail({ to, subject: `New HALO early-access request${church ? " — " + church : ""}`, html: internal }); }
   catch (e) { console.error("notify warning:", e.message); }
 
-  // 3. auto-reply to the requester
+  // 3. auto-reply to the requester — a warm onboarding email: how HALO
+  //    works (mini tutorial), what to prep, and clear next steps, so the
+  //    experience feels ready-to-go from the moment they sign up.
   if (email) {
+    const firstName = name ? escapeHtml(name.split(" ")[0]) : "there";
+
+    // Small reusable styles for the tutorial steps.
+    const stepRow = (num, title, text) => `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+        <tr>
+          <td valign="top" style="width:34px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#1C2640;color:#C5A44B;font-family:Arial,sans-serif;font-weight:bold;font-size:14px;text-align:center;line-height:28px;">${num}</div>
+          </td>
+          <td valign="top" style="padding-left:12px;">
+            <p style="margin:0 0 2px;color:#1C2640;font-family:Arial,sans-serif;font-weight:bold;font-size:15px;">${title}</p>
+            <p style="margin:0;color:#3A3530;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;">${text}</p>
+          </td>
+        </tr>
+      </table>`;
+
+    const prepItem = (t) => `<li style="margin:0 0 7px;">${t}</li>`;
+
+    const body = `
+      <p style="margin:0 0 16px;">You're on the list — welcome to <strong>HALO</strong>, the effortless way to gather every photo from your event into one beautiful, auto-curated gallery.</p>
+
+      <p style="margin:0 0 10px;color:#1C2640;font-family:Arial,sans-serif;font-weight:bold;font-size:16px;">Here's how HALO works — start to finish:</p>
+
+      ${stepRow(1, "Display your QR code", "Before your event, we set you up with a custom QR code and a printable table sign. Place it where guests will see it — tables, the entrance, the program.")}
+      ${stepRow(2, "Guests scan &amp; snap", "Your guests scan the code with their phone camera — no app to download. They upload the photos they take, all night long, in seconds.")}
+      ${stepRow(3, "HALO curates automatically", "Behind the scenes, HALO sorts the best shots, enhances them, and filters out the blurry ones. You don't lift a finger.")}
+      ${stepRow(4, "Everyone enjoys the gallery", "Photos flow into one shared gallery — plus a live slideshow you can project at the event. After, you download everything with one tap or share the link.")}
+
+      <div style="margin:22px 0 18px;height:1px;background:#E6DED2;"></div>
+
+      <p style="margin:0 0 10px;color:#1C2640;font-family:Arial,sans-serif;font-weight:bold;font-size:16px;">What happens next:</p>
+      <p style="margin:0 0 16px;">I'll personally reach out within <strong>1 business day</strong> to confirm your event details, lock in your founding-member pricing, and hand you your QR code and sign — ready to use. You'll be fully set up well before your event.</p>
+
+      <p style="margin:0 0 10px;color:#1C2640;font-family:Arial,sans-serif;font-weight:bold;font-size:16px;">To hit the ground running, have these handy:</p>
+      <ul style="margin:0 0 16px;padding-left:20px;color:#3A3530;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;">
+        ${prepItem("Your event <strong>date</strong> and rough <strong>guest count</strong>")}
+        ${prepItem("The <strong>type of event</strong> (wedding, quinceañera, service, celebration)")}
+        ${prepItem("Where you'd like to place the QR signs (tables, entrance, etc.)")}
+        ${prepItem("Any branding or colors you'd like on your gallery (optional)")}
+      </ul>
+
+      <p style="margin:0;">Have a date in mind already? Just <strong>reply to this email</strong> and tell me about your event — I'll get you set up even faster.</p>`;
+
     const reply = haloEmail({
-      heading: `Thank you${name ? ", " + escapeHtml(name.split(" ")[0]) : ""}!`,
-      subhead: "We received your request",
-      body: `<p style="margin:0 0 14px;">Thanks for your interest in <strong>HALO</strong> — the effortless way to gather every photo from your event.</p>
-             <p style="margin:0 0 14px;">We've saved your details and will reach out personally with early access and founding pricing very soon.</p>
-             <p style="margin:0;">In the meantime, if there's a specific date or event on your mind, just reply to this email and tell us about it.</p>`,
-      footerNote: "HALO by Finesse Media",
+      heading: `You're in, ${firstName}!`,
+      subhead: "Here's how to get started with HALO",
+      body,
+      ctaText: "Reply to lock in your event",
+      ctaUrl: "mailto:halo@alerts.finessemedia.pro?subject=My%20HALO%20event",
+      footerNote: "HALO by Finesse Media · Reply any time — a real person reads these",
     });
-    try { await sendEmail({ to: email, subject: "Thanks for your interest in HALO", html: reply }); }
+    try { await sendEmail({ to: email, subject: `You're in, ${firstName} — here's how to get started with HALO` , html: reply }); }
     catch (e) { console.error("auto-reply warning:", e.message); }
   }
 
