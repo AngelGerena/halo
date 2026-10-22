@@ -89,7 +89,7 @@
       <h1 class="hero-mark">HALO</h1>
       <p class="hero-sub">One QR code.<br>Every guest a photographer.</p>
       <div class="hero-cta">
-        <a class="btn-primary" href="#signup">Try It Free</a>
+        <a class="btn-primary" href="/signup">Create Your Event</a>
         <a class="btn-ghost" href="#how">How It Works</a>
       </div>
       <p class="hero-niche">For weddings, quincea&ntilde;eras, churches &amp; every celebration</p>
@@ -220,7 +220,7 @@
             <li>Gallery live for 7 days</li>
             <li>Bulk ZIP download</li>
           </ul>
-          <a class="btn-ghost full" href="#signup">Try It Free</a>
+          <a class="btn-ghost full" href="/signup">Try It Free</a>
         </div>
         <div class="tier featured">
           <span class="badge">Most popular</span>
@@ -235,7 +235,7 @@
             <li>Email delivery + bulk ZIP</li>
             <li>Gallery live for 30 days</li>
           </ul>
-          <a class="btn-primary full" href="#signup">Get Started</a>
+          <a class="btn-primary full" href="/signup">Get Started</a>
         </div>
         <div class="tier">
           <h3>Premier</h3>
@@ -248,7 +248,7 @@
             <li>Dedicated event concierge</li>
             <li>Priority support</li>
           </ul>
-          <a class="btn-ghost full" href="#signup">Get Started</a>
+          <a class="btn-ghost full" href="/signup">Get Started</a>
         </div>
       </div>
 
@@ -264,7 +264,7 @@
             <li>Live slideshow</li>
             <li>Email delivery + bulk ZIP</li>
           </ul>
-          <a class="btn-ghost full" href="#signup">Try It Free</a>
+          <a class="btn-ghost full" href="/signup">Try It Free</a>
         </div>
         <div class="tier featured">
           <span class="badge">Best value</span>
@@ -277,7 +277,7 @@
             <li>Custom branding &amp; colors</li>
             <li>Galleries live for 30 days</li>
           </ul>
-          <a class="btn-primary full" href="#signup">Subscribe</a>
+          <a class="btn-primary full" href="/signup">Subscribe</a>
         </div>
         <div class="tier">
           <h3>Studio</h3>
@@ -289,39 +289,28 @@
             <li>Highlight reel video</li>
             <li>Priority support</li>
           </ul>
-          <a class="btn-ghost full" href="#signup">Subscribe</a>
+          <a class="btn-ghost full" href="/signup">Subscribe</a>
         </div>
       </div>
       <p class="price-note">Prices are starting placeholders &mdash; adjust before launch.</p>
     </div>
   </section>
 
-  <!-- ============ EARLY ACCESS SIGNUP ============ -->
+  <!-- ============ GET STARTED ============ -->
+  <!-- Self-serve: visitors create their own account and start building events
+       immediately at /signup (the React app route). The old founding-member
+       waitlist form (request-access) has been retired now that accounts are
+       live. -->
   <section class="band dark" id="signup">
     <div class="wrap center">
-      <p class="eyebrow center">Founding access</p>
-      <h2 class="display">Be a <em>founding member</em></h2>
-      <p class="lead">Tell us about your event and we&rsquo;ll reach out with early access and locked-in founding pricing the moment we launch.</p>
-
-      <form class="signup-form" id="signupForm" novalidate>
-        <div class="signup-grid">
-          <input class="field" name="church" type="text" placeholder="Organization or event name" autocomplete="organization">
-          <input class="field" name="name" type="text" placeholder="Your name" autocomplete="name">
-          <input class="field" name="email" type="email" placeholder="Email address" autocomplete="email">
-          <input class="field" name="size" type="text" placeholder="Approx. number of guests">
-          <input class="field wide" name="eventType" type="text" placeholder="Type of event (wedding, quinceañera, church, etc.)">
-          <input class="field wide" name="budget" type="text" placeholder="What would you expect to pay? (optional)">
-        </div>
-        <p class="signup-err" id="signupErr" hidden></p>
-        <button class="btn-primary full" type="submit" id="signupBtn">Request early access</button>
-        <p class="signup-fine">No spam. We&rsquo;ll only use this to contact you about HALO.</p>
-      </form>
-
-      <div class="signup-done" id="signupDone" hidden>
-        <div class="signup-check" aria-hidden="true">&#10003;</div>
-        <h3 class="signup-done-h">Thank you!</h3>
-        <p class="lead">We&rsquo;ve got your request &mdash; we&rsquo;ll reach out with early access and founding pricing soon. Check your inbox for a confirmation.</p>
+      <p class="eyebrow center">Get started free</p>
+      <h2 class="display">Create your <em>first event</em></h2>
+      <p class="lead">Set up your free account, name your event, and HALO hands you a QR code and poster in seconds. No credit card, nothing to install for your guests.</p>
+      <div class="hero-cta center-cta" style="margin-top:30px">
+        <a class="btn-primary" href="/signup">Create Your Event</a>
+        <a class="btn-ghost" href="/login">I already have an account</a>
       </div>
+      <p class="signup-fine" style="margin-top:18px">Free to start. You only pay when you're ready to go live.</p>
     </div>
   </section>
 
@@ -332,7 +321,7 @@
       <h2 class="display">Your event.<br><em>Every angle.</em></h2>
       <p class="lead">One QR code. Every guest a photographer. Every moment, gathered.</p>
       <div class="hero-cta center-cta">
-        <a class="btn-primary" href="#signup">Try It Free</a>
+        <a class="btn-primary" href="/signup">Try It Free</a>
         <a class="btn-ghost" href="#how">How It Works</a>
       </div>
     </div>
