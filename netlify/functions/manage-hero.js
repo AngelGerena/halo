@@ -1,15 +1,22 @@
-// Manages the landing hero carousel images. Service-role + passcode gated.
+// Manages the landing hero carousel images. App-global admin only.
+// Auth: per-user session (profiles.is_admin) OR the transitional admin passcode.
 // Actions: add | toggle | remove | reorder | list
 import { createClient } from "@supabase/supabase-js";
 import { deleteObjects } from "./_r2.js";
+import { authenticate } from "./_auth.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, action, storage_path, id, active, ids } = b;
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const { action, storage_path, id, active, ids } = b;
+
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  if (!auth.isAdmin) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

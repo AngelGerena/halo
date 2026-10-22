@@ -1,7 +1,9 @@
 // HALO — presigned PUT URLs for ADMIN uploads (hero carousel images, event music).
-// Passcode-gated. The server chooses the path prefix ("hero/" or "music/") so the
-// client can only upload into those folders.
+// App-global admin only. The server chooses the path prefix ("hero/" / "covers/" /
+// "music/") so the client can only upload into those folders.
+// Auth: per-user session (profiles.is_admin) OR the transitional admin passcode.
 import { presignPut } from "./_r2.js";
+import { authenticate } from "./_auth.js";
 
 const KINDS = {
   hero:  { prefix: "hero",  ext: "jpg", ct: "image/jpeg" },
@@ -14,10 +16,14 @@ export async function handler(event) {
 
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, kind, filename, contentType } = b;
+  const { kind, filename, contentType } = b;
 
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  if (!auth.isAdmin) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const spec = KINDS[kind];
   if (!spec) return { statusCode: 400, body: JSON.stringify({ error: "kind must be hero or music" }) };

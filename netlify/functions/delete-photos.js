@@ -3,15 +3,17 @@
 // Also removes any edited copy.
 import { createClient } from "@supabase/supabase-js";
 import { deleteObjects } from "./_r2.js";
+import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
 
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, photoIds } = b;
+  const { photoIds } = b;
 
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   if (!Array.isArray(photoIds) || photoIds.length === 0) {
@@ -22,10 +24,18 @@ export async function handler(event) {
 
   // 1. look up the rows so we know which files to remove
   const { data: rows, error: selErr } = await supabase
-    .from("photos").select("id, storage_path, edited_path, crops").in("id", photoIds);
+    .from("photos").select("id, storage_path, edited_path, crops, event_id").in("id", photoIds);
   if (selErr) return { statusCode: 500, body: JSON.stringify({ error: selErr.message }) };
   if (!rows || rows.length === 0) {
     return { statusCode: 404, body: JSON.stringify({ error: "No matching photos" }) };
+  }
+
+  // Ownership: every target photo's event must belong to the caller (or admin).
+  const eventIds = [...new Set(rows.map((r) => r.event_id).filter(Boolean))];
+  for (const eid of eventIds) {
+    if (!(await ownsEventOrAdmin(supabase, eid, auth))) {
+      return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+    }
   }
 
   // 2. collect every storage path (original + edited + social crops) and remove from R2
