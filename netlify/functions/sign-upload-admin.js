@@ -9,6 +9,7 @@ const KINDS = {
   hero:  { prefix: "hero",  ext: "jpg", ct: "image/jpeg" },
   cover: { prefix: "covers", ext: "jpg", ct: "image/jpeg" }, // per-event cover photo
   music: { prefix: "music", ext: null,  ct: "audio/mpeg" }, // ext from filename
+  site:  { prefix: "site",  ext: null,  ct: "image/jpeg" }, // swappable landing photos; ext from filename
 };
 
 export async function handler(event) {
@@ -26,7 +27,7 @@ export async function handler(event) {
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const spec = KINDS[kind];
-  if (!spec) return { statusCode: 400, body: JSON.stringify({ error: "kind must be hero or music" }) };
+  if (!spec) return { statusCode: 400, body: JSON.stringify({ error: "kind must be hero, cover, music or site" }) };
 
   const rnd = Math.random().toString(36).slice(2, 7);
   let ext = spec.ext;
