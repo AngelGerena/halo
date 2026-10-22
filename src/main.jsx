@@ -13,11 +13,14 @@ import Legal from "./pages/Legal.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 
 // The marketing/landing page is served as a static file at the site root by
 // Netlify (public/landing.html -> "/"), so React only owns the real app
 // routes below. A hit to an unknown path falls through to the static landing
 // page via the netlify.toml rewrite, so there is no in-app redirect to run.
+// AuthProvider sits inside BrowserRouter so auth-driven redirects can use
+// router hooks.
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <I18nProvider>
@@ -28,6 +31,7 @@ createRoot(document.getElementById("root")).render(
             <Route path="/g/:contributorId" element={<GalleryPage />} />
             <Route path="/live/:code" element={<SlideshowPage />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/legal" element={<Legal />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/login" element={<LoginPage />} />
