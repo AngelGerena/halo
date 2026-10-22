@@ -35,7 +35,7 @@
       <p class="hero-sub">One QR code.<br>Every guest a photographer.</p>
       <div class="hero-cta">
         <a class="btn-primary" href="#signup">Try It Free</a>
-        <a class="btn-ghost" href="#pricing">See Plans</a>
+        <a class="btn-ghost" href="#how">How It Works</a>
       </div>
       <p class="hero-niche">For weddings, quincea&ntilde;eras, churches &amp; every celebration</p>
     </div>
@@ -139,7 +139,12 @@
   </section>
 
   <!-- ============ PRICING ============ -->
-  <section class="band" id="pricing">
+  <!-- HIDDEN until Stripe is live. HALO is free/early-access for now, so we
+       don't show prices we can't charge. To bring pricing back when payment
+       goes live: remove the `hidden` attribute on the section below (and
+       restore the "See Plans" CTA links from "#how" to "#pricing"). The whole
+       section is intact — nothing to rebuild. -->
+  <section class="band" id="pricing" hidden>
     <div class="wrap">
       <p class="eyebrow center">PRICING</p>
       <h2 class="section-title center">Pay per event, or go unlimited.</h2>
@@ -273,7 +278,7 @@
       <p class="lead">One QR code. Every guest a photographer. Every moment, gathered.</p>
       <div class="hero-cta center-cta">
         <a class="btn-primary" href="#signup">Try It Free</a>
-        <a class="btn-ghost" href="#pricing">See Plans</a>
+        <a class="btn-ghost" href="#how">How It Works</a>
       </div>
     </div>
   </section>
