@@ -52,6 +52,22 @@
   from = "/legal"
   to = "/index.html"
   status = 200
+[[redirects]]
+  from = "/signup"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/reset"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/reset-confirm"
+  to = "/index.html"
+  status = 200
 
 # Anything else is not an app route -> show the marketing page (not the
 # app shell). Keeps every stray URL on-brand with no netlify address.
