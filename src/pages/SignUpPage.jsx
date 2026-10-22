@@ -31,7 +31,17 @@ export default function SignUpPage() {
       if (error) throw error;
       // If email confirmation is on, there's a user but no session yet.
       // If it's off, Supabase returns an active session and they're straight in.
-      setDone(data?.session ? "in" : "verify");
+      const needsConfirm = !data?.session;
+      setDone(needsConfirm ? "verify" : "in");
+
+      // Fire a warm welcome + getting-started email (separate from Supabase's
+      // own confirm link). Best-effort and non-blocking: if it fails, the
+      // account is still created and the user still sees the success screen.
+      fetch("/.netlify/functions/welcome-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), name: fullName.trim(), needsConfirm }),
+      }).catch(() => {});
     } catch (e2) {
       setErr(e2?.message || "Could not create your account. Please try again.");
     } finally {
