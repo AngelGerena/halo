@@ -1,6 +1,8 @@
-// Patches a small whitelist of event settings. Service-role + passcode gated,
-// mirroring the other admin functions so the public bundle can never write events.
+// Patches a small whitelist of event settings. Service-role write, gated on a
+// per-user session (Supabase JWT) with owner-or-admin verification, plus the
+// transitional admin passcode override.
 import { createClient } from "@supabase/supabase-js";
+import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
 const ALLOWED = ["featured_photo_id", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "music_url", "music_rights_ack", "music_rights_ack_at"];
 
@@ -9,9 +11,10 @@ export async function handler(event) {
 
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, eventId, patch } = b;
+  const { eventId, patch } = b;
 
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   if (!eventId || typeof patch !== "object" || patch === null) {
@@ -27,6 +30,11 @@ export async function handler(event) {
   }
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!(await ownsEventOrAdmin(supabase, eventId, auth))) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+  }
+
   const { data, error } = await supabase.from("events").update(clean).eq("id", eventId).select().single();
   if (error) return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
 

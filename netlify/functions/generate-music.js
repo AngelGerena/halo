@@ -3,6 +3,7 @@
 // Requires Netlify env vars: MUBERT_CUSTOMER_ID, MUBERT_ACCESS_TOKEN.
 import { createClient } from "@supabase/supabase-js";
 import { putObject, deleteObjects } from "./_r2.js";
+import { authenticate } from "./_auth.js";
 
 // Mood -> Mubert generation params. Adjust `prompt` / `playlist_index` to taste
 // (playlist codes come from your Mubert dashboard; prompt drives text-to-music).
@@ -31,9 +32,14 @@ export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, action, mood, id, active, count } = b;
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const { action, mood, id, active, count } = b;
+
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  if (!auth.isAdmin) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

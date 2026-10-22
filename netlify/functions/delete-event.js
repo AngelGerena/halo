@@ -3,19 +3,26 @@
 // cascades to its contributors, photos, and reactions. Service-role + passcode.
 import { createClient } from "@supabase/supabase-js";
 import { deleteObjects } from "./_r2.js";
+import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
 
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { passcode, eventId } = b;
-  if (!passcode || passcode !== process.env.ADMIN_PASSCODE) {
+  const { eventId } = b;
+
+  const auth = await authenticate(event);
+  if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   if (!eventId) return { statusCode: 400, body: JSON.stringify({ error: "eventId required" }) };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!(await ownsEventOrAdmin(supabase, eventId, auth))) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+  }
 
   // 1. collect every storage path tied to this event
   const { data: photos, error: selErr } = await supabase
