@@ -25,6 +25,11 @@ export async function handler(event) {
   for (const k of ALLOWED) {
     if (k in patch) clean[k] = patch[k];
   }
+  // Reassigning ownership is admin-only. A non-admin owner must never be able
+  // to change owner_id (that would let them give away or grab events).
+  if ("owner_id" in patch && auth.isAdmin) {
+    clean.owner_id = patch.owner_id; // may be a uuid or null (unassign)
+  }
   if (Object.keys(clean).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "No updatable fields supplied" }) };
   }

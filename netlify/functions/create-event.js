@@ -13,6 +13,7 @@ export async function handler(event) {
     name, host, event_date, code, keep_threshold,
     name_es, host_es, event_date_es,
     moderation_mode, protect_minors, category, music_url,
+    ownerId, // admin-only: create an event on a specific client's behalf
   } = body;
 
   const auth = await authenticate(event);
@@ -34,9 +35,11 @@ export async function handler(event) {
     protect_minors: protect_minors !== false,
     category: category || null,
     music_url: music_url || null,
-    // Stamp ownership from the session. A passcode admin has no user id, so
-    // the row stays unowned (admin override) — admins still manage it.
-    owner_id: auth.userId,
+    // Stamp ownership. An admin may create on a client's behalf by passing
+    // ownerId; otherwise the event is owned by the caller. A passcode admin
+    // (no user id, no ownerId) leaves it unowned (admin override) — admins
+    // still manage it. Non-admins can never set another owner.
+    owner_id: (auth.isAdmin && ownerId) ? ownerId : auth.userId,
     // BILLING SEAM: when Stripe is live, non-admin create sets paid=false until checkout.
     paid: true,
   }).select().single();
