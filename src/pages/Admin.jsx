@@ -266,6 +266,8 @@ function Dashboard({ token, onLogout }) {
         )}
       </div>
 
+      <SiteAppearance token={token} />
+
       <ClientList clients={clients} eventCounts={eventCounts} />
 
       {events.length === 0 ? (
@@ -291,6 +293,146 @@ function Dashboard({ token, onLogout }) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Site Appearance: theme picker + swappable landing photos ----------------
+// Writes go through the admin-only manage-site function; photo uploads reuse the
+// existing signAdminUpload + putToR2 flow (kind "site"). The public landing page
+// reads the result from /site-config on load and applies it.
+const THEMES = [
+  { key: "midnight", name: "Midnight Champagne", d1: "#ffb86b", d2: "#ff3d81", bg: "#0a0410" },
+  { key: "blush",    name: "Blush Editorial",    d1: "#c98a6a", d2: "#b56a7f", bg: "#f6efe8" },
+  { key: "obsidian", name: "Obsidian Neon",      d1: "#ff2d9b", d2: "#36e3ff", bg: "#000000" },
+  { key: "emerald",  name: "Emerald Noir",       d1: "#d9b86a", d2: "#1f6e4f", bg: "#05110d" },
+  { key: "sunset",   name: "Sunset Warmth",      d1: "#ff9e6b", d2: "#ff6b57", bg: "#1a0f0a" },
+  { key: "plum",     name: "Royal Plum",         d1: "#c9a0ff", d2: "#ff7ad1", bg: "#0f0617" },
+  { key: "ivory",    name: "Ivory & Ink",        d1: "#b9942f", d2: "#efe9dc", bg: "#f3f1ec" },
+  { key: "sapphire", name: "Sapphire Night",     d1: "#e7c56b", d2: "#6ea8ff", bg: "#060b1a" },
+  { key: "rosegold", name: "Rose Gold Mist",     d1: "#b76e79", d2: "#caa06a", bg: "#efe6e4" },
+  { key: "onyx",     name: "Onyx & Amber",       d1: "#f0a830", d2: "#ff8a3d", bg: "#0c0a08" },
+];
+// slot key -> { label, default bundled image used when nothing is uploaded }
+const PHOTO_SLOTS = [
+  { slot: "friends",     label: "Intro photo (friends selfie)", def: "/landing/images/friends.webp" },
+  { slot: "wedding",     label: "Banner photo (every guest, every angle)", def: "/landing/images/wedding.webp" },
+  { slot: "qr",          label: "How-it-works photo (QR scan)", def: "/landing/images/qr-scan.webp" },
+  { slot: "quinceanera", label: "Use-cases photo (quinceañera)", def: "/landing/images/quinceanera.webp" },
+];
+
+function SiteAppearance({ token }) {
+  const [open, setOpen] = useState(false);
+  const [settings, setSettings] = useState(null);   // { theme, img_friends, ... }
+  const [busy, setBusy] = useState("");             // "" | "theme" | slot key being uploaded
+  const [saved, setSaved] = useState("");           // transient "Saved" flash key
+
+  async function siteAction(body) {
+    const r = await fetch("/.netlify/functions/manage-site", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: token, ...body }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Failed");
+    return j;
+  }
+  async function load() {
+    try { const j = await siteAction({ action: "get" }); setSettings(j.settings || {}); }
+    catch (e) { setSettings({}); }
+  }
+  useEffect(() => { load(); }, []);
+
+  function flash(key) { setSaved(key); setTimeout(() => setSaved((s) => (s === key ? "" : s)), 1600); }
+
+  async function pickTheme(key) {
+    if (busy) return;
+    setBusy("theme");
+    const prev = settings;
+    setSettings((s) => ({ ...(s || {}), theme: key })); // optimistic
+    try { const j = await siteAction({ action: "set-theme", theme: key }); setSettings(j.settings); flash("theme"); }
+    catch (e) { setSettings(prev); alert(e.message); }
+    finally { setBusy(""); }
+  }
+  async function uploadPhoto(slot, file) {
+    if (!file || busy) return;
+    if (!file.type.startsWith("image/")) { alert("Please choose an image file."); return; }
+    setBusy(slot);
+    try {
+      const { uploadUrl, path, contentType } = await signAdminUpload({
+        passcode: token, kind: "site", filename: file.name, contentType: file.type || "image/jpeg",
+      });
+      await putToR2(uploadUrl, file, contentType);
+      const j = await siteAction({ action: "set-image", slot, storage_path: path });
+      setSettings(j.settings); flash(slot);
+    } catch (e) { alert(e.message); } finally { setBusy(""); }
+  }
+  async function resetPhoto(slot) {
+    if (busy) return;
+    if (!confirm("Reset this photo back to the default that ships with the site?")) return;
+    setBusy(slot);
+    try { const j = await siteAction({ action: "reset-image", slot }); setSettings(j.settings); flash(slot); }
+    catch (e) { alert(e.message); } finally { setBusy(""); }
+  }
+
+  const col = { friends: "img_friends", wedding: "img_wedding", qr: "img_qr", quinceanera: "img_quinceanera" };
+  const activeTheme = (settings && settings.theme) || "midnight";
+
+  return (
+    <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setOpen((v) => !v)}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Site appearance <span style={{ color: C.second, fontWeight: 400 }}>· theme &amp; photos</span></div>
+        <span style={{ color: C.second, fontSize: 18 }}>{open ? "–" : "+"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          {/* THEME PICKER */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>Theme</div>
+          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Pick a color palette for the public site (halo.finessemedia.pro). Changes go live within a minute.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10 }}>
+            {THEMES.map((th) => {
+              const on = activeTheme === th.key;
+              return (
+                <button key={th.key} onClick={() => pickTheme(th.key)} disabled={!!busy}
+                  style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: on ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)", border: `1px solid ${on ? C.gold : "rgba(255,255,255,.15)"}`, borderRadius: 12, padding: "10px 12px", cursor: busy ? "default" : "pointer", opacity: busy && busy !== "theme" ? 0.6 : 1 }}>
+                  <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "1px solid rgba(255,255,255,.3)", background: `conic-gradient(from 135deg, ${th.d1} 0 50%, ${th.d2} 50% 100%)` }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, lineHeight: 1.15 }}>{th.name}</span>
+                  {on && <span style={{ marginLeft: "auto", color: C.gold, fontSize: 14 }}>{saved === "theme" ? "✓" : "●"}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* PHOTO SWAPPER */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "22px 0 4px" }}>Photos</div>
+          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Replace any of the four landing-page photos. Upload a JPG, PNG or WebP (landscape works best). Reset puts the original back.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 14 }}>
+            {PHOTO_SLOTS.map((p) => {
+              const stored = settings && settings[col[p.slot]];
+              const preview = stored ? publicUrl(stored) : p.def;
+              const uploading = busy === p.slot;
+              return (
+                <div key={p.slot} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,.12)" }}>
+                  <div style={{ position: "relative" }}>
+                    <img src={preview} alt="" style={{ width: "100%", height: 120, objectFit: "cover", display: "block", opacity: uploading ? 0.5 : 1 }} />
+                    {saved === p.slot && <span style={{ position: "absolute", top: 8, right: 8, background: C.gold, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>Saved</span>}
+                    {stored && <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,.6)", color: "#fff", fontSize: 10, fontWeight: 600, letterSpacing: .5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 999 }}>Custom</span>}
+                  </div>
+                  <div style={{ padding: "10px 12px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 8, lineHeight: 1.25 }}>{p.label}</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <label style={{ display: "inline-block", background: C.gold, color: C.ink, padding: "7px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+                        {uploading ? "Uploading…" : "Replace"}
+                        <input type="file" accept="image/*" hidden disabled={!!busy} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; uploadPhoto(p.slot, f); }} />
+                      </label>
+                      {stored && <button onClick={() => resetPhoto(p.slot)} disabled={!!busy} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: busy ? 0.6 : 1 }}>Reset</button>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

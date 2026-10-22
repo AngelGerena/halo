@@ -21,8 +21,63 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:ital,opsz,wght@1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/landing/css/halo.css">
+
+  <!-- Site appearance: apply the admin-chosen theme + swapped photos.
+       Runs before paint. A cached theme (from the last visit) is applied
+       immediately to avoid a flash, then fresh config is fetched from
+       /site-config and applied. Everything is guarded so the page always
+       renders the default (Midnight Champagne + bundled photos) if anything
+       is missing or the fetch fails. -->
+  <script>
+  (function () {
+    var VALID = {midnight:1,blush:1,obsidian:1,emerald:1,sunset:1,plum:1,ivory:1,sapphire:1,rosegold:1,onyx:1};
+    var THEME_META = {midnight:"#0a0410",blush:"#f6efe8",obsidian:"#000000",emerald:"#05110d",sunset:"#1a0f0a",plum:"#0f0617",ivory:"#f3f1ec",sapphire:"#060b1a",rosegold:"#efe6e4",onyx:"#0c0a08"};
+    var root = document.documentElement;
+
+    function applyTheme(t) {
+      if (!t || !VALID[t]) t = "midnight";
+      document.body ? document.body.setAttribute("data-pal", t) : root.setAttribute("data-pal-pending", t);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m && THEME_META[t]) m.setAttribute("content", THEME_META[t]);
+      try { localStorage.setItem("halo_theme", t); } catch (e) {}
+    }
+
+    // 1) Instant: last-known theme from localStorage (no network wait, no flash).
+    var cached = null;
+    try { cached = localStorage.getItem("halo_theme"); } catch (e) {}
+    // Body isn't parsed yet in <head>; stash it and apply on DOMContentLoaded too.
+    root.setAttribute("data-pal-cached", cached && VALID[cached] ? cached : "midnight");
+
+    // 2) Fresh: fetch the live config and apply theme + swap any custom photos.
+    function swap(id, url) {
+      if (!url) return;
+      var el = document.getElementById(id);
+      if (el) el.src = url;
+    }
+    fetch("/.netlify/functions/site-config", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (!cfg) return;
+        applyTheme(cfg.theme);
+        if (cfg.images) {
+          swap("img-friends", cfg.images.friends);
+          swap("img-wedding", cfg.images.wedding);
+          swap("img-qr", cfg.images.qr);
+          swap("img-quinceanera", cfg.images.quinceanera);
+        }
+      })
+      .catch(function () {});
+
+    // Apply the cached theme the moment the body exists (covers the pre-fetch gap).
+    document.addEventListener("DOMContentLoaded", function () {
+      if (!document.body.getAttribute("data-pal")) {
+        applyTheme(root.getAttribute("data-pal-cached") || "midnight");
+      }
+    });
+  })();
+  </script>
 </head>
-<body>
+<body data-pal="midnight">
 
   <!-- ============ HERO (the one image) ============ -->
   <section class="hero" id="home" aria-label="HALO — every moment, gathered">
@@ -54,14 +109,14 @@
         <p class="lead">Scan one QR code and every photo your guests take flows into a single live gallery &mdash; auto-curated, automatically enhanced, and ready to relive and share the moment the party ends. No app to download. Nothing for your guests to sign up for.</p>
       </div>
       <figure class="split-img">
-        <img src="/landing/images/friends.webp" alt="Friends laughing and taking a group selfie at a celebration" loading="lazy" width="1280" height="860">
+        <img id="img-friends" src="/landing/images/friends.webp" alt="Friends laughing and taking a group selfie at a celebration" loading="lazy" width="1280" height="860">
       </figure>
     </div>
   </section>
 
   <!-- ============ WEDDING BAND (guests capturing the moment) ============ -->
   <section class="photo-band" aria-label="Guests capturing the moment on their phones">
-    <img src="/landing/images/wedding.webp" alt="Wedding guests raising their phones to capture the couple" loading="lazy" width="1280" height="860">
+    <img id="img-wedding" src="/landing/images/wedding.webp" alt="Wedding guests raising their phones to capture the couple" loading="lazy" width="1280" height="860">
     <div class="photo-band-caption">
       <p class="eyebrow">EVERYONE&rsquo;S A PHOTOGRAPHER</p>
       <h2>Every guest. Every angle.<br><em>One glowing gallery.</em></h2>
@@ -74,7 +129,7 @@
       <p class="eyebrow center">HOW IT WORKS</p>
       <h2 class="section-title center">Four steps. Zero friction.</h2>
       <figure class="how-img">
-        <img src="/landing/images/qr-scan.webp" alt="A guest scanning the HALO QR code at an elegant event table" loading="lazy" width="1280" height="860">
+        <img id="img-qr" src="/landing/images/qr-scan.webp" alt="A guest scanning the HALO QR code at an elegant event table" loading="lazy" width="1280" height="860">
       </figure>
       <div class="steps">
         <div class="step">
@@ -107,7 +162,7 @@
       <p class="eyebrow center">BUILT FOR EVERY CELEBRATION</p>
       <h2 class="section-title center">One tool. Every kind of moment.</h2>
       <figure class="events-img">
-        <img src="/landing/images/quinceanera.webp" alt="A quinceañera celebration with guests dancing and filming the moment" loading="lazy" width="1280" height="860">
+        <img id="img-quinceanera" src="/landing/images/quinceanera.webp" alt="A quinceañera celebration with guests dancing and filming the moment" loading="lazy" width="1280" height="860">
       </figure>
       <div class="cases">
         <div class="case"><h3>Weddings</h3><p>Capture every angle your photographer can&rsquo;t &mdash; the whole day, from everyone who loves you.</p></div>
