@@ -54,7 +54,7 @@ export function Stat({ label, value, gold }) {
 export function Empty({ title, sub, action, onAction }) {
   return (
     <div style={{ textAlign: "center", padding: "60px 20px", maxWidth: 440, margin: "0 auto" }}>
-      <div style={{ width: 56, height: 56, margin: "0 auto 16px", borderRadius: "50%", border: `3px solid ${C.gold}`, opacity: 0.7 }} />
+      <img src="/halo-icon-512.png" alt="HALO" width="64" height="64" style={{ display: "block", width: 64, height: 64, margin: "0 auto 16px", objectFit: "contain" }} />
       <h2 className="serif" style={{ fontSize: 28, color: C.text, margin: "0 0 6px" }}>{title}</h2>
       <p style={{ color: C.second, marginTop: 0 }}>{sub}</p>
       {action && (
