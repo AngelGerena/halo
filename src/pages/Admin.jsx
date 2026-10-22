@@ -327,7 +327,8 @@ function SiteAppearance({ token }) {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState(null);   // { theme, img_friends, ... }
   const [busy, setBusy] = useState("");             // "" | "theme" | slot key being uploaded
-  const [saved, setSaved] = useState("");           // transient "Saved" flash key
+  const [saved, setSaved] = useState("");           // transient "Saved" flash key (per-control badge)
+  const [banner, setBanner] = useState("");         // persistent "Saved — live" message at top of panel
 
   async function siteAction(body) {
     const r = await fetch("/.netlify/functions/manage-site", {
@@ -344,14 +345,20 @@ function SiteAppearance({ token }) {
   }
   useEffect(() => { load(); }, []);
 
-  function flash(key) { setSaved(key); setTimeout(() => setSaved((s) => (s === key ? "" : s)), 1600); }
+  // Confirm a save: flash the per-control badge AND show a clear banner that
+  // lingers so there's no doubt the change was saved and is going live.
+  function confirmSaved(key, msg) {
+    setSaved(key); setTimeout(() => setSaved((s) => (s === key ? "" : s)), 2200);
+    setBanner(msg); setTimeout(() => setBanner((b) => (b === msg ? "" : b)), 4000);
+  }
 
   async function pickTheme(key) {
     if (busy) return;
+    const name = (THEMES.find((x) => x.key === key) || {}).name || key;
     setBusy("theme");
     const prev = settings;
     setSettings((s) => ({ ...(s || {}), theme: key })); // optimistic
-    try { const j = await siteAction({ action: "set-theme", theme: key }); setSettings(j.settings); flash("theme"); }
+    try { const j = await siteAction({ action: "set-theme", theme: key }); setSettings(j.settings); confirmSaved("theme", `Saved — “${name}” is now live on your site.`); }
     catch (e) { setSettings(prev); alert(e.message); }
     finally { setBusy(""); }
   }
@@ -365,19 +372,20 @@ function SiteAppearance({ token }) {
       });
       await putToR2(uploadUrl, file, contentType);
       const j = await siteAction({ action: "set-image", slot, storage_path: path });
-      setSettings(j.settings); flash(slot);
+      setSettings(j.settings); confirmSaved(slot, "Saved — your new photo is now live on the site.");
     } catch (e) { alert(e.message); } finally { setBusy(""); }
   }
   async function resetPhoto(slot) {
     if (busy) return;
     if (!confirm("Reset this photo back to the default that ships with the site?")) return;
     setBusy(slot);
-    try { const j = await siteAction({ action: "reset-image", slot }); setSettings(j.settings); flash(slot); }
+    try { const j = await siteAction({ action: "reset-image", slot }); setSettings(j.settings); confirmSaved(slot, "Saved — the original photo is back on the site."); }
     catch (e) { alert(e.message); } finally { setBusy(""); }
   }
 
   const col = { friends: "img_friends", wedding: "img_wedding", qr: "img_qr", quinceanera: "img_quinceanera" };
   const activeTheme = (settings && settings.theme) || "midnight";
+  const activeThemeName = (THEMES.find((x) => x.key === activeTheme) || {}).name || "Midnight Champagne";
 
   return (
     <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
@@ -387,18 +395,34 @@ function SiteAppearance({ token }) {
       </div>
       {open && (
         <div style={{ marginTop: 14 }}>
+          {/* How-it-saves notice: there is NO Save button — every change saves on
+              click. This banner makes that explicit and flashes a confirmation. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: banner ? "rgba(74,222,128,.14)" : "rgba(255,255,255,.04)", border: `1px solid ${banner ? "rgba(74,222,128,.5)" : "rgba(255,255,255,.12)"}`, borderRadius: 12, padding: "11px 14px", marginBottom: 16, transition: "background .2s, border-color .2s" }}>
+            <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", background: banner ? "#4ade80" : "transparent", border: banner ? "none" : `2px solid ${C.second}`, display: "grid", placeItems: "center", color: banner ? "#0a2e14" : C.second, fontSize: 13, fontWeight: 800 }}>{banner ? "✓" : "i"}</span>
+            <span style={{ fontSize: 12.5, color: banner ? "#b9f3cc" : C.second, lineHeight: 1.4 }}>
+              {banner || "No Save button needed — every change here saves automatically the moment you make it, and goes live on your site within a minute."}
+            </span>
+          </div>
+
           {/* THEME PICKER */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>Theme</div>
-          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Pick a color palette for the public site (halo.finessemedia.pro). Changes go live within a minute.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Theme</div>
+            <div style={{ fontSize: 12, color: C.second }}>Live now: <span style={{ color: C.gold, fontWeight: 700 }}>{activeThemeName}</span></div>
+          </div>
+          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Tap any palette to apply it to the public site (halo.finessemedia.pro). It saves and goes live right away — no Save button.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 10 }}>
             {THEMES.map((th) => {
               const on = activeTheme === th.key;
               return (
                 <button key={th.key} onClick={() => pickTheme(th.key)} disabled={!!busy}
-                  style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: on ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)", border: `1px solid ${on ? C.gold : "rgba(255,255,255,.15)"}`, borderRadius: 12, padding: "10px 12px", cursor: busy ? "default" : "pointer", opacity: busy && busy !== "theme" ? 0.6 : 1 }}>
+                  style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: on ? "rgba(255,184,107,.15)" : "rgba(255,255,255,.03)", border: `2px solid ${on ? C.gold : "rgba(255,255,255,.14)"}`, borderRadius: 12, padding: "10px 12px", cursor: busy ? "default" : "pointer", opacity: busy && busy !== "theme" ? 0.6 : 1 }}>
                   <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "1px solid rgba(255,255,255,.3)", background: `conic-gradient(from 135deg, ${th.d1} 0 50%, ${th.d2} 50% 100%)` }} />
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, lineHeight: 1.15 }}>{th.name}</span>
-                  {on && <span style={{ marginLeft: "auto", color: C.gold, fontSize: 14 }}>{saved === "theme" ? "✓" : "●"}</span>}
+                  {on && (
+                    <span style={{ marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, background: C.gold, color: C.ink, fontSize: 10, fontWeight: 800, letterSpacing: .5, textTransform: "uppercase", padding: "3px 8px", borderRadius: 999 }}>
+                      {saved === "theme" ? "✓ Saved" : "● Live"}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -406,7 +430,7 @@ function SiteAppearance({ token }) {
 
           {/* PHOTO SWAPPER */}
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "22px 0 4px" }}>Photos</div>
-          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Replace any of the four landing-page photos. Upload a JPG, PNG or WebP (landscape works best). Reset puts the original back.</p>
+          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>Replace any of the four landing-page photos. Pick a file and it uploads and goes live right away — no Save button. Use a JPG, PNG or WebP (landscape works best). Reset puts the original back.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 14 }}>
             {PHOTO_SLOTS.map((p) => {
               const stored = settings && settings[col[p.slot]];
