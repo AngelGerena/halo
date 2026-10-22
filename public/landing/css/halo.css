@@ -157,9 +157,13 @@ em{font-style:italic}
 /* full-width photo band with caption overlay */
 .photo-band{position:relative;overflow:hidden;min-height:46svh;display:grid;place-items:center}
 .photo-band img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-.photo-band::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,4,16,.78),rgba(10,4,16,.35) 55%,rgba(10,4,16,.6))}
+/* Overlay lightened: the wedding photo was being washed out too dark to
+   read on mobile. The caption keeps its own text-shadow for contrast, so a
+   softer wash is plenty. A subtle bottom-weighted gradient anchors the text
+   without veiling the whole image. */
+.photo-band::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,4,16,.55),rgba(10,4,16,.18) 55%,rgba(10,4,16,.42)),linear-gradient(0deg,rgba(10,4,16,.45),transparent 55%)}
 .photo-band-caption{position:relative;z-index:2;text-align:center;padding:64px 7%}
-.photo-band-caption h2{font-family:'Anton',sans-serif;font-size:clamp(30px,5.5vw,62px);line-height:1;letter-spacing:.01em;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.5)}
+.photo-band-caption h2{font-family:'Anton',sans-serif;font-size:clamp(30px,5.5vw,62px);line-height:1;letter-spacing:.01em;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.85),0 6px 30px rgba(0,0,0,.6)}
 .photo-band-caption h2 em{font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--accent)}
 
 /* images that sit above a grid (how-it-works, use-cases) */
