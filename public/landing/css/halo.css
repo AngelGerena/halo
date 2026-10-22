@@ -99,6 +99,11 @@ em{font-style:italic}
 .tier ul{margin-bottom:26px;flex:1}
 .tier li{font-size:14.5px;color:#e2dde9;padding:9px 0;border-bottom:1px solid var(--line)}
 .tier li::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:10px;vertical-align:middle}
+/* "Everything in <tier>, plus" connector line — a subheading, not a feature:
+   no bullet dot, a touch bolder and in the accent colour so the value
+   build-up reads clearly. */
+.tier li.inherits{font-weight:700;color:var(--accent);letter-spacing:.01em;border-bottom:1px solid var(--line)}
+.tier li.inherits::before{display:none}
 .price-note{text-align:center;margin-top:24px;font-size:12px;color:var(--muted);font-style:italic}
 
 /* ---------------- FINAL CTA ---------------- */
