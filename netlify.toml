@@ -12,25 +12,50 @@
   status = 301
   force = true
 
-# The app is product-only. The bare root is not a marketing page —
-# bounce it to the real landing site at the EDGE (server-side 301),
-# before any HTML or React loads, so a visitor to the bare URL never
-# sees the app shell or the raw netlify.app address flash. Only the
-# exact root is caught here; real app routes (/e, /g, /live, /admin,
-# /legal) fall through to the SPA below, and any stray non-route URL
-# is caught invisibly by the inline redirect in index.html <head>
-# before React mounts — so no netlify URL is ever shown.
+# The marketing/landing page and the app now live on one domain
+# (halo.finessemedia.pro). The site root serves the static landing page;
+# the React app owns only its real routes; anything else shows the landing
+# page. No external redirect, so no netlify.app URL is ever shown.
+
+# Root -> the static marketing page (rewrite, status 200, so the URL stays
+# halo.finessemedia.pro/ with no redirect hop). force = true is REQUIRED:
+# Vite builds a dist/index.html, so a real file exists at "/", and Netlify
+# serves an existing file before applying a non-forced rule. Forcing makes
+# the rewrite win so the root shows the landing page, not the app shell.
 [[redirects]]
   from = "/"
-  to = "https://halo-gallery-site.netlify.app"
-  status = 301
+  to = "/landing.html"
+  status = 200
   force = true
 
-# SPA fallback so React Router handles all the real app routes
-# (/e/:code, /g/:id, /live/:code, /admin, /legal). Static files at the
-# build root (favicon, og-image, assets) and the Netlify functions are
-# served before this rule, so they are unaffected.
+# Real app routes load the React SPA. Static files at the build root
+# (favicon, og-image, /landing/* assets) and the Netlify functions
+# (/.netlify/functions/*) are served before these rules, so they are
+# unaffected.
+[[redirects]]
+  from = "/e/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/g/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/live/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/legal"
+  to = "/index.html"
+  status = 200
+
+# Anything else is not an app route -> show the marketing page (not the
+# app shell). Keeps every stray URL on-brand with no netlify address.
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/landing.html"
   status = 200
