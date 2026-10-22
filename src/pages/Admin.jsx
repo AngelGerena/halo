@@ -5,7 +5,14 @@ import { signAdminUpload, putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { fetchOwnerProfiles, fetchAllProfiles, eventCountsByOwner, ownerLabel } from "../lib/profiles.js";
 
+// TODO(auth integration): when src/lib/auth.jsx lands (AuthProvider/useAuth/
+// RequireAuth), gate this page with RequireAuth + an is_admin check and pass the
+// admin's Supabase access token to the service-role functions instead of (or
+// alongside) the passcode. The passcode path below stays as a transitional
+// admin override per docs/accounts-phase1-spec.md §6 — do not remove it until
+// the admin account is confirmed in use.
 const TOKEN_KEY = "halo_admin_token";
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
@@ -67,6 +74,8 @@ function Gate({ onAuth, verify }) {
 function Dashboard({ token, onLogout }) {
   const { t, ev } = useI18n();
   const [events, setEvents] = useState([]);
+  const [profileMap, setProfileMap] = useState({});   // { owner_id: {id,email,full_name} } for owner labels
+  const [clients, setClients] = useState([]);          // all profiles, for the client list + owner pickers
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [heroList, setHeroList] = useState([]);
@@ -79,10 +88,20 @@ function Dashboard({ token, onLogout }) {
 
   async function loadEvents() {
     const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
-    setEvents(data || []);
+    const list = data || [];
+    setEvents(list);
     setLoading(false);
+    // Resolve each event's owner_id to a readable profile (fails soft pre-migration).
+    const map = await fetchOwnerProfiles(list.map((e) => e.owner_id));
+    setProfileMap(map);
   }
   useEffect(() => { loadEvents(); }, []);
+
+  async function loadClients() {
+    const rows = await fetchAllProfiles();
+    setClients(rows);
+  }
+  useEffect(() => { loadClients(); }, []);
 
   const [deletingId, setDeletingId] = useState(null);
   async function deleteFromList(ev2) {
@@ -162,7 +181,9 @@ function Dashboard({ token, onLogout }) {
   async function removeLib(x) { if (!confirm("Delete this track?")) return; try { await libAction({ action: "remove", id: x.id }); await loadLib(); } catch (e) { alert(e.message); } }
 
   if (loading) return <Spinner label={t("admin.loadingEvents")} />;
-  if (selected) return <EventDetail event={selected} token={token} back={() => { setSelected(null); loadEvents(); }} />;
+  if (selected) return <EventDetail event={selected} token={token} clients={clients} profileMap={profileMap} back={() => { setSelected(null); loadEvents(); }} />;
+
+  const eventCounts = eventCountsByOwner(events);
 
   return (
     <div>
@@ -174,7 +195,7 @@ function Dashboard({ token, onLogout }) {
         <button onClick={onLogout} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "8px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.lock")}</button>
       </div>
 
-      <CreateEvent token={token} onCreated={(newEvent) => { loadEvents(); if (newEvent) setSelected(newEvent); }} />
+      <CreateEvent token={token} clients={clients} onCreated={(newEvent) => { loadEvents(); if (newEvent) setSelected(newEvent); }} />
 
       {/* Landing hero carousel manager */}
       <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
@@ -245,6 +266,8 @@ function Dashboard({ token, onLogout }) {
         )}
       </div>
 
+      <ClientList clients={clients} eventCounts={eventCounts} />
+
       {events.length === 0 ? (
         <Empty title={t("admin.noEvents.title")} sub={t("admin.noEvents.sub")} />
       ) : (
@@ -257,6 +280,10 @@ function Dashboard({ token, onLogout }) {
                 <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{e.code}{e.is_recurring ? " · ↻" : ""}</div>
                 <div className="serif" style={{ fontSize: 22, color: C.text, margin: "4px 0 2px", lineHeight: 1.1 }}>{ev(e, "name")}</div>
                 <div style={{ fontSize: 12, color: C.second }}>{[ev(e, "host"), ev(e, "event_date")].filter(Boolean).join(" · ")}</div>
+                <div style={{ fontSize: 11, color: C.second, marginTop: 6, wordBreak: "break-word" }}>
+                  <span style={{ color: C.gold, fontWeight: 600 }}>{t("admin.owner")}:</span>{" "}
+                  {ownerLabel(e.owner_id, profileMap) || t("admin.ownerUnassigned")}
+                </div>
               </button>
               <button onClick={() => deleteFromList(e)} disabled={deletingId === e.id}
                 style={{ marginTop: 14, alignSelf: "flex-start", background: "transparent", color: "#ff6b6b", border: "1px solid #ff6b6b", padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: deletingId === e.id ? 0.5 : 1 }}>
@@ -264,6 +291,65 @@ function Dashboard({ token, onLogout }) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Collapsible list of every client (profile) with a per-client event count.
+// Reads from the profiles table via the admin RLS read policy. Fails soft to an
+// empty list (and simply shows the empty state) until the profiles table is live.
+function ClientList({ clients, eventCounts }) {
+  const { t, lang } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  function joined(iso) {
+    if (!iso) return "";
+    try {
+      // AM/PM, never 24-hour — per brand preference, in both languages.
+      return new Date(iso).toLocaleString(lang === "es" ? "es-US" : "en-US", {
+        year: "numeric", month: "short", day: "numeric",
+        hour: "numeric", minute: "2-digit", hour12: true,
+      });
+    } catch { return ""; }
+  }
+
+  return (
+    <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setOpen((v) => !v)}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{t("admin.clients")} <span style={{ color: C.second, fontWeight: 400 }}>({clients.length})</span></div>
+        <span style={{ color: C.second, fontSize: 18 }}>{open ? "–" : "+"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.clientsHelp")}</p>
+          {clients.length === 0 ? (
+            <p style={{ fontSize: 13, color: C.second, marginTop: 4 }}>{t("admin.clientsEmpty")}</p>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {clients.map((c) => {
+                const name = (c.full_name || "").trim();
+                const count = eventCounts[c.id] || 0;
+                return (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "10px 12px", border: `1px solid ${c.is_admin ? C.gold : "rgba(255,255,255,.12)"}` }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text, wordBreak: "break-word" }}>
+                        {name || t("admin.clientNoName")}
+                        {c.is_admin && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: C.ink, background: C.gold, padding: "2px 8px", borderRadius: 999 }}>{t("admin.clientAdmin")}</span>}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.second, wordBreak: "break-word" }}>{c.email || "—"}</div>
+                      {c.created_at && <div style={{ fontSize: 11, color: C.second, marginTop: 2 }}>{t("admin.clientJoined")}: {joined(c.created_at)}</div>}
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div className="serif" style={{ fontSize: 22, fontWeight: 700, color: count > 0 ? C.gold : C.second, lineHeight: 1 }}>{count}</div>
+                      <div style={{ fontSize: 11, color: C.second, textTransform: "uppercase", letterSpacing: 1 }}>{t("admin.clientEvents")}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -283,7 +369,7 @@ function Toggle({ on, onClick, title, help }) {
   );
 }
 
-function CreateEvent({ token, onCreated }) {
+function CreateEvent({ token, clients = [], onCreated }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -292,6 +378,7 @@ function CreateEvent({ token, onCreated }) {
   const [code, setCode] = useState("");
   const [threshold, setThreshold] = useState(45);
   const [category, setCategory] = useState("");
+  const [ownerId, setOwnerId] = useState(""); // "" = owned by the admin (self); otherwise a client's profile id
   const [nameEs, setNameEs] = useState("");
   const [hostEs, setHostEs] = useState("");
   const [dateEs, setDateEs] = useState("");
@@ -337,11 +424,14 @@ function CreateEvent({ token, onCreated }) {
           code: finalCode, keep_threshold: Number(threshold), category: category || null,
           moderation_mode: requireReview ? "review" : "off",
           protect_minors: protectMinors,
+          // Create-on-behalf: owner_id of the chosen client, or null = admin owns it.
+          // create-event stamps owner_id from this when the caller is admin.
+          ownerId: ownerId || null,
         }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { throw new Error(j.error || t("admin.failedCreate")); }
-      setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45); setCategory("");
+      setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45); setCategory(""); setOwnerId("");
       setNameEs(""); setHostEs(""); setDateEs(""); setRequireReview(false); setProtectMinors(true); setOpen(false);
       onCreated(j.event);
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -370,6 +460,18 @@ function CreateEvent({ token, onCreated }) {
             {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
           </select>
         </div>
+        {clients.length > 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={lab}>{t("admin.createFor")}</label>
+            <select style={field} value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
+              <option value="">{t("admin.createForSelf")}</option>
+              {clients.filter((c) => !c.is_admin).map((c) => (
+                <option key={c.id} value={c.id}>{[(c.full_name || "").trim(), c.email].filter(Boolean).join(" — ") || c.id}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: 11, color: C.second, margin: "6px 0 0" }}>{t("admin.createForHelp")}</p>
+          </div>
+        )}
         <div><label style={lab}>{t("admin.hostChurch")}</label><input style={field} value={host} onChange={(e) => setHost(e.target.value)} placeholder="Iglesia Cristiana Gracia y Gloria" /></div>
         <div><label style={lab}>{t("admin.dateDisplay")}</label><input style={field} value={date} onChange={(e) => setDate(e.target.value)} placeholder="March 31, 2026" /></div>
         <div><label style={lab}>{t("admin.customCode")}</label><input style={field} value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("admin.autoFromName")} /></div>
@@ -412,7 +514,7 @@ function CreateEvent({ token, onCreated }) {
   );
 }
 
-function EventDetail({ event, token, back }) {
+function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
   const { t, ev } = useI18n();
   const [photos, setPhotos] = useState([]);
   const [contributors, setContributors] = useState([]);
@@ -449,10 +551,18 @@ function EventDetail({ event, token, back }) {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [deletingEvent, setDeletingEvent] = useState(false);
+  // Owner reassignment
+  const [ownerId, setOwnerId] = useState(event.owner_id || "");
+  const [ownerSaving, setOwnerSaving] = useState(false);
+  const [ownerMsg, setOwnerMsg] = useState("");
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
   const today = () => new Date().toISOString().slice(0, 10);
+
+  // Combined owner lookup: profiles resolved from the events list, plus the full
+  // client list, so a just-reassigned owner renders immediately without a reload.
+  const ownerLookup = { ...profileMap, ...Object.fromEntries(clients.map((c) => [c.id, c])) };
 
   async function publish() {
     if (!confirm(t("admin.publishConfirm"))) return;
@@ -499,6 +609,16 @@ function EventDetail({ event, token, back }) {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || t("admin.saveFailed"));
     return j.event;
+  }
+
+  // Reassign owner: patches owner_id via update-event. The function must add
+  // owner_id to its ALLOWED whitelist and permit the change only for admins.
+  async function saveOwner() {
+    setOwnerSaving(true); setOwnerMsg("");
+    try {
+      await updateEvent({ owner_id: ownerId || null });
+      setOwnerMsg(t("admin.reassignDone"));
+    } catch (e) { setOwnerMsg(e.message); } finally { setOwnerSaving(false); }
   }
 
   async function pinMoment(id) { try { await updateEvent({ featured_photo_id: id }); setFeaturedId(id); } catch (e) { alert(e.message); } }
@@ -713,7 +833,11 @@ function EventDetail({ event, token, back }) {
         <div>
           <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
-          <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+          <p style={{ color: C.second, margin: "0 0 8px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+          <div style={{ fontSize: 12, color: C.second, margin: "0 0 14px", wordBreak: "break-word" }}>
+            <span style={{ color: C.gold, fontWeight: 600 }}>{t("admin.owner")}:</span>{" "}
+            {ownerLabel(ownerId, ownerLookup) || t("admin.ownerUnassigned")}
+          </div>
           <div style={{ display: "flex", gap: 12 }}>
             <Stat label={t("admin.photos")} value={photos.length} />
             <Stat label={t("admin.kept")} value={kept.length} gold />
@@ -813,6 +937,22 @@ function EventDetail({ event, token, back }) {
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
             <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
+          </div>
+
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.reassign")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.reassignHelp")}</p>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} style={{ ...sfield, marginTop: 0, flex: 1, minWidth: 220 }}>
+                <option value="">{t("admin.ownerUnassigned")}</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{[(c.full_name || "").trim(), c.email].filter(Boolean).join(" — ") || c.id}{c.is_admin ? ` (${t("admin.clientAdmin")})` : ""}</option>
+                ))}
+              </select>
+              <button onClick={saveOwner} disabled={ownerSaving || ownerId === (event.owner_id || "")} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: ownerSaving || ownerId === (event.owner_id || "") ? 0.55 : 1 }}>{ownerSaving ? t("admin.reassignSaving") : t("admin.reassignSave")}</button>
+            </div>
+            {ownerMsg && <p style={{ fontSize: 12, color: C.second, margin: "8px 0 0" }}>{ownerMsg}</p>}
+            {clients.length === 0 && <p style={{ fontSize: 11, color: C.second, margin: "8px 0 0" }}>{t("admin.clientsEmpty")}</p>}
           </div>
 
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
