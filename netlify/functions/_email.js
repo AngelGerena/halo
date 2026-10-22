@@ -10,7 +10,7 @@ export function haloEmail({ heading, subhead, body, ctaText, ctaUrl, footerNote 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(28,38,64,.10);">
         <!-- header -->
         <tr><td style="background:#1C2640;padding:30px 36px;text-align:center;">
-          <div style="display:inline-block;width:42px;height:42px;border-radius:50%;border:3px solid #C5A44B;margin-bottom:12px;"></div>
+          <img src="https://halo.finessemedia.pro/halo-icon-512.png" alt="HALO" width="56" height="56" style="display:inline-block;width:56px;height:56px;border-radius:14px;margin-bottom:12px;" />
           <div style="color:#F2ECE4;font-size:30px;letter-spacing:3px;font-weight:bold;">HALO</div>
           <div style="color:#C5A44B;font-size:10px;letter-spacing:4px;text-transform:uppercase;margin-top:6px;">Holy moments, auto-curated</div>
         </td></tr>
