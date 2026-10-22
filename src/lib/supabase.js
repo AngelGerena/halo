@@ -3,7 +3,16 @@ import { createClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(url, anon);
+// Auth session persistence: keep the user signed in across reloads, refresh the
+// access token automatically, and read the recovery session out of the URL hash
+// (used by the password-reset confirm flow).
+export const supabase = createClient(url, anon, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // Photo/audio files now live in Cloudflare R2 (served from its public bucket URL).
 // Supabase remains the database only. VITE_R2_PUBLIC_URL is the public read base,
