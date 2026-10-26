@@ -331,3 +331,35 @@ em{font-style:italic}
 @media(max-width:600px){
   .signup-grid{grid-template-columns:1fr}
 }
+
+/* ============ REAL MOMENTS MOSAIC ============ */
+/* Every tile has a fixed spot so the grid never leaves holes.
+   Desktop: 4 columns x 6 rows. Phone: 2 columns x 8 rows (m-desk tiles hidden). */
+.moments .section-title{max-width:20ch}
+.moments .section-title em{font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--accent)}
+.mosaic{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:190px;gap:14px}
+.mosaic figure{margin:0;border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 18px 44px rgba(var(--ov-deep),.35);min-width:0}
+.mosaic img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease}
+.mosaic figure:hover img{transform:scale(1.04)}
+.m-palms{grid-area:1/1/3/3}
+.m-phones{grid-area:1/3/3/4}
+.m-bday{grid-area:1/4/3/5}
+.m-doors{grid-area:3/1/5/2}
+.m-maid{grid-area:3/2/4/4}
+.m-selfie{grid-area:4/2/5/4}
+.m-screen{grid-area:3/4/5/5}
+.m-exit{grid-area:5/1/7/2}
+.m-couple{grid-area:5/2/7/3}
+.m-blazer{grid-area:5/3/7/5}
+@media (max-width:760px){
+  .mosaic{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:130px;gap:10px}
+  .mosaic .m-desk{display:none}
+  .m-palms{grid-area:1/1/3/3}
+  .m-phones{grid-area:3/1/5/2}
+  .m-bday{grid-area:3/2/5/3}
+  .m-maid{grid-area:5/1/6/3}
+  .m-doors{grid-area:6/1/8/2}
+  .m-screen{grid-area:6/2/8/3}
+  .m-selfie{grid-area:8/1/9/3}
+}
+@media (prefers-reduced-motion:reduce){.mosaic img{transition:none}.mosaic figure:hover img{transform:none}}

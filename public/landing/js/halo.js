@@ -48,6 +48,8 @@
     "intro.lead": "Escanea un código QR y cada foto que tomen tus invitados llega a una sola galería en vivo — organizada y realzada automáticamente, lista para revivir y compartir apenas termina la fiesta. Sin app que descargar. Sin que tus invitados tengan que registrarse.",
     "band.eyebrow": "TODOS SON FOTÓGRAFOS",
     "band.title": "Cada invitado. Cada ángulo.<br><em>Una galería que brilla.</em>",
+    "moments.eyebrow": "MOMENTOS REALES",
+    "moments.title": "Tus invitados ya tienen las fotos.<br><em>HALO las reúne.</em>",
     "how.eyebrow": "CÓMO FUNCIONA",
     "how.title": "Cuatro pasos. Cero complicaciones.",
     "how.s1.t": "Crea tu evento",
