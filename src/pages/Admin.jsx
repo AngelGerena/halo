@@ -834,6 +834,12 @@ function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
       await putToR2(uploadUrl, file, contentType);
       setCoverPath(path);
       await updateEvent({ cover_path: path }); // save immediately so guests see it right away
+      try {
+        const { findFaceFocus } = await import("../lib/faceFocus.js");
+        const f = await findFaceFocus(file);
+        if (f) await updateEvent({ cover_focus_x: f.x, cover_focus_y: f.y });
+        else await fetch("/.netlify/functions/cover-focus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, eventId: event.id, coverPath: path }) });
+      } catch (e) { console.warn("cover-focus", e); }
     } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
   }
 
