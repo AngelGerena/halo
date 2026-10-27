@@ -329,6 +329,19 @@ export default function SlideshowPage() {
         ))}
       </div>
 
+      {/* Always-on room stats: photos and guests so far. Makes the wall feel
+          alive and nudges the people who haven't scanned yet. */}
+      {(() => {
+        const guests = new Set(photos.map((p) => p.contributor_id).filter(Boolean)).size;
+        return (
+          <div style={{ position: "absolute", left: "2.2vw", bottom: "2.2vw", display: "flex", alignItems: "center", gap: ".9vw", background: "rgba(10,4,16,.55)", color: C.text, padding: ".5vw 1.1vw", borderRadius: 999, fontSize: "1vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+            <span>{photos.length} {photos.length === 1 ? t("live.photoWord") : t("live.photosWord")}</span>
+            <span style={{ opacity: .5 }}>·</span>
+            <span>{guests} {guests === 1 ? t("live.guestWord") : t("live.guestsWord")}</span>
+          </div>
+        );
+      })()}
+
       {/* Always-on heart count for the photo on screen (pops when it changes) */}
       {curCount > 0 && (
         <div key={countPop} style={{ position: "absolute", right: "2.2vw", top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "rgba(10,4,16,.55)", color: C.text, padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
@@ -370,6 +383,7 @@ export default function SlideshowPage() {
           <div style={{ color: C.text, fontSize: ".95vw", opacity: .85 }}>
             {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
+          <div />
           <div style={{ display: "flex", gap: 10, pointerEvents: "auto", alignItems: "center" }}>
             <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: C.text, border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.1vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
               <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.white} strokeWidth="2" style={{ width: "1.1vw", height: "1.1vw" }}>
