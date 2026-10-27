@@ -194,6 +194,28 @@ export default function SlideshowPage() {
   const [floaters, setFloaters] = useState([]); // [{id, x, size, hue}]
   const curIdRef = useRef(null);
   useEffect(() => { curIdRef.current = photos[idx]?.id || null; }, [idx, photos]);
+
+  // Tell the room which photo is on screen. Guests' phones listen for their
+  // own uploads and show "On the screen now". Broadcast (not DB) so it costs
+  // nothing and needs no table. Re-sent on every change and every 5 s so a
+  // phone that joins late still catches the current one.
+  const showRef = useRef(null);
+  useEffect(() => {
+    if (!event) return;
+    const ch = supabase.channel(`now-${event.id}`, { config: { broadcast: { ack: false } } });
+    ch.subscribe((status) => { if (status === "SUBSCRIBED") showRef.current = ch; });
+    return () => { showRef.current = null; supabase.removeChannel(ch); };
+  }, [event]);
+  useEffect(() => {
+    const send = () => {
+      const p = photos[idx]; const ch = showRef.current;
+      if (!p || !ch) return;
+      ch.send({ type: "broadcast", event: "showing", payload: { photo_id: p.id, contributor_id: p.contributor_id || null, at: Date.now() } });
+    };
+    send();
+    const t = setInterval(send, 5000);
+    return () => clearInterval(t);
+  }, [idx, photos]);
   function spawnHearts(n = 1) {
     const batch = Array.from({ length: n }, (_, i) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}-${i}`,

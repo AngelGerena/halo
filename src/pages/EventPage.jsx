@@ -54,6 +54,22 @@ export default function EventPage() {
   // auto-flagged) stays out until approved. Scoped to the current session
   // for recurring events, same as the live screen.
   const [everyone, setEveryone] = useState([]);
+  // "On the screen now": the live screen broadcasts which photo is up; if it's
+  // one of ours, pulse it on the phone. Clears itself after a few seconds.
+  const [onScreen, setOnScreen] = useState(null); // photo id
+  useEffect(() => {
+    if (!event || !contributor) return;
+    const ch = supabase.channel(`now-${event.id}`)
+      .on("broadcast", { event: "showing" }, ({ payload }) => {
+        if (payload && payload.contributor_id === contributor.id) {
+          setOnScreen(payload.photo_id);
+          clearTimeout(window.__haloOnScreenT);
+          window.__haloOnScreenT = setTimeout(() => setOnScreen(null), 7000);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [event, contributor]);
   // Hearts: counts for every photo we show + the set this device has hearted.
   const [counts, setCounts] = useState({});
   const [liked, setLiked] = useState(() => new Set());
@@ -279,6 +295,16 @@ export default function EventPage() {
             keep the kids question available but out of the way. */}
         {tab === "add" && (
           <>
+            {onScreen && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,61,129,.12)", border: `1px solid ${C.pink}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14, animation: "haloPulse 1.2s ease-in-out infinite" }}>
+                {(() => { const p = photos.find((x) => x.id === onScreen); return p ? <img src={p.edited_url || p.url} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", border: `2px solid ${C.pink}` }} /> : null; })()}
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{t("up.onScreenNow")}</div>
+                  <div style={{ fontSize: 12.5, color: C.second }}>{t("up.onScreenNowSub")}</div>
+                </div>
+                <style>{`@keyframes haloPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,61,129,.35) } 50% { box-shadow: 0 0 0 8px rgba(255,61,129,0) } }`}</style>
+              </div>
+            )}
             {/* 1) How it works — three glanceable steps, no jargon */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
               {[[CameraIcon, t("up.step1")], [UploadIcon, t("up.step2")], [ScreenIcon, t("up.step3")]].map(([Ic, label], i) => (

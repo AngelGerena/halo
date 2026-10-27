@@ -44,6 +44,8 @@ const STRINGS = {
   // uploader
   "up.welcome": { en: "Welcome", es: "Bienvenido" },
   "up.uploadEverything": { en: "upload everything, HALO keeps the best.", es: "sube todo, HALO conserva las mejores." },
+  "up.onScreenNow": { en: "Your photo is on the big screen right now!", es: "¡Tu foto está en la pantalla grande ahora mismo!" },
+  "up.onScreenNowSub": { en: "Look up. That one’s yours.", es: "Mira la pantalla. Esa es tuya." },
   "up.tapToAdd": { en: "Add your photos", es: "Agrega tus fotos" },
   "up.dragHere": { en: "You can pick a bunch at once. Tap each one, then tap “Add”.", es: "Puedes elegir varias a la vez. Toca cada una y luego “Agregar”." },
   "up.uploading": { en: "Sending", es: "Enviando" },
