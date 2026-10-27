@@ -192,6 +192,11 @@ export function EventDetail({ event, api, back }) {
   const [featuredId, setFeaturedId] = useState(event.featured_photo_id || null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(!!event.is_recurring);
+  // Moderation. These existed only on the create form before, so a host had
+  // no way to see or change them after the fact: "protect children" silently
+  // defaulted ON for every event. Surfaced here so what you see is what's set.
+  const [requireReview, setRequireReview] = useState(event.moderation_mode === "review");
+  const [protectMinors, setProtectMinors] = useState(event.protect_minors !== false);
   const [currentSession, setCurrentSession] = useState(event.current_session || "");
   const [connectLabel, setConnectLabel] = useState(event.connect_label || "");
   const [connectLabelEs, setConnectLabelEs] = useState(event.connect_label_es || "");
@@ -279,6 +284,8 @@ export function EventDetail({ event, api, back }) {
     setSaving(true); setSavedMsg("");
     try {
       const patch = {
+        moderation_mode: requireReview ? "review" : "off",
+        protect_minors: !!protectMinors,
         is_recurring: isRecurring,
         current_session: isRecurring ? (currentSession || today()) : null,
         connect_label: connectLabel.trim() || null,
@@ -572,6 +579,12 @@ export function EventDetail({ event, api, back }) {
             </div>
           </div>
 
+          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.modSection")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.modSection.help")}</p>
+            <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
+            <Toggle on={protectMinors} onClick={() => setProtectMinors((v) => !v)} title={t("admin.protectMinors")} help={t("admin.protectMinors.help")} />
+          </div>
           <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
           {isRecurring && (
             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -669,7 +682,9 @@ export function EventDetail({ event, api, back }) {
             {pending.map((p) => (
               <div key={p.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.gold}` }}>
                 <div style={{ position: "relative" }}>
-                  <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                  <a href={p.edited_url || p.url} target="_blank" rel="noreferrer" title={t("admin.viewFull")}>
+                    <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+                  </a>
                   {p.has_minors && (
                     <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{t("admin.kidsBadge")}</span>
                   )}

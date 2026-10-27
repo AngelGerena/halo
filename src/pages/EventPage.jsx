@@ -148,6 +148,9 @@ export default function EventPage() {
         setUploading((u) => Math.max(0, u - 1));
       }
     }
+    // The kids question is about THIS batch. Reset it so a guest who checked
+    // it once (on purpose or by accident) doesn't have every later photo held.
+    if (kidsInFrame) setKidsInFrame(false);
   }
 
   // ---- loading / not-found ----
