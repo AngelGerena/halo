@@ -44,11 +44,20 @@ const STRINGS = {
   // uploader
   "up.welcome": { en: "Welcome", es: "Bienvenido" },
   "up.uploadEverything": { en: "upload everything, HALO keeps the best.", es: "sube todo, HALO conserva las mejores." },
-  "up.tapToAdd": { en: "Tap to add photos", es: "Toca para agregar fotos" },
-  "up.dragHere": { en: "Pick several at once — tap each photo, then “Add” · JPG, PNG, HEIC", es: "Elige varias a la vez — toca cada foto y luego “Agregar” · JPG, PNG, HEIC" },
-  "up.uploading": { en: "Uploading", es: "Subiendo" },
+  "up.tapToAdd": { en: "Add your photos", es: "Agrega tus fotos" },
+  "up.dragHere": { en: "You can pick a bunch at once. Tap each one, then tap “Add”.", es: "Puedes elegir varias a la vez. Toca cada una y luego “Agregar”." },
+  "up.uploading": { en: "Sending", es: "Enviando" },
   "up.uploaded": { en: "Uploaded", es: "Subidas" },
   "up.keptByHalo": { en: "Kept by HALO", es: "Conservadas por HALO" },
+  // ---- friendly guest upload screen (plain language, no jargon) ----
+  "up.howTitle": { en: "It’s easy", es: "Es muy fácil" },
+  "up.step1": { en: "Snap a photo", es: "Toma una foto" },
+  "up.step2": { en: "Tap Add", es: "Toca Agregar" },
+  "up.step3": { en: "See it on the big screen", es: "Mírala en la pantalla grande" },
+  "up.hintFirst": { en: "Tap the big button above to add your first photo!", es: "¡Toca el botón grande de arriba para agregar tu primera foto!" },
+  "up.countOne": { en: "1 photo added — nice!", es: "1 foto agregada — ¡genial!" },
+  "up.countMany": { en: "{n} photos added — nice!", es: "{n} fotos agregadas — ¡genial!" },
+  "up.hintAfter": { en: "Add more anytime. Tap Gallery to see everyone’s photos.", es: "Agrega más cuando quieras. Toca Galería para ver las fotos de todos." },
   "up.yourGallery": { en: "Your gallery", es: "Tu galería" },
   "up.keptOnly": { en: "Kept only", es: "Solo conservadas" },
   "up.all": { en: "All", es: "Todas" },
@@ -63,11 +72,11 @@ const STRINGS = {
   "tab.add": { en: "Add", es: "Agregar" },
   "tab.gallery": { en: "Gallery", es: "Galería" },
   "tab.mine": { en: "Mine", es: "Mías" },
-  "up.tapGallery": { en: "See the keepers in", es: "Mira las mejores en" },
+  "up.tapGallery": { en: "See everyone’s photos in", es: "Mira las fotos de todos en" },
   "up.allYours": { en: "All your photos", es: "Todas tus fotos" },
-  "up.keptGallery": { en: "The keepers", es: "Las mejores" },
-  "up.emptyTitle": { en: "Nothing here yet", es: "Nada aquí todavía" },
-  "up.emptySub": { en: "Add your first photos and HALO keeps the best ones.", es: "Agrega tus primeras fotos y HALO conserva las mejores." },
+  "up.keptGallery": { en: "The best shots", es: "Las mejores fotos" },
+  "up.emptyTitle": { en: "No photos yet", es: "Aún no hay fotos" },
+  "up.emptySub": { en: "Add your first photo and it’ll show up here.", es: "Agrega tu primera foto y aparecerá aquí." },
 
   // gallery (public)
   "gal.notFound.title": { en: "Gallery not found", es: "Galería no encontrada" },
@@ -206,8 +215,8 @@ const STRINGS = {
   "live.fullscreen": { en: "Fullscreen", es: "Pantalla completa" },
   // ---- V2 Phase 1: moderation gate + consent-first child safety ----
   // uploader consent (children in frame)
-  "up.kidsToggle": { en: "These photos include children", es: "Estas fotos incluyen ni\u00f1os" },
-  "up.kidsHelp": { en: "We'll hold them for the team to review before they appear publicly or on the screen.", es: "Las retendremos para que el equipo las revise antes de mostrarlas p\u00fablicamente o en la pantalla." },
+  "up.kidsToggle": { en: "Are there kids in your photos?", es: "\u00bfHay ni\u00f1os en tus fotos?" },
+  "up.kidsHelp": { en: "Tap here if so, and the host will take a quick look before they go on the big screen.", es: "Si es as\u00ed, toca aqu\u00ed y el anfitri\u00f3n les dar\u00e1 un vistazo antes de mostrarlas en la pantalla." },
   "up.pendingReview": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },
   // photo grid status badge
   "grid.pending": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },

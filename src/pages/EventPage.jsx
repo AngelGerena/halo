@@ -232,26 +232,31 @@ export default function EventPage() {
           </div>
         </div>
 
-        {/* ---- ADD tab ---- */}
+        {/* ---- ADD tab ----
+            Built for a guest who has never seen HALO: lead with the one action
+            (add photos), explain it in three tiny steps, speak plainly, and
+            keep the kids question available but out of the way. */}
         {tab === "add" && (
           <>
-            {/* consent-first child safety toggle */}
-            <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
-              style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
-                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)",
-                border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "11px 13px", marginBottom: 14 }}>
-              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame ? "✓" : ""}</span>
-              <span>
-                <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{t("up.kidsToggle")}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: C.second, marginTop: 2 }}>{t("up.kidsHelp")}</span>
-              </span>
-            </button>
+            {/* 1) How it works — three glanceable steps, no jargon */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
+              {[["📷", t("up.step1")], ["⬆️", t("up.step2")], ["✨", t("up.step3")]].map(([ic, label], i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span aria-hidden="true" style={{ color: C.second, fontSize: 14, flexShrink: 0 }}>&#8250;</span>}
+                  <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+                    <div style={{ fontSize: 20, lineHeight: 1 }} aria-hidden="true">{ic}</div>
+                    <div style={{ fontSize: 11.5, color: C.text, fontWeight: 600, marginTop: 5, lineHeight: 1.2 }}>{label}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
 
+            {/* 2) THE action — biggest thing on the screen */}
             <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
               onClick={() => inputRef.current?.click()} style={S.drop}>
               <div style={S.dropIc} aria-hidden="true">&#43;</div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{t("up.tapToAdd")}</div>
-              <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.dragHere")}</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>{t("up.tapToAdd")}</div>
+              <div style={{ fontSize: 12.5, color: C.second, marginTop: 4 }}>{t("up.dragHere")}</div>
               <input ref={inputRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </div>
@@ -263,10 +268,33 @@ export default function EventPage() {
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <StatTile label={t("up.uploaded")} value={photos.length} />
-              <StatTile label={t("up.keptByHalo")} value={kept.length} gold />
+            {/* 3) One warm line instead of two jargon stat tiles.
+                First visit nudges them to the button; after that, a friendly count + what to do next. */}
+            <div style={{ marginTop: 14, textAlign: "center", background: "rgba(255,184,107,.08)", border: `1px solid rgba(255,184,107,.25)`, borderRadius: 12, padding: "12px 14px" }}>
+              {photos.length === 0 ? (
+                <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{t("up.hintFirst")}</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
+                    {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.hintAfter")}</div>
+                </>
+              )}
             </div>
+
+            {/* 4) Kids question — still here for hosts who want it, but below the
+                action and phrased as a simple question rather than a warning. */}
+            <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
+              style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
+                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)",
+                border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "11px 13px", marginTop: 14 }}>
+              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame ? "✓" : ""}</span>
+              <span>
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{t("up.kidsToggle")}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: C.second, marginTop: 2 }}>{t("up.kidsHelp")}</span>
+              </span>
+            </button>
 
             {event.connect_url && (
               <a href={event.connect_url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
