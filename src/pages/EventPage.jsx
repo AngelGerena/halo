@@ -128,9 +128,11 @@ export default function EventPage() {
         setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
 
         // fire auto-edit in the background; patch the row when ready.
+        // contributorId proves this guest uploaded the photo (guests have no
+        // account), so edit-photo can authorize the enhancement.
         fetch("/.netlify/functions/edit-photo", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoId: row.id }),
+          body: JSON.stringify({ photoId: row.id, contributorId: contributor.id }),
         })
           .then((r) => (r.ok ? r.json() : null))
           .then((res) => {

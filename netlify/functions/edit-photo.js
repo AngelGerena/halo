@@ -12,12 +12,8 @@ export async function handler(event) {
 
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch {}
-  const { photoId } = body;
+  const { photoId, contributorId } = body;
 
-  const auth = await authenticate(event);
-  if (!auth.ok) {
-    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
-  }
   if (!photoId) return { statusCode: 400, body: JSON.stringify({ error: "photoId required" }) };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -27,8 +23,22 @@ export async function handler(event) {
     .from("photos").select("*").eq("id", photoId).single();
   if (pErr || !photo) return { statusCode: 404, body: JSON.stringify({ error: "Photo not found" }) };
 
-  if (!(await ownsEventOrAdmin(supabase, photo.event_id, auth))) {
-    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+  // 2. authorize. Two legitimate callers:
+  //    a) A GUEST who just uploaded this photo. Guests have no account, so they
+  //       prove ownership by presenting the photo's own contributor_id (only the
+  //       uploading browser holds it). This is the auto-enhance-on-upload path.
+  //    b) An admin / the event owner (per-user session or passcode).
+  //    The guest path is scoped to exactly one photo they uploaded; it cannot
+  //    be used to touch anyone else's photos.
+  const isUploader = !!contributorId && contributorId === photo.contributor_id;
+  if (!isUploader) {
+    const auth = await authenticate(event);
+    if (!auth.ok) {
+      return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+    }
+    if (!(await ownsEventOrAdmin(supabase, photo.event_id, auth))) {
+      return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+    }
   }
 
   if (photo.edited_path) {
