@@ -6,6 +6,7 @@ import { scoreImage, C, hamming } from "../lib/score.js";
 import { Footer } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { applyLook, clearLook } from "../lib/looks.js";
 import { CameraIcon, UploadIcon, ScreenIcon } from "../components/Icons.jsx";
 import { preloadNsfw } from "../lib/nsfw.js";
 
@@ -16,6 +17,8 @@ export default function EventPage() {
   const navigate = useNavigate();
   const { t, ev, lang } = useI18n();
   const [event, setEvent] = useState(null);
+  // Per-event look: restyle via CSS variables while this page is mounted.
+  useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
   const [loading, setLoading] = useState(true);
   const [contributor, setContributor] = useState(null); // {id, name}
   const [name, setName] = useState("");
@@ -421,7 +424,7 @@ function Ring({ small }) {
 function Dark({ children, welcome }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-      background: welcome ? "linear-gradient(180deg,#1a1020,#120a19 60%,#0a0410)" : "radial-gradient(130% 70% at 50% -10%,rgba(123,47,247,.18),transparent 55%), #0a0410" }}>
+      background: welcome ? "linear-gradient(180deg, var(--panel2, #1a1020), var(--panel, #120a19) 60%, var(--ink, #0a0410))" : "radial-gradient(130% 70% at 50% -10%, rgba(123,47,247,.18), transparent 55%), var(--ink, #0a0410)" }}>
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </div>

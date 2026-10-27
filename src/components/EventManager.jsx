@@ -28,6 +28,7 @@ import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { LOOKS } from "../lib/looks.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon } from "./Icons.jsx";
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
@@ -196,6 +197,7 @@ export function EventDetail({ event, api, back }) {
   // Moderation. These existed only on the create form before, so a host had
   // no way to see or change them after the fact: "protect children" silently
   // defaulted ON for every event. Surfaced here so what you see is what's set.
+  const [look, setLook] = useState(event.look || "midnight");
   const [requireReview, setRequireReview] = useState(event.moderation_mode === "review");
   const [protectMinors, setProtectMinors] = useState(event.protect_minors !== false);
   const [currentSession, setCurrentSession] = useState(event.current_session || "");
@@ -325,6 +327,7 @@ export function EventDetail({ event, api, back }) {
     setSaving(true); setSavedMsg("");
     try {
       const patch = {
+        look: look || null,
         moderation_mode: requireReview ? "review" : "off",
         protect_minors: !!protectMinors,
         is_recurring: isRecurring,
@@ -699,6 +702,25 @@ export function EventDetail({ event, api, back }) {
             </div>
           </div>
 
+          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.look")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.look.help")}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
+              {LOOKS.map((l) => {
+                const on = look === l.key;
+                return (
+                  <button key={l.key} type="button" onClick={() => setLook(l.key)} aria-pressed={on}
+                    style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: l.bg, color: l.text, border: `2px solid ${on ? l.gold : "rgba(255,255,255,.14)"}`, borderRadius: 12, padding: "9px 10px", cursor: "pointer", boxShadow: on ? `0 0 0 3px ${l.gold}33` : "none" }}>
+                    <span style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: l.gold }} />
+                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: l.pink }} />
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15 }}>{l.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.modSection")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.modSection.help")}</p>

@@ -296,6 +296,8 @@ const STRINGS = {
   "ready.allDone": { en: "You’re ready", es: "Todo listo" },
   "ready.allDone.sub": { en: "Everything’s set. Enjoy the day.", es: "Todo está listo. Disfruta el día." },
   "ready.dismiss": { en: "Hide", es: "Ocultar" },
+  "admin.look": { en: "Event look", es: "Estilo del evento" },
+  "admin.look.help": { en: "The colors guests see on their phones and on the big screen. Pick one that fits the night, then Save settings.", es: "Los colores que ven los invitados en su teléfono y en la pantalla grande. Elige uno que vaya con la noche y luego Guardar ajustes." },
   "admin.modSection": { en: "Who sees photos, and when", es: "Qui\u00e9n ve las fotos y cu\u00e1ndo" },
   "admin.modSection.help": { en: "Both off = every photo goes straight to the gallery and live screen. Turn one on to hold photos for your approval first.", es: "Ambos apagados = cada foto va directo a la galer\u00eda y a la pantalla en vivo. Activa uno para retener fotos hasta que las apruebes." },
   // ---- V2 Phase 2: engagement (reactions, moment, recurring, connect CTA) ----

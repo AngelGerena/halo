@@ -4,6 +4,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
+import { applyLook, clearLook } from "../lib/looks.js";
 import QRCode from "qrcode";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
@@ -25,6 +26,8 @@ export default function SlideshowPage() {
   const { t, ev } = useI18n();
   const { code } = useParams();
   const [event, setEvent] = useState(null);
+  // Per-event look: restyle via CSS variables while this page is mounted.
+  useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
   const [photos, setPhotos] = useState([]);
   const [idx, setIdx] = useState(0);
   const [prevIdx, setPrevIdx] = useState(null);
