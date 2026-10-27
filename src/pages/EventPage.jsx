@@ -222,10 +222,13 @@ export default function EventPage() {
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 96px" }}>
         {/* header: cover thumb + event name */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-          <div style={S.thumb}>
+          {/* The cover thumb doubles as the only way back to the main screen.
+              Guests never need it; hosts bouncing between guest view, live
+              screen and dashboard do. Kept quiet on purpose: no label. */}
+          <a href="/" aria-label="HALO home" title="HALO home" style={{ ...S.thumb, textDecoration: "none" }}>
             {coverUrl ? <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : <span style={{ color: C.gold, fontSize: 18 }} aria-hidden="true">&#9673;</span>}
-          </div>
+          </a>
           <div style={{ minWidth: 0 }}>
             <div className="display" style={{ fontSize: 20, lineHeight: 1 }}>{ev(event, "name")}</div>
             <div style={{ color: C.second, fontSize: 11.5, marginTop: 3 }}>{t("up.welcome")}, {contributor.name}</div>
