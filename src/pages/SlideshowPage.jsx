@@ -329,6 +329,21 @@ export default function SlideshowPage() {
         ))}
       </div>
 
+      {/* Always-on brand corner: the event's name (and cover as a badge) so
+          every photo someone takes of the screen carries the couple's or the
+          church's name. Fades while the full controls are showing. */}
+      <div style={{ position: "absolute", top: "2.4vw", left: "2.2vw", display: "flex", alignItems: "center", gap: ".8vw", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+        {event.cover_path ? (
+          <img src={publicUrl(event.cover_path)} alt="" style={{ width: "3.2vw", height: "3.2vw", borderRadius: "50%", objectFit: "cover", objectPosition: `${Math.round((event.cover_focus_x ?? 0.5) * 100)}% ${Math.round((event.cover_focus_y ?? 0.5) * 100)}%`, border: `2px solid ${C.gold}`, boxShadow: "0 4px 14px rgba(0,0,0,.45)" }} />
+        ) : (
+          <span style={{ width: "3.2vw", height: "3.2vw", borderRadius: "50%", border: `2px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: "1.4vw" }}>&#9673;</span>
+        )}
+        <div>
+          <div className="serif" style={{ color: C.text, fontSize: "1.5vw", lineHeight: 1.05, fontWeight: 700, textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{ev(event, "name")}</div>
+          {ev(event, "event_date") && <div style={{ color: C.gold, fontSize: ".8vw", letterSpacing: 2, textTransform: "uppercase", marginTop: ".2vw", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>{ev(event, "event_date")}</div>}
+        </div>
+      </div>
+
       {/* Always-on room stats: photos and guests so far. Makes the wall feel
           alive and nudges the people who haven't scanned yet. */}
       {(() => {
