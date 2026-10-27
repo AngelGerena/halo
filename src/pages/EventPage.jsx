@@ -6,6 +6,7 @@ import { scoreImage, C, hamming } from "../lib/score.js";
 import { Footer } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { CameraIcon, UploadIcon, ScreenIcon } from "../components/Icons.jsx";
 import { preloadNsfw } from "../lib/nsfw.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
@@ -257,11 +258,11 @@ export default function EventPage() {
           <>
             {/* 1) How it works — three glanceable steps, no jargon */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
-              {[["📷", t("up.step1")], ["⬆️", t("up.step2")], ["✨", t("up.step3")]].map(([ic, label], i) => (
+              {[[CameraIcon, t("up.step1")], [UploadIcon, t("up.step2")], [ScreenIcon, t("up.step3")]].map(([Ic, label], i) => (
                 <React.Fragment key={i}>
                   {i > 0 && <span aria-hidden="true" style={{ color: C.second, fontSize: 14, flexShrink: 0 }}>&#8250;</span>}
                   <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-                    <div style={{ fontSize: 20, lineHeight: 1 }} aria-hidden="true">{ic}</div>
+                    <div style={{ color: C.gold, display: "grid", placeItems: "center" }}><Ic size={24} /></div>
                     <div style={{ fontSize: 11.5, color: C.text, fontWeight: 600, marginTop: 5, lineHeight: 1.2 }}>{label}</div>
                   </div>
                 </React.Fragment>

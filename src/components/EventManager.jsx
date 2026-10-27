@@ -28,6 +28,7 @@ import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon } from "./Icons.jsx";
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
@@ -238,6 +239,13 @@ export function EventDetail({ event, api, back }) {
   // scanning instead of typing a URL. Plus a transient "copied" flag.
   const [tvQr, setTvQr] = useState("");
   const [tvCopied, setTvCopied] = useState(false);
+  const [qrFull, setQrFull] = useState(false); // full-screen QR so a laptop camera can scan from across the room
+  useEffect(() => {
+    if (!qrFull) return;
+    const onKey = (e) => { if (e.key === "Escape") setQrFull(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [qrFull]);
   useEffect(() => {
     QRCode.toDataURL(liveUrl, { width: 320, margin: 1, color: { dark: "#16294C", light: "#ffffff" } }).then(setTvQr).catch(() => setTvQr(""));
   }, [liveUrl]);
@@ -530,6 +538,18 @@ export function EventDetail({ event, api, back }) {
         </div>
       </div>
 
+      {qrFull && tvQr && (
+        <div onClick={() => setQrFull(false)} role="dialog" aria-label={t("tv.qrFull")}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#ffffff", display: "grid", placeItems: "center", cursor: "zoom-out" }}>
+          <button onClick={() => setQrFull(false)} aria-label={t("tv.qrClose")}
+            style={{ position: "absolute", top: 16, right: 16, background: "#f1f1f4", color: "#16294C", border: "none", borderRadius: 999, width: 44, height: 44, display: "grid", placeItems: "center" }}><CloseIcon /></button>
+          <div style={{ textAlign: "center" }}>
+            <img src={tvQr} alt="Live screen QR code" style={{ width: "min(80vmin, 900px)", height: "min(80vmin, 900px)", display: "block", margin: "0 auto", imageRendering: "pixelated" }} />
+            <div style={{ color: "#16294C", fontSize: "clamp(14px, 2.2vmin, 22px)", fontWeight: 700, marginTop: "2vmin" }}>{t("tv.qrFullHint")}</div>
+          </div>
+        </div>
+      )}
+
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has
           to get a browser URL onto a TV. Make that a first-class, plain-language
@@ -537,7 +557,7 @@ export function EventDetail({ event, api, back }) {
           cover the real ways people connect. */}
       <div style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 28, lineHeight: 1 }} aria-hidden="true">{"📺"}</div>
+          <div style={{ color: C.gold, marginTop: 2 }}><TvIcon size={30} /></div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{t("tv.title")}</div>
             <p style={{ fontSize: 13, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.sub")}</p>
@@ -546,7 +566,7 @@ export function EventDetail({ event, api, back }) {
 
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
           <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none" }}>
-            <button style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>{"▶︎"} {t("tv.open")}</button>
+            <button style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8 }}><PlayIcon /> {t("tv.open")}</button>
           </a>
           <button onClick={copyTvLink} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "12px 16px", borderRadius: 10, fontSize: 13 }}>
             {tvCopied ? t("tv.copied") : t("tv.copy")}
@@ -569,6 +589,9 @@ export function EventDetail({ event, api, back }) {
             <div style={{ textAlign: "center" }}>
               <img src={tvQr} alt="Live screen QR code" style={{ width: 132, height: 132, borderRadius: 10, display: "block" }} />
               <div style={{ fontSize: 10.5, color: C.second, marginTop: 6, letterSpacing: .5, textTransform: "uppercase" }}>{t("tv.open")}</div>
+              <button onClick={() => setQrFull(true)} style={{ marginTop: 8, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <ExpandIcon /> {t("tv.qrFull")}
+              </button>
             </div>
           )}
         </div>
@@ -584,8 +607,8 @@ export function EventDetail({ event, api, back }) {
           {[["tv.ios.t", ["tv.ios.1", "tv.ios.2", "tv.ios.3"]], ["tv.android.t", ["tv.android.1", "tv.android.2", "tv.android.3"]]].map(([tk, steps]) => (
             <details key={tk} style={{ marginTop: 8, background: C.panel, border: `1px solid ${C.line2}`, borderRadius: 12, padding: "10px 14px" }}>
               <summary style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 700, color: C.text, listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>{"📱"} {t(tk)}</span>
-                <span style={{ color: C.second, fontSize: 12 }} aria-hidden="true">{"▾"}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><PhoneIcon /> {t(tk)}</span>
+                <span style={{ color: C.second }}><ChevronIcon /></span>
               </summary>
               <ol style={{ margin: "10px 0 2px", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
                 {steps.map((sk, i) => (
@@ -599,7 +622,7 @@ export function EventDetail({ event, api, back }) {
           ))}
 
           <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 12, background: "rgba(255,180,80,.08)", border: `1px solid ${C.gold}` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{"⚠︎"} {t("tv.phone.warn.t")}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, display: "flex", alignItems: "center", gap: 7 }}><AlertIcon /> {t("tv.phone.warn.t")}</div>
             <p style={{ fontSize: 12.5, color: C.text, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.phone.warn.d")}</p>
           </div>
 

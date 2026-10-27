@@ -164,6 +164,9 @@ const STRINGS = {
   "tv.tip": { en: "Tip: keep the laptop plugged in and don’t let it go to sleep. The screen stays live all night.", es: "Consejo: deja la laptop enchufada y no dejes que se suspenda. La pantalla se queda en vivo toda la noche." },
   // No laptop? Phone-to-TV paths. Laptop stays the recommended route; these
   // are the fallback most hosts actually have in their pocket.
+  "tv.qrFull": { en: "Show QR full screen", es: "Ver QR en pantalla completa" },
+  "tv.qrClose": { en: "Close", es: "Cerrar" },
+  "tv.qrFullHint": { en: "Point the laptop’s camera at this code. Tap anywhere or press Esc to close.", es: "Apunta la cámara de la laptop a este código. Toca en cualquier parte o presiona Esc para cerrar." },
   "tv.phone.t": { en: "No laptop? Use a phone instead", es: "¿Sin laptop? Usa un teléfono" },
   "tv.phone.d": { en: "You can mirror a phone to most smart TVs, Apple TV, or Chromecast. Tap your phone type for the steps.", es: "Puedes duplicar la pantalla de tu teléfono en la mayoría de los smart TVs, Apple TV o Chromecast. Toca tu tipo de teléfono para ver los pasos." },
   "tv.ios.t": { en: "iPhone or iPad", es: "iPhone o iPad" },
