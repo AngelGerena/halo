@@ -421,6 +421,13 @@ export function EventDetail({ event, api, back }) {
 
   const kept = photos.filter((p) => p.kept);
   const rejected = photos.filter((p) => !p.kept);
+  // Plain-language read of the two sub-scores, instead of "focus 21 · exp 93".
+  function qualityLine(p) {
+    const f = Number(p.focus), e = Number(p.exposure);
+    const sharp = !Number.isFinite(f) ? null : f >= 70 ? t("q.sharp") : f >= 40 ? t("q.soft") : t("q.blurry");
+    const lit = !Number.isFinite(e) ? null : e >= 70 ? t("q.wellLit") : e >= 40 ? t("q.dim") : t("q.poorLight");
+    return [sharp, lit].filter(Boolean).join(" · ") || "";
+  }
   const pending = photos.filter((p) => p.status === "pending");
   const dupCount = photos.filter((p) => p.is_burst_dup).length;
   const editedCount = photos.filter((p) => p.edited_url).length;
@@ -471,6 +478,7 @@ export function EventDetail({ event, api, back }) {
             </button>
             {publishMsg && <span style={{ fontSize: 12, color: C.second }}>{publishMsg}</span>}
           </div>
+          <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0", lineHeight: 1.45 }}>{t("admin.actionsHelp")}</p>
         </div>
       </div>
 
@@ -712,7 +720,8 @@ export function EventDetail({ event, api, back }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: 0 }}>{t("admin.collection")}</h3>
-              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{editedCount} / {photos.length} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` · ${dupCount} ${t("admin.duplicates")}` : ""}</div>
+              <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{photos.length} {t("admin.photosWord")} · {editedCount} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` · ${dupCount} ${t("admin.duplicates")}` : ""}</div>
+              <div style={{ fontSize: 11.5, color: C.second, marginTop: 4, maxWidth: 520, lineHeight: 1.45 }}>{t("admin.collection.help")}</div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {sessions.length > 0 && (
@@ -725,12 +734,12 @@ export function EventDetail({ event, api, back }) {
                 <option value="all">{t("admin.tagFilter")}</option>
                 {TAGS.map((tg) => <option key={tg} value={tg}>{t("tag." + tg)}</option>)}
               </select>
-              <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.second}`, overflow: "hidden" }}>
+              <div title={t("admin.versionHelp")} style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.second}`, overflow: "hidden" }}>
                 <button onClick={() => setVersion("edited")} style={{ background: version === "edited" ? C.ink : "transparent", color: version === "edited" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.edited")}</button>
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
               </div>
               <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
-              <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.download")} {filter === "all" ? t("admin.all").toLowerCase() : t("admin.kept").toLowerCase()} ({version})</button>
+              <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.downloadAllBtn")} ({filter === "all" ? photos.length : shown.length})</button>
               {!selectMode ? (
                 <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
               ) : (
@@ -772,12 +781,12 @@ export function EventDetail({ event, api, back }) {
                   style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(255,255,255,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
                     <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
-                    <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.text, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
+                    <span title={t("admin.qualityHelp")} style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : "rgba(10,4,16,.75)", color: p.kept ? C.ink : C.onInk, fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.kept ? t("admin.pickBadge") : t("admin.qualityWord")} {p.quality}</span>
                     {version === "edited" && p.edited_url && (
-                      <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>EDITED</span>
+                      <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>{t("admin.enhancedBadge")}</span>
                     )}
                     {version === "edited" && !p.edited_url && (
-                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>processing…</span>
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>{t("admin.enhancing")}</span>
                     )}
                     {statusLabel ? (
                       <span style={{ position: "absolute", bottom: 8, left: 8, background: p.status === "hidden" ? "#b3261e" : C.ink, color: p.status === "hidden" ? "#fff" : C.gold, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{statusLabel}{p.has_minors ? ` · ${t("admin.kidsBadge")}` : ""}</span>
@@ -795,7 +804,7 @@ export function EventDetail({ event, api, back }) {
                   </div>
                   <div style={{ padding: "8px 10px" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{p.ownerName}</div>
-                    <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>focus {p.focus} · exp {p.exposure}</div>
+                    <div style={{ fontSize: 11, color: C.second, marginBottom: 8 }}>{qualityLine(p)}</div>
                     {(p.tags || []).length > 0 && (
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                         {p.tags.map((tg) => (
@@ -813,8 +822,8 @@ export function EventDetail({ event, api, back }) {
                         ) : (
                           <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                         )}
-                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : "⛶"}</button>
-                        <button onClick={() => deleteOne(p.id)} disabled={deleting} title="Delete" aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 13, opacity: deleting ? 0.6 : 1 }}>{"🗑"}</button>
+                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : t("admin.cropsBtn")}</button>
+                        <button onClick={() => deleteOne(p.id)} disabled={deleting} title={t("admin.deleteHelp")} aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.delete")}</button>
                       </div>
                     )}
                   </div>

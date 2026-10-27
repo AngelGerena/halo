@@ -4,6 +4,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
+import QRCode from "qrcode";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -45,6 +46,16 @@ export default function SlideshowPage() {
   const [libTracks, setLibTracks] = useState([]);
 
   const HOLD = 6500; // ms per photo
+
+  // While no photos exist yet, the big screen doubles as the invitation:
+  // a large QR to the guest page so the room knows what to do.
+  const [joinQr, setJoinQr] = useState("");
+  useEffect(() => {
+    if (!event || !event.code) return;
+    const joinUrl = `${window.location.origin}/e/${event.code}`;
+    QRCode.toDataURL(joinUrl, { width: 640, margin: 1, color: { dark: "#16294C", light: "#ffffff" } })
+      .then(setJoinQr).catch(() => setJoinQr(""));
+  }, [event]);
 
   // load event + initial photos
   useEffect(() => {
@@ -205,8 +216,17 @@ export default function SlideshowPage() {
     <Stage>
       {tapPrompt}
       <Centered>
-        <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 12 }}>{ev(event, "name")}</div>
-        <div style={{ color: C.gold, fontSize: "1.4vw", letterSpacing: 4, textTransform: "uppercase" }}>{t("live.waiting")}</div>
+       <div>
+        <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 6 }}>{ev(event, "name")}</div>
+        <div style={{ color: C.gold, fontSize: "1.3vw", letterSpacing: 4, textTransform: "uppercase", marginBottom: "2vh" }}>{t("live.waiting")}</div>
+        {joinQr && (
+          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: "1.6vh", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 24, padding: "3vh 4vw" }}>
+            <img src={joinQr} alt="" style={{ width: "min(30vh, 30vw)", height: "min(30vh, 30vw)", borderRadius: 14, display: "block", background: "#fff" }} />
+            <div style={{ color: C.text, fontSize: "2.2vw", fontWeight: 800, lineHeight: 1.15 }}>{t("live.scanTitle")}</div>
+            <div style={{ color: C.second, fontSize: "1.25vw", lineHeight: 1.4 }}>{t("live.scanSub")}</div>
+          </div>
+        )}
+       </div>
       </Centered>
     </Stage>
   );
