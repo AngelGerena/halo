@@ -47,6 +47,16 @@ function DashboardInner() {
     const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
     setEvents(data || []);
     setLoading(false);
+    // Deep link from the morning-after email: /dashboard?event=CODE opens
+    // that event directly (once), then cleans the URL.
+    try {
+      const code = new URLSearchParams(window.location.search).get("event");
+      if (code) {
+        const hit = (data || []).find((e) => e.code === code);
+        if (hit) setSelected(hit);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch {}
   }
   useEffect(() => { loadEvents(); }, []);
 

@@ -79,3 +79,8 @@
   from = "/*"
   to = "/landing.html"
   status = 200
+
+# Morning-after email to hosts: runs daily at 9:00 AM Eastern (13:00 UTC;
+# 14:00 UTC during standard time). See netlify/functions/daily-wrap.js.
+[functions."daily-wrap"]
+  schedule = "0 13 * * *"
