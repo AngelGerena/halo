@@ -210,6 +210,15 @@ export function EventDetail({ event, api, back }) {
   const [libTracks, setLibTracks] = useState([]);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  // "You're ready" checklist. Some items are detected (cover, first photo);
+  // the rest are ticked when the host does the thing in this browser.
+  const READY_KEY = `halo_ready_${event.id}`;
+  const [readyDone, setReadyDone] = useState(() => { try { return JSON.parse(localStorage.getItem(READY_KEY) || "{}"); } catch { return {}; } });
+  const [readyHidden, setReadyHidden] = useState(() => { try { return localStorage.getItem(READY_KEY + "_hide") === "1"; } catch { return false; } });
+  function markReady(k) {
+    setReadyDone((d) => { const n = { ...d, [k]: true }; try { localStorage.setItem(READY_KEY, JSON.stringify(n)); } catch {} return n; });
+  }
+  function hideReady() { setReadyHidden(true); try { localStorage.setItem(READY_KEY + "_hide", "1"); } catch {} }
   const [deletingEvent, setDeletingEvent] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
@@ -300,6 +309,7 @@ export function EventDetail({ event, api, back }) {
       const updated = await updateEvent(patch);
       setCurrentSession(updated.current_session || "");
       setSavedMsg(t("admin.saved"));
+      markReady("settings");
     } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
   }
 
@@ -445,16 +455,54 @@ export function EventDetail({ event, api, back }) {
         <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
+      {/* ---- YOU'RE READY CHECKLIST ----
+          Hosts panic the morning of. Five things, each with a button that does
+          it. Detected where we can; otherwise ticked when they do it here. */}
+      {(() => {
+        const items = [
+          { k: "cover", done: !!coverPath, label: t("ready.cover"), action: () => setSettingsOpen(true) },
+          { k: "settings", done: !!readyDone.settings, label: t("ready.settings"), action: () => setSettingsOpen(true) },
+          { k: "qr", done: !!readyDone.qr, label: t("ready.qr"), action: () => { try { document.getElementById("halo-qr-box")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {} } },
+          { k: "photo", done: photos.length > 0, label: t("ready.photo"), action: () => window.open(eventUrl, "_blank", "noreferrer") },
+          { k: "live", done: !!readyDone.live, label: t("ready.live"), action: () => { markReady("live"); window.open(liveUrl, "_blank", "noreferrer"); } },
+        ];
+        const doneCount = items.filter((i) => i.done).length;
+        const all = doneCount === items.length;
+        if (readyHidden && all) return null;
+        return (
+          <div style={{ marginTop: 16, background: all ? "rgba(255,184,107,.08)" : C.card, border: `1px solid ${all ? C.gold : "rgba(255,255,255,.12)"}`, borderRadius: 16, padding: "14px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{all ? t("ready.allDone") : t("ready.title")}</div>
+                <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{all ? t("ready.allDone.sub") : `${doneCount} / ${items.length} · ${t("ready.sub")}`}</div>
+              </div>
+              {all && <button onClick={hideReady} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("ready.dismiss")}</button>}
+            </div>
+            {!all && (
+              <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "grid", gap: 6 }}>
+                {items.map((i) => (
+                  <li key={i.k} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                    <span aria-hidden="true" style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, background: i.done ? C.gold : "transparent", border: `2px solid ${i.done ? C.gold : C.second}`, color: C.ink, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800 }}>{i.done ? "✓" : ""}</span>
+                    <span style={{ color: i.done ? C.second : C.text, textDecoration: i.done ? "line-through" : "none", flex: 1 }}>{i.label}</span>
+                    {!i.done && <button onClick={i.action} style={{ background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "4px 10px", borderRadius: 999, fontSize: 12 }}>{t("ready.go")}</button>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
+
+      <div id="halo-qr-box" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
           {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10, maxWidth: "100%" }} />}
           <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
             {qr && (
-              <a href={qr} download={`HALO-QR-${event.code}.png`} style={{ textDecoration: "none" }}>
+              <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} style={{ textDecoration: "none" }}>
                 <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
               </a>
             )}
-            <button onClick={() => { navigator.clipboard?.writeText(eventUrl); alert(t("admin.linkCopied") + "\n" + eventUrl); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.copyLink")}</button>
+            <button onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); alert(t("admin.linkCopied") + "\n" + eventUrl); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.copyLink")}</button>
           </div>
         </div>
         <div>
@@ -467,7 +515,7 @@ export function EventDetail({ event, api, back }) {
             <Stat label={t("admin.contributors")} value={contributors.length} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-            <a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+            <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none" }}>
               <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.launchSlideshow")}</button>
             </a>
             <a href={eventUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
@@ -497,7 +545,7 @@ export function EventDetail({ event, api, back }) {
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-          <a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+          <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none" }}>
             <button style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>{"▶︎"} {t("tv.open")}</button>
           </a>
           <button onClick={copyTvLink} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "12px 16px", borderRadius: 10, fontSize: 13 }}>
