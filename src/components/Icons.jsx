@@ -89,3 +89,12 @@ export function ScreenIcon({ size = 22, ...rest }) {
     </svg>
   );
 }
+
+export function PrintIcon({ size = 14, ...rest }) {
+  return (
+    <svg viewBox="0 0 24 24" style={base(size)} aria-hidden="true" {...rest}>
+      <path d="M7 8V3.5h10V8M7 17H4.5v-6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v6H17" {...P} />
+      <rect x="7" y="14" width="10" height="6.5" rx="1" {...P} />
+    </svg>
+  );
+}
