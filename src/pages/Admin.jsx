@@ -837,9 +837,8 @@ function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
       try {
         const { findFaceFocus } = await import("../lib/faceFocus.js");
         const f = await findFaceFocus(file);
-        if (f) await updateEvent({ cover_focus_x: f.x, cover_focus_y: f.y });
-        else await fetch("/.netlify/functions/cover-focus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, eventId: event.id, coverPath: path }) });
-      } catch (e) { console.warn("cover-focus", e); }
+        await updateEvent({ cover_focus_x: f ? f.x : 0.5, cover_focus_y: f ? f.y : 0.33 });
+      } catch (e) { console.warn("cover framing", e); }
     } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
   }
 

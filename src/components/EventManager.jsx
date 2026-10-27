@@ -209,23 +209,23 @@ export function EventDetail({ event, api, back }) {
   const [coverFx, setCoverFx] = useState(Number.isFinite(event.cover_focus_x) ? event.cover_focus_x : 0.5);
   const [coverFy, setCoverFy] = useState(Number.isFinite(event.cover_focus_y) ? event.cover_focus_y : 0.5);
   const [focusBusy, setFocusBusy] = useState(false);
-  // 1) Real face detection in the browser (MediaPipe). 2) If no face is found
-  //    or the detector can't load, the server's attention heuristic.
+  // Smart framing, in the host's browser (MediaPipe, lazy-loaded):
+  //   1) faces  2) people (heads at the top of the boxes)  3) upper third.
+  // Stage 3 is a plain default, not a heuristic: an "attention" crop was tested
+  // and chose candles over the couple. Upper-third keeps heads for most
+  // photos of people and is harmless for venues and logos.
   async function autoFocus(path, file) {
     setFocusBusy(true);
     try {
+      let fx = 0.5, fy = 0.33;
       if (file) {
         const { findFaceFocus } = await import("../lib/faceFocus.js");
         const f = await findFaceFocus(file);
-        if (f) {
-          setCoverFx(f.x); setCoverFy(f.y);
-          await updateEvent({ cover_focus_x: f.x, cover_focus_y: f.y });
-          return;
-        }
+        if (f) { fx = f.x; fy = f.y; }
       }
-      const j = await api.fn("cover-focus", { eventId: event.id, coverPath: path });
-      if (Number.isFinite(j.cover_focus_x)) { setCoverFx(j.cover_focus_x); setCoverFy(j.cover_focus_y); }
-    } catch (e) { console.warn("cover-focus", e); }
+      setCoverFx(fx); setCoverFy(fy);
+      await updateEvent({ cover_focus_x: fx, cover_focus_y: fy });
+    } catch (e) { console.warn("cover framing", e); }
     finally { setFocusBusy(false); }
   }
   const [coverFile, setCoverFile] = useState(null); // kept so "Auto" can re-run face detection

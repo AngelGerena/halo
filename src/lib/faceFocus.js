@@ -9,20 +9,48 @@
 const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
 
-let detectorPromise = null;
+// Stage 2: when faces are too small or too blurry (a wide shot of the
+// ceremony), find PEOPLE instead and anchor on the top of them, where the
+// heads are. EfficientDet-Lite0 restricted to the "person" class.
+const PERSON_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite";
+
+let filesetPromise = null, faceDetPromise = null, personDetPromise = null;
+async function getFileset() {
+  if (!filesetPromise) {
+    filesetPromise = (async () => {
+      const mod = await import("@mediapipe/tasks-vision");
+      const fileset = await mod.FilesetResolver.forVisionTasks(WASM_URL);
+      return { mod, fileset };
+    })().catch((e) => { filesetPromise = null; throw e; });
+  }
+  return filesetPromise;
+}
 async function getDetector() {
-  if (!detectorPromise) {
-    detectorPromise = (async () => {
-      const { FaceDetector, FilesetResolver } = await import("@mediapipe/tasks-vision");
-      const fileset = await FilesetResolver.forVisionTasks(WASM_URL);
-      return FaceDetector.createFromOptions(fileset, {
+  if (!faceDetPromise) {
+    faceDetPromise = (async () => {
+      const { mod, fileset } = await getFileset();
+      return mod.FaceDetector.createFromOptions(fileset, {
         baseOptions: { modelAssetPath: MODEL_URL },
         runningMode: "IMAGE",
-        minDetectionConfidence: 0.5,
+        minDetectionConfidence: 0.4,
       });
-    })().catch((e) => { detectorPromise = null; throw e; });
+    })().catch((e) => { faceDetPromise = null; throw e; });
   }
-  return detectorPromise;
+  return faceDetPromise;
+}
+async function getPersonDetector() {
+  if (!personDetPromise) {
+    personDetPromise = (async () => {
+      const { mod, fileset } = await getFileset();
+      return mod.ObjectDetector.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: PERSON_MODEL_URL },
+        runningMode: "IMAGE",
+        scoreThreshold: 0.35,
+        categoryAllowlist: ["person"],
+      });
+    })().catch((e) => { personDetPromise = null; throw e; });
+  }
+  return personDetPromise;
 }
 
 async function loadBitmap(file) {
@@ -40,15 +68,37 @@ async function loadBitmap(file) {
 
 /**
  * @param {File|Blob} file image
- * @returns {Promise<{x:number,y:number,faces:number}|null>} focal point or null
+ * @returns {Promise<{x:number,y:number,faces:number,people?:number}|null>} focal point or null
  */
 export async function findFaceFocus(file) {
+  let img = null;
   try {
-    const [detector, img] = await Promise.all([getDetector(), loadBitmap(file)]);
+    img = await loadBitmap(file);
     const W = img.width, H = img.height;
-    const { detections } = detector.detect(img);
-    img.close?.();
-    if (!detections || detections.length === 0) return null;
+    let detections = [];
+    try { detections = (await getDetector()).detect(img).detections || []; } catch (e) { console.warn("face detector unavailable", e); }
+    if (detections.length === 0) {
+      // Stage 2: people boxes. Heads sit at the top of a person box, so the
+      // focal row is the top of the highest confident box plus a little, and
+      // the focal column is the score-weighted centre of the boxes.
+      try {
+        const people = ((await getPersonDetector()).detect(img).detections || []).filter((d) => d.boundingBox);
+        if (people.length) {
+          let topY = Infinity, sx = 0, sw = 0;
+          for (const d of people) {
+            const b = d.boundingBox, sc = d.categories?.[0]?.score || 0.5;
+            topY = Math.min(topY, b.originY + b.height * 0.08);
+            sx += (b.originX + b.width / 2) * sc; sw += sc;
+          }
+          const cx = sw ? sx / sw / W : 0.5;
+          const cy = Math.max(0, Math.min(1, (topY + H * 0.05) / H));
+          img.close?.();
+          return { x: Math.max(0, Math.min(1, cx)), y: cy, faces: 0, people: people.length };
+        }
+      } catch (e) { console.warn("person detector unavailable", e); }
+      img.close?.();
+      return null;
+    }
     // Union of all face boxes, then its centre, nudged up a touch so there's
     // headroom above the hairline rather than the box being dead-centre.
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
