@@ -205,6 +205,30 @@ export function EventDetail({ event, api, back }) {
   const [category, setCategory] = useState(event.category || "");
   const [coverPath, setCoverPath] = useState(event.cover_path || "");
   const [coverBusy, setCoverBusy] = useState(false);
+  // Smart framing focal point (0..1). Auto-detected at upload; host can nudge.
+  const [coverFx, setCoverFx] = useState(Number.isFinite(event.cover_focus_x) ? event.cover_focus_x : 0.5);
+  const [coverFy, setCoverFy] = useState(Number.isFinite(event.cover_focus_y) ? event.cover_focus_y : 0.5);
+  const [focusBusy, setFocusBusy] = useState(false);
+  // Smart framing, in the host's browser (MediaPipe, lazy-loaded):
+  //   1) faces  2) people (heads at the top of the boxes)  3) upper third.
+  // Stage 3 is a plain default, not a heuristic: an "attention" crop was tested
+  // and chose candles over the couple. Upper-third keeps heads for most
+  // photos of people and is harmless for venues and logos.
+  async function autoFocus(path, file) {
+    setFocusBusy(true);
+    try {
+      let fx = 0.5, fy = 0.33;
+      if (file) {
+        const { findFaceFocus } = await import("../lib/faceFocus.js");
+        const f = await findFaceFocus(file);
+        if (f) { fx = f.x; fy = f.y; }
+      }
+      setCoverFx(fx); setCoverFy(fy);
+      await updateEvent({ cover_focus_x: fx, cover_focus_y: fy });
+    } catch (e) { console.warn("cover framing", e); }
+    finally { setFocusBusy(false); }
+  }
+  const [coverFile, setCoverFile] = useState(null); // kept so "Auto" can re-run face detection
   const [musicUrl, setMusicUrl] = useState(event.music_url || "");
   const [musicBusy, setMusicBusy] = useState(false);
   const [musicRightsOk, setMusicRightsOk] = useState(!!event.music_rights_ack);
@@ -310,6 +334,8 @@ export function EventDetail({ event, api, back }) {
         connect_url: connectUrl.trim() || null,
         category: category || null,
         cover_path: coverPath || null,
+        cover_focus_x: coverPath ? coverFx : null,
+        cover_focus_y: coverPath ? coverFy : null,
         music_url: musicUrl || null,
         music_rights_ack: !!musicRightsOk,
         music_rights_ack_at: musicRightsOk ? new Date().toISOString() : null,
@@ -331,6 +357,8 @@ export function EventDetail({ event, api, back }) {
       await putToR2(uploadUrl, file, contentType);
       setCoverPath(path);
       await updateEvent({ cover_path: path });
+      setCoverFile(file);
+      await autoFocus(path, file); // find the faces so the crop never beheads anyone
     } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
   }
 
@@ -641,9 +669,22 @@ export function EventDetail({ event, api, back }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.cover")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.cover.help")}</p>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ width: 120, height: 76, borderRadius: 10, overflow: "hidden", flexShrink: 0, border: `1px solid ${C.line2}`, background: C.panel, display: "grid", placeItems: "center" }}>
-                {coverPath ? <img src={publicUrl(coverPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
+              <div style={{ width: 300, maxWidth: "100%", flexShrink: 0 }}>
+                <div style={{ width: "100%", aspectRatio: "1.9 / 1", borderRadius: 14, overflow: "hidden", border: `1px solid ${C.line2}`, background: C.panel, display: "grid", placeItems: "center" }}>
+                  {coverPath ? <img src={publicUrl(coverPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${Math.round(coverFx * 100)}% ${Math.round(coverFy * 100)}%` }} />
+                    : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
+                </div>
+                {coverPath && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, color: C.second, marginBottom: 4 }}>{focusBusy ? t("admin.cover.framingBusy") : t("admin.cover.framing")}</div>
+                    <input type="range" min="0" max="100" value={Math.round(coverFy * 100)} onChange={(e) => setCoverFy(Number(e.target.value) / 100)} style={{ width: "100%", accentColor: C.gold }} aria-label={t("admin.cover.framing")} />
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: C.second }}>
+                      <span>{t("admin.cover.framingTop")}</span>
+                      <button onClick={() => autoFocus(coverPath, coverFile)} disabled={focusBusy} style={{ background: "transparent", color: C.gold, border: "none", padding: 0, fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>{t("admin.cover.framingAuto")}</button>
+                      <span>{t("admin.cover.framingBottom")}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <label style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: coverBusy ? "default" : "pointer", opacity: coverBusy ? 0.6 : 1 }}>

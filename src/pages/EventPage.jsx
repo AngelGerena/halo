@@ -182,6 +182,9 @@ export default function EventPage() {
   );
 
   const coverUrl = event.cover_path ? publicUrl(event.cover_path) : null;
+  // Smart framing: anchor every cover crop on the stored focal point (faces),
+  // falling back to centre. See netlify/functions/cover-focus.js.
+  const coverPos = `${Math.round((event.cover_focus_x ?? 0.5) * 100)}% ${Math.round((event.cover_focus_y ?? 0.5) * 100)}%`;
 
   // ====================================================================
   // CONCEPT 6 — WARM EDITORIAL WELCOME (sign-in)
@@ -193,7 +196,7 @@ export default function EventPage() {
           <div style={{ textAlign: "center", marginBottom: 22 }}>
             {coverUrl ? (
               <div style={S.coverWrap}>
-                <img src={coverUrl} alt="" style={S.coverImg} />
+                <img src={coverUrl} alt="" style={{ ...S.coverImg, objectPosition: coverPos }} />
                 <div style={S.coverScrim} />
               </div>
             ) : null /* no cover yet: the host sets one from the dashboard; guests shouldn't see an "add" prompt they can't act on */}
@@ -241,7 +244,7 @@ export default function EventPage() {
               Guests never need it; hosts bouncing between guest view, live
               screen and dashboard do. Kept quiet on purpose: no label. */}
           <a href="/" aria-label="HALO home" title="HALO home" style={{ ...S.thumb, textDecoration: "none" }}>
-            {coverUrl ? <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {coverUrl ? <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: coverPos }} />
               : <span style={{ color: C.gold, fontSize: 18 }} aria-hidden="true">&#9673;</span>}
           </a>
           <div style={{ minWidth: 0 }}>

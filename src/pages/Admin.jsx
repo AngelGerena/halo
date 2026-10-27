@@ -834,6 +834,11 @@ function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
       await putToR2(uploadUrl, file, contentType);
       setCoverPath(path);
       await updateEvent({ cover_path: path }); // save immediately so guests see it right away
+      try {
+        const { findFaceFocus } = await import("../lib/faceFocus.js");
+        const f = await findFaceFocus(file);
+        await updateEvent({ cover_focus_x: f ? f.x : 0.5, cover_focus_y: f ? f.y : 0.33 });
+      } catch (e) { console.warn("cover framing", e); }
     } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
   }
 
