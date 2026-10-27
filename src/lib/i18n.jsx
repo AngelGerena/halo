@@ -75,6 +75,10 @@ const STRINGS = {
   "up.tapGallery": { en: "See everyone’s photos in", es: "Mira las fotos de todos en" },
   "up.allYours": { en: "All your photos", es: "Todas tus fotos" },
   "up.keptGallery": { en: "The best shots", es: "Las mejores fotos" },
+  "up.everyoneTitle": { en: "Everyone’s photos", es: "Las fotos de todos" },
+  "up.everyoneTitle.sub": { en: "The whole party, as it happens. New photos show up here and on the big screen.", es: "Toda la fiesta, en vivo. Las fotos nuevas aparecen aquí y en la pantalla grande." },
+  "up.allYours.sub": { en: "Everything you added. Gold ones are HALO’s picks.", es: "Todo lo que agregaste. Las doradas son las favoritas de HALO." },
+  "up.emptySubEveryone": { en: "Nobody has added a photo yet. Be the first!", es: "Nadie ha agregado una foto todavía. ¡Sé el primero!" },
   "up.emptyTitle": { en: "No photos yet", es: "Aún no hay fotos" },
   "up.emptySub": { en: "Add your first photo and it’ll show up here.", es: "Agrega tu primera foto y aparecerá aquí." },
 
@@ -233,7 +237,8 @@ const STRINGS = {
   "up.kidsHelp": { en: "Tap here if so, and the host will take a quick look before they go on the big screen.", es: "Si es as\u00ed, toca aqu\u00ed y el anfitri\u00f3n les dar\u00e1 un vistazo antes de mostrarlas en la pantalla." },
   "up.pendingReview": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },
   // photo grid status badge
-  "grid.pending": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },
+  "grid.pending": { en: "Waiting for host", es: "Esperando al anfitri\u00f3n" },
+  "grid.pick": { en: "HALO pick", es: "Favorita de HALO" },
   // admin: safety settings on create
   "admin.safety": { en: "Safety & moderation", es: "Seguridad y moderaci\u00f3n" },
   "admin.requireReview": { en: "Review every photo before it goes public", es: "Revisar cada foto antes de hacerla p\u00fablica" },
