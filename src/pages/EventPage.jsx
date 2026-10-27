@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
+import { fetchReactions, like } from "../lib/reactions.js";
 import { signPhotoUploads, putToR2 } from "../lib/r2upload.js";
 import { scoreImage, C, hamming } from "../lib/score.js";
 import { Footer } from "../components/UI.jsx";
@@ -53,13 +54,30 @@ export default function EventPage() {
   // auto-flagged) stays out until approved. Scoped to the current session
   // for recurring events, same as the live screen.
   const [everyone, setEveryone] = useState([]);
+  // Hearts: counts for every photo we show + the set this device has hearted.
+  const [counts, setCounts] = useState({});
+  const [liked, setLiked] = useState(() => new Set());
+  async function refreshReactions(ids) {
+    if (!ids.length) return;
+    const r = await fetchReactions(ids);
+    setCounts((prev) => ({ ...prev, ...r.counts }));
+    setLiked((prev) => new Set([...prev, ...r.liked]));
+  }
+  async function onLike(photoId) {
+    if (liked.has(photoId)) return;
+    setLiked((prev) => new Set(prev).add(photoId));
+    setCounts((prev) => ({ ...prev, [photoId]: (prev[photoId] || 0) + 1 }));
+    try { await like(photoId, event.id); } catch { /* keep optimistic */ }
+  }
   async function loadEveryone(evrow) {
     if (!evrow) return;
     let q = supabase.from("photos").select("*")
       .eq("event_id", evrow.id).eq("kept", true).eq("status", "approved");
     if (evrow.current_session) q = q.eq("session_label", evrow.current_session);
     const { data } = await q.order("created_at", { ascending: false }).limit(500);
-    setEveryone((data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null })));
+    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null }));
+    setEveryone(rows);
+    refreshReactions(rows.map((p) => p.id));
   }
 
   async function loadPhotos(contributorId) {
@@ -67,7 +85,9 @@ export default function EventPage() {
       .from("photos").select("*")
       .eq("contributor_id", contributorId)
       .order("created_at", { ascending: false });
-    setPhotos((data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null })));
+    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null }));
+    setPhotos(rows);
+    refreshReactions(rows.map((p) => p.id));
   }
 
   async function startSession() {
@@ -369,7 +389,7 @@ export default function EventPage() {
               </div>
             )}
             {galleryShown.length > 0 ? (
-              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} />
+              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} counts={counts} liked={liked} onLike={onLike} />
             ) : (
               <div style={{ textAlign: "center", padding: "40px 20px", color: C.second }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{t("up.emptyTitle")}</div>
