@@ -22,7 +22,8 @@ export default function EventPage() {
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(0);
   const [tab, setTab] = useState("add");           // add | gallery | mine
-  const [kidsInFrame, setKidsInFrame] = useState(false); // consent: children in these photos
+  const [kidsInFrame, setKidsInFrame] = useState(false);
+  useEffect(() => { if (tab === "gallery" && event) loadEveryone(event); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps // consent: children in these photos
   const inputRef = useRef(null);
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
@@ -37,6 +38,7 @@ export default function EventPage() {
         const c = JSON.parse(saved);
         setContributor(c);
         loadPhotos(c.id);
+        loadEveryone(data);
       }
       setLoading(false);
     })();
@@ -44,6 +46,20 @@ export default function EventPage() {
 
   // Warm the in-browser explicit-content model in the background.
   useEffect(() => { if (contributor) preloadNsfw(); }, [contributor]);
+
+  // Everyone's photos (the whole event), for the Gallery tab. Only kept +
+  // approved rows: anything held for the host (kids-flagged, review mode,
+  // auto-flagged) stays out until approved. Scoped to the current session
+  // for recurring events, same as the live screen.
+  const [everyone, setEveryone] = useState([]);
+  async function loadEveryone(evrow) {
+    if (!evrow) return;
+    let q = supabase.from("photos").select("*")
+      .eq("event_id", evrow.id).eq("kept", true).eq("status", "approved");
+    if (evrow.current_session) q = q.eq("session_label", evrow.current_session);
+    const { data } = await q.order("created_at", { ascending: false }).limit(500);
+    setEveryone((data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null })));
+  }
 
   async function loadPhotos(contributorId) {
     const { data } = await supabase
@@ -151,6 +167,7 @@ export default function EventPage() {
     // The kids question is about THIS batch. Reset it so a guest who checked
     // it once (on purpose or by accident) doesn't have every later photo held.
     if (kidsInFrame) setKidsInFrame(false);
+    loadEveryone(event);
   }
 
   // ---- loading / not-found ----
@@ -178,13 +195,7 @@ export default function EventPage() {
                 <img src={coverUrl} alt="" style={S.coverImg} />
                 <div style={S.coverScrim} />
               </div>
-            ) : (
-              <div style={S.coverEmpty}>
-                <div style={S.coverEmptyIc} aria-hidden="true">&#43;</div>
-                <div style={{ fontWeight: 700, fontSize: 14.5 }}>{t("event.coverEmpty.title")}</div>
-                <div style={{ fontSize: 11.5, color: C.second, marginTop: 3 }}>{t("event.coverEmpty.sub")}</div>
-              </div>
-            )}
+            ) : null /* no cover yet: the host sets one from the dashboard; guests shouldn't see an "add" prompt they can't act on */}
             <p className="eyebrow" style={{ marginTop: 18 }}>{t("event.invited")}</p>
             <h1 className="serif" style={{ fontSize: 40, fontStyle: "italic", fontWeight: 600, margin: "6px 0 0", lineHeight: 1.02 }}>{ev(event, "name")}</h1>
             {([ev(event, "host"), ev(event, "event_date")].filter(Boolean).length > 0) && (
@@ -216,7 +227,7 @@ export default function EventPage() {
   // CONCEPT 7 — COMMAND BAR (tabbed in-app)
   // ====================================================================
   const kept = photos.filter((p) => p.kept);
-  const galleryShown = tab === "mine" ? photos : kept;   // "Mine" = all of mine, "Gallery" = kept
+  const galleryShown = tab === "mine" ? photos : everyone; // "Mine" = all of mine, "Gallery" = everyone's kept + approved
   const shareUrl = `${window.location.origin}/g/${contributor.id}`;
   const connectLabel = (lang === "es" && event.connect_label_es) ? event.connect_label_es : (event.connect_label || t("connect.cta"));
 
@@ -326,22 +337,31 @@ export default function EventPage() {
         {(tab === "gallery" || tab === "mine") && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-              <h3 className="serif" style={{ fontSize: 22, margin: 0, fontStyle: "italic", fontWeight: 600 }}>
-                {tab === "mine" ? t("up.allYours") : t("up.keptGallery")}
-              </h3>
-              <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert(t("up.linkCopied") + "\n" + shareUrl); }}
-                className="btn-ghost" style={{ padding: "8px 14px", fontSize: 12.5 }}>{t("up.copyShareLink")}</button>
+              <div>
+                <h3 className="serif" style={{ fontSize: 22, margin: 0, fontStyle: "italic", fontWeight: 600 }}>
+                  {tab === "mine" ? t("up.allYours") : t("up.everyoneTitle")}
+                </h3>
+                <p style={{ fontSize: 12, color: C.second, margin: "3px 0 0" }}>
+                  {tab === "mine" ? t("up.allYours.sub") : t("up.everyoneTitle.sub")}
+                </p>
+              </div>
+              {tab === "mine" && (
+                <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert(t("up.linkCopied") + "\n" + shareUrl); }}
+                  className="btn-ghost" style={{ padding: "8px 14px", fontSize: 12.5 }}>{t("up.copyShareLink")}</button>
+              )}
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              <StatTile label={t("up.uploaded")} value={photos.length} />
-              <StatTile label={t("up.keptByHalo")} value={kept.length} gold />
-            </div>
+            {tab === "mine" && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                <StatTile label={t("up.uploaded")} value={photos.length} />
+                <StatTile label={t("up.keptByHalo")} value={kept.length} gold />
+              </div>
+            )}
             {galleryShown.length > 0 ? (
-              <PhotoGrid photos={galleryShown} />
+              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} />
             ) : (
               <div style={{ textAlign: "center", padding: "40px 20px", color: C.second }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{t("up.emptyTitle")}</div>
-                <p style={{ fontSize: 13, margin: "6px 0 16px" }}>{t("up.emptySub")}</p>
+                <p style={{ fontSize: 13, margin: "6px 0 16px" }}>{tab === "mine" ? t("up.emptySub") : t("up.emptySubEveryone")}</p>
                 <button className="btn-gold" onClick={() => setTab("add")}>{t("up.tapToAdd")}</button>
               </div>
             )}
@@ -401,8 +421,6 @@ const S = {
   coverWrap: { position: "relative", height: 180, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line2}` },
   coverImg: { width: "100%", height: "100%", objectFit: "cover" },
   coverScrim: { position: "absolute", inset: 0, background: "linear-gradient(0deg,rgba(10,4,16,.7),rgba(10,4,16,.05) 60%)" },
-  coverEmpty: { height: 150, display: "grid", placeItems: "center", textAlign: "center", border: "1.6px dashed rgba(255,255,255,.3)", borderRadius: 18, background: "rgba(255,255,255,.03)" },
-  coverEmptyIc: { width: 42, height: 42, borderRadius: 12, background: "rgba(255,184,107,.14)", border: "1px solid rgba(255,184,107,.3)", display: "grid", placeItems: "center", color: C.gold, fontSize: 20, margin: "0 auto 10px" },
   welcomeCard: { background: "rgba(255,255,255,.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
   note: { textAlign: "center", fontSize: 11.5, color: C.second, marginTop: 16, letterSpacing: ".03em" },
   thumb: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" },

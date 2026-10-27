@@ -29,18 +29,15 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
           <figure key={p.id} className="card" style={{ margin: 0, background: C.card, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,.1)", opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
             <div style={{ position: "relative" }}>
               <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block", filter: pending ? "blur(6px)" : "none" }} />
-              <span style={{ position: "absolute", top: 8, right: 8, background: p.kept ? C.gold : C.second, color: C.ink, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{p.quality}</span>
-              {showEdited && !pending && (
-                <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: 0.5 }}>{t("grid.edited")}</span>
+              {/* Guest-facing grid: no scores or internals. One friendly tag at most. */}
+              {p.kept && !pending && (
+                <span style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: C.ink, fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999, letterSpacing: 0.4 }}>{t("grid.pick")}</span>
               )}
               {pending && (
                 <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: 0.5 }}>{t("grid.pending")}</span>
               )}
               {p.is_burst_dup && !pending && (
                 <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,.72)", color: C.text, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.duplicate")}</span>
-              )}
-              {!p.kept && !pending && !p.is_burst_dup && (
-                <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(0,0,0,.72)", color: C.text, fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{t("grid.belowThreshold")}</span>
               )}
               {onLike && !pending && (
                 <button type="button" onClick={() => onLike(p.id)} aria-label={t("react.heart")} aria-pressed={isLiked}
@@ -50,9 +47,6 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
                 </button>
               )}
             </div>
-            <figcaption style={{ padding: "8px 10px", fontSize: 11, color: C.second, display: "flex", justifyContent: "space-between" }}>
-              <span>{t("grid.focus")} {p.focus}</span><span>{t("grid.exp")} {p.exposure}</span>
-            </figcaption>
           </figure>
         );
       })}
