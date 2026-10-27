@@ -30,6 +30,11 @@ export default function SlideshowPage() {
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
+  // One-time "tap to go fullscreen" prompt. Browsers only allow fullscreen
+  // from a user gesture, so we can't auto-enter it — but a host setting up a
+  // TV shouldn't have to hunt for a tiny button that auto-hides. The first tap
+  // anywhere requests fullscreen and dismisses this.
+  const [needsTap, setNeedsTap] = useState(() => !document.fullscreenElement);
   const [counts, setCounts] = useState({});
   const [liked, setLiked] = useState(() => new Set());
   const seen = useRef(new Set());
@@ -169,11 +174,36 @@ export default function SlideshowPage() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
     else document.exitFullscreen?.();
   }
+  // If fullscreen is entered any other way (F key, the Fullscreen button, the
+  // browser's own control), retire the prompt too.
+  useEffect(() => {
+    const onFs = () => { if (document.fullscreenElement) setNeedsTap(false); };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+  // First tap anywhere: go fullscreen and retire the prompt.
+  function firstTap() {
+    if (!needsTap) return;
+    setNeedsTap(false);
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch?.(() => {});
+  }
 
   if (!ready) return <Stage><Centered>{t("live.preparing")}</Centered></Stage>;
   if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered></Stage>;
+  // Shared one-time fullscreen prompt (see needsTap). Big, centered, obvious.
+  const tapPrompt = needsTap ? (
+    <div onClick={firstTap} role="button" style={{ position: "absolute", inset: 0, zIndex: 20, display: "grid", placeItems: "center", background: "rgba(5,8,16,.55)", cursor: "pointer" }}>
+      <div style={{ textAlign: "center", padding: "3vw 4vw", borderRadius: 24, background: "rgba(11,20,38,.85)", border: `1px solid rgba(255,184,107,.5)`, backdropFilter: "blur(10px)", maxWidth: "70vw" }}>
+        <div style={{ fontSize: "5vw", lineHeight: 1, marginBottom: "1.2vw" }} aria-hidden="true">{"⛶"}</div>
+        <div className="serif" style={{ color: C.text, fontSize: "3vw", fontWeight: 700, lineHeight: 1.15 }}>{t("live.tapFull")}</div>
+        <div style={{ color: C.gold, fontSize: "1.2vw", letterSpacing: 2, textTransform: "uppercase", marginTop: "1vw" }}>{t("live.tapFullSub")}</div>
+      </div>
+    </div>
+  ) : null;
+
   if (photos.length === 0) return (
     <Stage>
+      {tapPrompt}
       <Centered>
         <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 12 }}>{ev(event, "name")}</div>
         <div style={{ color: C.gold, fontSize: "1.4vw", letterSpacing: 4, textTransform: "uppercase" }}>{t("live.waiting")}</div>
@@ -198,6 +228,7 @@ export default function SlideshowPage() {
 
   return (
     <Stage onMouseMove={wake} onClick={wake}>
+      {tapPrompt}
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
         <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading />
