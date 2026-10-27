@@ -220,6 +220,18 @@ export function EventDetail({ event, api, back }) {
     } catch (e) { setPublishMsg(e.message); } finally { setPublishing(false); }
   }
 
+  // Live-screen (TV) QR — lets the host open the slideshow on the TV device by
+  // scanning instead of typing a URL. Plus a transient "copied" flag.
+  const [tvQr, setTvQr] = useState("");
+  const [tvCopied, setTvCopied] = useState(false);
+  useEffect(() => {
+    QRCode.toDataURL(liveUrl, { width: 320, margin: 1, color: { dark: "#16294C", light: "#ffffff" } }).then(setTvQr).catch(() => setTvQr(""));
+  }, [liveUrl]);
+  function copyTvLink() {
+    navigator.clipboard?.writeText(liveUrl);
+    setTvCopied(true); setTimeout(() => setTvCopied(false), 2000);
+  }
+
   useEffect(() => {
     QRCode.toDataURL(eventUrl, { width: 320, margin: 1, color: { dark: "#16294C", light: "#ffffff" } }).then(setQr).catch(() => setQr(""));
     (async () => {
@@ -452,6 +464,56 @@ export function EventDetail({ event, api, back }) {
             </button>
             {publishMsg && <span style={{ fontSize: 12, color: C.second }}>{publishMsg}</span>}
           </div>
+        </div>
+      </div>
+
+      {/* ---- SHOW ON TV / PROJECTOR ----
+          The live slideshow is the event-day "wow", but a host at a venue has
+          to get a browser URL onto a TV. Make that a first-class, plain-language
+          card: one big action, a QR so nobody types a URL, and three steps that
+          cover the real ways people connect. */}
+      <div style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 28, lineHeight: 1 }} aria-hidden="true">{"📺"}</div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{t("tv.title")}</div>
+            <p style={{ fontSize: 13, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.sub")}</p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+            <button style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>{"▶︎"} {t("tv.open")}</button>
+          </a>
+          <button onClick={copyTvLink} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "12px 16px", borderRadius: 10, fontSize: 13 }}>
+            {tvCopied ? t("tv.copied") : t("tv.copy")}
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 18, marginTop: 18, alignItems: "start" }}>
+          <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 12 }}>
+            {[["tv.step1.t", "tv.step1.d"], ["tv.step2.t", "tv.step2.d"], ["tv.step3.t", "tv.step3.d"]].map(([tk, dk], i) => (
+              <li key={tk} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 800 }}>{i + 1}</span>
+                <span>
+                  <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: C.text }}>{t(tk)}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 2, lineHeight: 1.5 }}>{t(dk)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {tvQr && (
+            <div style={{ textAlign: "center" }}>
+              <img src={tvQr} alt="Live screen QR code" style={{ width: 132, height: 132, borderRadius: 10, display: "block" }} />
+              <div style={{ fontSize: 10.5, color: C.second, marginTop: 6, letterSpacing: .5, textTransform: "uppercase" }}>{t("tv.open")}</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("tv.alt.t")}</div>
+          <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.alt.d")}</p>
+          <p style={{ fontSize: 12.5, color: C.gold, margin: "10px 0 0", lineHeight: 1.5 }}>{t("tv.tip")}</p>
         </div>
       </div>
 
