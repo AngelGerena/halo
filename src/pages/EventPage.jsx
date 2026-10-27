@@ -292,10 +292,23 @@ export default function EventPage() {
                 <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{t("up.hintFirst")}</div>
               ) : (
                 <>
-                  <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
-                    {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)}
+                  {/* Show the latest photo(s) they added so the loop is obvious:
+                      "that one is on the big screen now". Up to 3 thumbs, newest first. */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+                    {photos.slice(0, 3).map((p) => (
+                      <div key={p.id} style={{ position: "relative", width: 72, height: 72, borderRadius: 12, overflow: "hidden", border: `2px solid ${p.status === "pending" ? C.second : C.gold}`, background: C.panel }}>
+                        <img src={p.edited_url || p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <span style={{ position: "absolute", right: 4, bottom: 4, width: 18, height: 18, borderRadius: "50%", background: p.status === "pending" ? C.second : C.gold, color: C.ink, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800 }}>{p.status === "pending" ? "…" : "✓"}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.hintAfter")}</div>
+                  <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
+                    {photos[0]?.status === "pending" ? t("up.latestHeld") : t("up.latestLive")}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>
+                    {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)} {t("up.hintAfter")}
+                  </div>
+                  <button onClick={() => setTab("gallery")} className="btn-ghost" style={{ marginTop: 10, padding: "8px 16px", fontSize: 13 }}>{t("up.seeGallery")} &#8594;&#xFE0E;</button>
                 </>
               )}
             </div>
@@ -325,11 +338,6 @@ export default function EventPage() {
               </a>
             )}
 
-            {photos.length > 0 && (
-              <p style={{ textAlign: "center", color: C.second, fontSize: 12.5, marginTop: 20 }}>
-                {t("up.tapGallery")} <button onClick={() => setTab("gallery")} style={{ background: "none", color: C.gold, fontWeight: 700, padding: 0 }}>{t("up.yourGallery")} &#8594;&#xFE0E;</button>
-              </p>
-            )}
           </>
         )}
 
