@@ -510,10 +510,40 @@ export function EventDetail({ event, api, back }) {
           )}
         </div>
 
+        <p style={{ fontSize: 12.5, color: C.gold, margin: "14px 0 0", lineHeight: 1.5 }}>{t("tv.tip")}</p>
+
+        {/* No laptop? Phone paths. Collapsed by default so the card stays
+            short for the common case; each <details> is its own step list. */}
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("tv.alt.t")}</div>
-          <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.alt.d")}</p>
-          <p style={{ fontSize: 12.5, color: C.gold, margin: "10px 0 0", lineHeight: 1.5 }}>{t("tv.tip")}</p>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{t("tv.phone.t")}</div>
+          <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.5 }}>{t("tv.phone.d")}</p>
+
+          {[["tv.ios.t", ["tv.ios.1", "tv.ios.2", "tv.ios.3"]], ["tv.android.t", ["tv.android.1", "tv.android.2", "tv.android.3"]]].map(([tk, steps]) => (
+            <details key={tk} style={{ marginTop: 8, background: C.panel, border: `1px solid ${C.line2}`, borderRadius: 12, padding: "10px 14px" }}>
+              <summary style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 700, color: C.text, listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{"📱"} {t(tk)}</span>
+                <span style={{ color: C.second, fontSize: 12 }} aria-hidden="true">{"▾"}</span>
+              </summary>
+              <ol style={{ margin: "10px 0 2px", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                {steps.map((sk, i) => (
+                  <li key={sk} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${C.gold}`, color: C.gold, display: "grid", placeItems: "center", fontSize: 11.5, fontWeight: 800 }}>{i + 1}</span>
+                    <span style={{ fontSize: 12.5, color: C.second, lineHeight: 1.5, paddingTop: 2 }}>{t(sk)}</span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ))}
+
+          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 12, background: "rgba(255,180,80,.08)", border: `1px solid ${C.gold}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{"⚠︎"} {t("tv.phone.warn.t")}</div>
+            <p style={{ fontSize: 12.5, color: C.text, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.phone.warn.d")}</p>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("tv.browser.t")}</div>
+            <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.browser.d")}</p>
+          </div>
         </div>
       </div>
 
