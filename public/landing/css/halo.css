@@ -155,7 +155,7 @@ em{font-style:italic}
 .full{width:100%}
 
 /* ---------------- HERO (one image) ---------------- */
-.hero{position:relative;min-height:100svh;display:grid;place-items:center;overflow:hidden;background:var(--ink-deep)}
+.hero{position:relative;min-height:100svh;padding-top:env(safe-area-inset-top,0px);box-sizing:border-box;display:grid;place-items:center;overflow:hidden;background:var(--ink-deep)}
 .hero-bg{position:absolute;inset:0;z-index:0;background:url("../images/film-end.webp") center/cover no-repeat;transform:scale(1.08);animation:heroZoom 24s ease-in-out infinite alternate}
 @keyframes heroZoom{from{transform:scale(1.08)}to{transform:scale(1.16)}}
 .hero-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(var(--ov-deep),.86) 0%,rgba(var(--ov-deep),.5) 42%,rgba(var(--ov-deep),.15) 72%,transparent 100%),linear-gradient(0deg,rgba(var(--ov-deep),.9) 0%,transparent 28%,transparent 72%,rgba(var(--ov-deep),.55) 100%),radial-gradient(60% 55% at 62% 42%,rgba(255,184,107,.12),transparent 70%)}
@@ -312,11 +312,11 @@ em{font-style:italic}
 
 /* ============ LANGUAGE TOGGLE (floating EN/ES) ============ */
 /* Fixed top-right pill, themed via accent. Sits above the hero on all themes. */
-.lang-toggle{position:fixed;top:16px;right:16px;z-index:40;display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.35);background:rgba(10,4,16,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.lang-toggle{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));z-index:40;display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.35);background:rgba(10,4,16,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 18px rgba(0,0,0,.35)}
 .lang-btn{appearance:none;border:none;background:transparent;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;padding:7px 13px;cursor:pointer;border-radius:0;transition:background .2s,color .2s}
 .lang-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 .lang-btn:not([aria-pressed="true"]):hover{background:rgba(255,255,255,.12)}
-@media(max-width:760px){.lang-toggle{top:12px;right:12px}.lang-btn{padding:6px 11px;font-size:11px}}
+@media(max-width:760px){.lang-toggle{top:calc(12px + env(safe-area-inset-top,0px));right:12px}.lang-btn{padding:6px 11px;font-size:11px}}
 
 /* ============ EARLY ACCESS SIGNUP FORM ============ */
 .signup-form{max-width:640px;margin:36px auto 0;text-align:left}
@@ -373,3 +373,6 @@ em{font-style:italic}
 .demo-cta-text h3{margin:0 0 6px;font-size:20px;color:var(--text)}
 .demo-cta-text p{margin:0 0 14px;color:var(--muted);font-size:15px;line-height:1.5}
 @media (max-width:640px){.demo-cta{flex-direction:column;text-align:center;padding:20px 16px}.demo-cta-qr{display:none}}
+
+/* Phones: lighter top shading so the photo runs clean up to the status bar */
+@media(max-width:760px){.hero-vignette{background:linear-gradient(90deg,rgba(var(--ov-deep),.7) 0%,rgba(var(--ov-deep),.35) 50%,transparent 100%),linear-gradient(0deg,rgba(var(--ov-deep),.9) 0%,transparent 30%,transparent 85%,rgba(var(--ov-deep),.2) 100%),radial-gradient(60% 55% at 62% 42%,rgba(255,184,107,.12),transparent 70%)}}
