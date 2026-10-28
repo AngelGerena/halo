@@ -298,7 +298,10 @@ em{font-style:italic}
 
 /* images that sit above a grid (how-it-works, use-cases) */
 .how-img,.events-img{margin:0 0 48px;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(var(--ov-deep),.45);border:1px solid var(--line)}
-.how-img img,.events-img img{width:100%;display:block;aspect-ratio:16/7;object-fit:cover}
+.how-img img,.events-img img{width:100%;height:auto;display:block;aspect-ratio:16/7;object-fit:cover}
+/* keep faces in frame on the wide crops */
+#img-qr{object-position:50% 18%}
+#img-quinceanera{object-position:50% 45%}
 
 @media (max-width:760px){
   .wrap.split{grid-template-columns:1fr;gap:28px}
