@@ -433,6 +433,24 @@ export function EventDetail({ event, api, back }) {
   }
   // One ZIP with every photo currently shown (respects the kept/all and tag filters).
   const [zipping, setZipping] = useState(null); // null | { done, total }
+  // Co-hosts: people the owner invited by email to help run this event.
+  const [cohosts, setCohosts] = useState(null); // null = loading/not allowed
+  const [cohostEmail, setCohostEmail] = useState("");
+  const [cohostBusy, setCohostBusy] = useState(false);
+  const [cohostErr, setCohostErr] = useState("");
+  useEffect(() => {
+    if (event._cohost) return;
+    api.fn("manage-cohosts", { eventId: event.id }).then((r) => setCohosts(r.cohosts || [])).catch(() => setCohosts(null));
+  }, [event.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function changeCohosts(body) {
+    setCohostBusy(true); setCohostErr("");
+    try {
+      const r = await api.fn("manage-cohosts", { eventId: event.id, lang, ...body });
+      setCohosts(r.cohosts || []);
+      if (body.add) setCohostEmail("");
+    } catch (e) { setCohostErr(e.message); } finally { setCohostBusy(false); }
+  }
+
   // Guestbook messages (host sees all, including hidden ones).
   const [wishes, setWishes] = useState([]);
   const loadWishes = async () => {
@@ -666,6 +684,32 @@ export function EventDetail({ event, api, back }) {
             <div style={{ color: "#16294C", fontSize: "clamp(14px, 2.2vmin, 22px)", fontWeight: 700, marginTop: "2vmin" }}>{t("tv.qrFullHint")}</div>
           </div>
         </div>
+      )}
+
+      {/* ---- CO-HOSTS ---- */}
+      {event._cohost ? (
+        <div style={{ marginTop: 16, background: "rgba(255,184,107,.08)", border: "1px solid rgba(255,184,107,.3)", borderRadius: 14, padding: "10px 14px", fontSize: 13, color: C.text }}>{t("cohost.youAre")}</div>
+      ) : cohosts && (
+        <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 800, color: C.text, fontSize: 15 }}>{t("cohost.title")} ({cohosts.length})</summary>
+          <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px" }}>{t("cohost.help")}</p>
+          <form onSubmit={(e) => { e.preventDefault(); if (cohostEmail.trim()) changeCohosts({ add: cohostEmail.trim() }); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input type="email" value={cohostEmail} onChange={(e) => setCohostEmail(e.target.value)} placeholder={t("cohost.placeholder")} autoComplete="off"
+              style={{ flex: "1 1 220px", minWidth: 0, background: "rgba(255,255,255,.04)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 14 }} />
+            <button type="submit" disabled={cohostBusy || !cohostEmail.trim()} style={{ background: C.gold, color: C.ink, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, opacity: cohostBusy || !cohostEmail.trim() ? 0.6 : 1 }}>{cohostBusy ? t("cohost.adding") : t("cohost.add")}</button>
+          </form>
+          {cohostErr && <div style={{ color: C.pink, fontSize: 12, marginTop: 6 }}>{cohostErr}</div>}
+          {cohosts.length > 0 && (
+            <div style={{ display: "grid", gap: 6, marginTop: 12 }}>
+              {cohosts.map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 12px" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email}</span>
+                  <button type="button" disabled={cohostBusy} onClick={() => changeCohosts({ remove: c.id })} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "5px 10px", borderRadius: 999, fontSize: 12 }}>{t("cohost.remove")}</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
       )}
 
       {/* ---- GUESTBOOK MESSAGES ---- */}
@@ -912,11 +956,11 @@ export function EventDetail({ event, api, back }) {
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
           </div>
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
+          {!event._cohost && <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#b3261e" }}>{t("admin.dangerZone")}</div>
             <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("admin.deleteEventHelp")}</p>
             <button onClick={deleteEvent} disabled={deletingEvent} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "10px 16px", borderRadius: 10, fontSize: 14, opacity: deletingEvent ? 0.6 : 1 }}>{deletingEvent ? t("admin.deletingEvent") : t("admin.deleteEvent")}</button>
-          </div>
+          </div>}
         </div>
       )}
 

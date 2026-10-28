@@ -20,7 +20,7 @@ export async function handler(event) {
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  if (!(await ownsEventOrAdmin(supabase, eventId, auth))) {
+  if (!(await ownsEventOrAdmin(supabase, eventId, auth, { allowCohost: false }))) {
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
   }
 
