@@ -98,12 +98,16 @@
   // same slate as the top of the photo so the image reads edge to edge.
   // Past the hero it switches back to the theme colour.
   (function () {
-    var HERO_TOP = "#20222a";
+    var HERO_TOP = "#445063";
     var m = document.querySelector('meta[name="theme-color"]');
     var inHero = true;
     window.__haloTopBar = function () {
-      if (!m) return;
-      m.setAttribute("content", inHero ? HERO_TOP : (document.documentElement.getAttribute("data-theme-meta") || "#0a0410"));
+      // iOS 26 Safari ignores theme-color and tints the status bar from the
+      // page background instead, so set both.
+      var c = inHero ? HERO_TOP : (document.documentElement.getAttribute("data-theme-meta") || "#0a0410");
+      if (m) m.setAttribute("content", c);
+      document.documentElement.style.backgroundColor = inHero ? HERO_TOP : "";
+      if (document.body) document.body.style.backgroundColor = inHero ? HERO_TOP : "";
     };
     window.__haloTopBar();
     document.addEventListener("DOMContentLoaded", function () {
