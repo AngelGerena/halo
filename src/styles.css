@@ -54,7 +54,7 @@ input, select, textarea {
   font-family: var(--sans);
   font-size: 15px;
   color: var(--text);
-  background: rgba(255,255,255,.05);
+  background: rgba(var(--tint, 255,255,255),.05);
 }
 /* The open dropdown list is painted with a solid (not translucent) colour,
    or the OS falls back to white. Force dark background + light text on the
@@ -73,6 +73,9 @@ input[type="checkbox"], input[type="radio"], input[type="range"], input[type="fi
   background: transparent;
 }
 input::placeholder, textarea::placeholder { color: #7d7589; }
+:root[data-look="blush"] input::placeholder, :root[data-look="blush"] textarea::placeholder,
+:root[data-look="ivory"] input::placeholder, :root[data-look="ivory"] textarea::placeholder,
+:root[data-look="rosegold"] input::placeholder, :root[data-look="rosegold"] textarea::placeholder { color: #8d847c; }
 input:focus-visible, select:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
@@ -94,8 +97,8 @@ input:focus-visible, select:focus-visible {
 .eyebrow { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
 .field {
   width: 100%; padding: 13px 15px; border-radius: 12px;
-  border: 1px solid var(--line2); background: rgba(255,255,255,.04);
-  color: #fff; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--line2); background: rgba(var(--tint, 255,255,255),.04);
+  color: var(--text); font-size: 15px; font-family: inherit;
 }
 
 .card { transition: transform .18s ease, box-shadow .18s ease; }

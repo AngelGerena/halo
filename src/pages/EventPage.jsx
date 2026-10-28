@@ -448,7 +448,7 @@ export default function EventPage() {
 
           {/* No form before the first photo. Two buttons, then we ask who to thank. */}
           <div style={S.welcomeCard}>
-            <p className="serif" style={{ fontStyle: "italic", fontSize: 16, lineHeight: 1.4, color: "#e9e3ef", textAlign: "center", margin: "0 0 18px" }}>
+            <p className="serif" style={{ fontStyle: "italic", fontSize: 16, lineHeight: 1.4, color: C.text, opacity: .88, textAlign: "center", margin: "0 0 18px" }}>
               {t("event.welcomeQuote")}
             </p>
             <button type="button" onClick={() => cameraRef.current?.click()} style={{ ...S.camBtn, padding: "0 0 12px" }}>
@@ -516,7 +516,7 @@ export default function EventPage() {
               </div>
             )}
             {/* 1) How it works — three glanceable steps, no jargon */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(var(--tint, 255,255,255),.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
               {[[CameraIcon, t("up.step1")], [UploadIcon, t("up.step2")], [ScreenIcon, t("up.step3")]].map(([Ic, label], i) => (
                 <React.Fragment key={i}>
                   {i > 0 && <span aria-hidden="true" style={{ color: C.second, fontSize: 14, flexShrink: 0 }}>&#8250;</span>}
@@ -586,7 +586,7 @@ export default function EventPage() {
                       const isDone = done.has(c.id), on = c.id === challenge;
                       return (
                         <button key={c.id} type="button" onClick={() => { setChallenge(c.id); cameraRef.current?.click(); }}
-                          style={{ flex: "0 0 auto", width: 150, minHeight: 74, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, background: on ? "rgba(255,184,107,.18)" : isDone ? "rgba(255,255,255,.04)" : "rgba(255,255,255,.07)", border: `1px solid ${on ? C.gold : isDone ? "rgba(255,184,107,.45)" : C.line2}`, borderRadius: 14, padding: "10px 12px", color: C.text, cursor: "pointer" }}>
+                          style={{ flex: "0 0 auto", width: 150, minHeight: 74, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, background: on ? "rgba(255,184,107,.18)" : isDone ? "rgba(var(--tint, 255,255,255),.04)" : "rgba(var(--tint, 255,255,255),.07)", border: `1px solid ${on ? C.gold : isDone ? "rgba(255,184,107,.45)" : C.line2}`, borderRadius: 14, padding: "10px 12px", color: C.text, cursor: "pointer" }}>
                           <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.25 }}>{challengeText(c, lang)}</span>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: isDone ? C.gold : C.second }}>
                             {isDone ? (
@@ -604,7 +604,7 @@ export default function EventPage() {
             })()}
 
             {/* Guestbook: a message that shows on the big screen and goes in the keepsake */}
-            <div style={{ marginTop: 16, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line2}`, borderRadius: 16, padding: "14px 14px 12px" }}>
+            <div style={{ marginTop: 16, background: "rgba(var(--tint, 255,255,255),.04)", border: `1px solid ${C.line2}`, borderRadius: 16, padding: "14px 14px 12px" }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>{t("gb.title")}</div>
               <div style={{ fontSize: 12, color: C.second, margin: "3px 0 10px" }}>{t("gb.sub")}</div>
               {wishState === "sent" ? (
@@ -616,10 +616,10 @@ export default function EventPage() {
                 <>
                   {(!contributor || contributor.anon || contributor.name === ANON_NAME) && (
                     <input value={wishName} onChange={(e) => setWishName(e.target.value)} placeholder={t("gb.name")} maxLength={60} autoComplete="name"
-                      style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, background: "rgba(0,0,0,.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, fontFamily: "inherit" }} />
+                      style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, background: "rgba(var(--shade, 0,0,0),.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, fontFamily: "inherit" }} />
                   )}
                   <textarea value={wish} onChange={(e) => setWish(e.target.value.slice(0, 280))} rows={3} placeholder={t("gb.placeholder")}
-                    style={{ width: "100%", boxSizing: "border-box", background: "rgba(0,0,0,.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, lineHeight: 1.45, fontFamily: "inherit", resize: "vertical" }} />
+                    style={{ width: "100%", boxSizing: "border-box", background: "rgba(var(--shade, 0,0,0),.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, lineHeight: 1.45, fontFamily: "inherit", resize: "vertical" }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
                     <span style={{ fontSize: 11, color: wishState === "error" ? C.pink : C.second }}>{wishState === "error" ? t("gb.error") : `${wish.length}/280`}</span>
                     <button type="button" onClick={sendWish} disabled={!wish.trim() || wishState === "sending"}
@@ -633,7 +633,7 @@ export default function EventPage() {
 
             {waiting.length > 0 && (
               <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
-                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(255,255,255,.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
                   <div style={{ fontSize: 12, color: C.second }}>{t("up.waitingSub")}</div>
@@ -644,7 +644,7 @@ export default function EventPage() {
 
             {uploading > 0 && (
               <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(255,255,255,.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+                <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
                 {t("up.uploading")} {uploading}&hellip;
               </div>
             )}
@@ -696,7 +696,7 @@ export default function EventPage() {
 
             <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
               style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
-                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)",
+                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(var(--tint, 255,255,255),.03)",
                 border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "11px 13px", marginTop: 14 }}>
               <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame ? "✓" : ""}</span>
               <span>
@@ -747,7 +747,7 @@ export default function EventPage() {
               <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} kinds={kinds} liked={liked} onLike={onLike} />
             ) : (
               <div style={{ textAlign: "center", padding: "40px 20px", color: C.second }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{t("up.emptyTitle")}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{t("up.emptyTitle")}</div>
                 <p style={{ fontSize: 13, margin: "6px 0 16px" }}>{tab === "mine" ? t("up.emptySub") : t("up.emptySubEveryone")}</p>
                 <button className="btn-gold" onClick={() => setTab("add")}>{t("up.tapToAdd")}</button>
               </div>
@@ -780,8 +780,8 @@ function TabBtn({ active, onClick, icon, label }) {
 
 function StatTile({ label, value, gold }) {
   return (
-    <div style={{ flex: 1, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 14px" }}>
-      <div className="display" style={{ fontSize: 26, lineHeight: 1, color: gold ? C.gold : "#fff" }}>{value}</div>
+    <div style={{ flex: 1, background: "rgba(var(--tint, 255,255,255),.04)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 14px" }}>
+      <div className="display" style={{ fontSize: 26, lineHeight: 1, color: gold ? C.gold : C.text }}>{value}</div>
       <div style={{ fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: C.second, marginTop: 4 }}>{label}</div>
     </div>
   );
@@ -789,14 +789,14 @@ function StatTile({ label, value, gold }) {
 
 function Ring({ small }) {
   const d = small ? 40 : 64;
-  return <div className="spin" style={{ width: d, height: d, borderRadius: "50%", border: `3px solid rgba(255,255,255,.14)`, borderTopColor: C.gold }} />;
+  return <div className="spin" style={{ width: d, height: d, borderRadius: "50%", border: `3px solid rgba(var(--tint, 255,255,255),.14)`, borderTopColor: C.gold }} />;
 }
 
 /* Dark app shell — cinematic gradient background, optional warm welcome tint, footer. */
 function Dark({ children, welcome }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-      background: welcome ? "linear-gradient(180deg, var(--panel2, #1a1020), var(--panel, #120a19) 60%, var(--ink, #0a0410))" : "radial-gradient(130% 70% at 50% -10%, rgba(123,47,247,.18), transparent 55%), var(--ink, #0a0410)" }}>
+      background: welcome ? "linear-gradient(180deg, var(--panel2, #1a1020), var(--panel, #120a19) 60%, var(--page, var(--ink, #0a0410)))" : "radial-gradient(130% 70% at 50% -10%, rgba(123,47,247,.18), transparent 55%), var(--page, var(--ink, #0a0410))", color: C.text }}>
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </div>
@@ -808,13 +808,13 @@ const S = {
   coverWrap: { position: "relative", height: 180, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line2}` },
   coverImg: { width: "100%", height: "100%", objectFit: "cover" },
   coverScrim: { position: "absolute", inset: 0, background: "linear-gradient(0deg,rgba(10,4,16,.7),rgba(10,4,16,.05) 60%)" },
-  welcomeCard: { background: "rgba(255,255,255,.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
+  welcomeCard: { background: "rgba(var(--tint, 255,255,255),.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
   note: { textAlign: "center", fontSize: 11.5, color: C.second, marginTop: 16, letterSpacing: ".03em" },
   thumb: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" },
-  drop: { border: "1.6px dashed rgba(255,255,255,.28)", background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "22px 20px 20px", textAlign: "center" },
+  drop: { border: "1.6px dashed rgba(var(--tint, 255,255,255),.28)", background: "rgba(var(--tint, 255,255,255),.03)", borderRadius: 18, padding: "22px 20px 20px", textAlign: "center" },
   dropIc: { width: 46, height: 46, margin: "0 auto 10px", borderRadius: "50%", border: `3px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: 22 },
   camBtn: { display: "block", width: "100%", background: "transparent", border: "none", color: C.text, padding: "6px 0 14px", cursor: "pointer", textAlign: "center" },
   camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" },
-  libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
-  tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "#0d0716", backdropFilter: "blur(8px)" },
+  libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(var(--tint, 255,255,255),.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "var(--tabbar, #0d0716)", backdropFilter: "blur(8px)" },
 };
