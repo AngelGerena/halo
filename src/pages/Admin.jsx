@@ -319,8 +319,8 @@ const THEMES = [
 const PHOTO_SLOTS = [
   { slot: "friends",     label: "Intro photo (friends selfie)", def: "/landing/images/friends.webp" },
   { slot: "wedding",     label: "Banner photo (every guest, every angle)", def: "/landing/images/wedding.webp" },
-  { slot: "qr",          label: "How-it-works photo (QR scan)", def: "/landing/images/qr-scan.webp" },
-  { slot: "quinceanera", label: "Use-cases photo (quinceañera)", def: "/landing/images/quinceanera.webp" },
+  { slot: "qr",          label: "How-it-works photo (table selfie)", def: "/landing/images/qr-scan.webp" },
+  { slot: "quinceanera", label: "Use-cases photo (celebration)", def: "/landing/images/quinceanera.webp" },
 ];
 
 function SiteAppearance({ token }) {
