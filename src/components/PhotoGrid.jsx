@@ -67,7 +67,7 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
         const nHeart = k.heart || 0, nLike = k.like || 0;
         const isLiked = likedSet.has(`${p.id}:heart`), isThumbed = likedSet.has(`${p.id}:like`);
         return (
-          <figure key={p.id} className="card" style={{ margin: 0, background: C.card, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,.1)", opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
+          <figure key={p.id} className="card" style={{ margin: 0, background: C.card, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}`, opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
             <div style={{ position: "relative" }}>
               <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block", filter: pending ? "blur(6px)" : "none" }} />
               {p.video_url && !pending && (

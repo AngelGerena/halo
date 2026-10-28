@@ -14,7 +14,7 @@ export function HaloMark({ size = 34 }) {
 export function LangToggle() {
   const { lang, setLang } = useI18n();
   return (
-    <div style={{ display: "inline-flex", borderRadius: 999, border: "1px solid rgba(255,255,255,.3)", overflow: "hidden" }}>
+    <div style={{ display: "inline-flex", borderRadius: 999, border: "1px solid rgba(var(--tint, 255,255,255),.3)", overflow: "hidden" }}>
       <button onClick={() => setLang("en")} aria-pressed={lang === "en"}
         style={{ background: lang === "en" ? C.gold : "transparent", color: lang === "en" ? C.ink : C.text, border: "none", padding: "5px 10px", fontSize: 11, fontWeight: 700, borderRadius: 0 }}>EN</button>
       <button onClick={() => setLang("es")} aria-pressed={lang === "es"}
@@ -44,7 +44,7 @@ export function Header({ right, onHero = false }) {
 
 export function Stat({ label, value, gold }) {
   return (
-    <div style={{ flex: 1, background: C.card, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(255,255,255,.1)" }}>
+    <div style={{ flex: 1, background: C.card, borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(var(--tint, 255,255,255),.1)" }}>
       <div className="serif" style={{ fontSize: 30, fontWeight: 700, color: gold ? C.gold : C.text, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 12, color: C.second, textTransform: "uppercase", letterSpacing: 1, marginTop: 4 }}>{label}</div>
     </div>
