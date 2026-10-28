@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0410">
   <title data-i18n="meta.title">HALO | Every moment, gathered</title>
   <meta name="description" content="One QR code turns every guest into your event photographer. Every photo, gathered in one glowing gallery.">
@@ -44,8 +44,8 @@
         root.classList.remove("pal-swap");
         root.classList.remove("pal-wait");
       }); });
-      var m = document.querySelector('meta[name="theme-color"]');
-      if (m && THEME_META[t]) m.setAttribute("content", THEME_META[t]);
+      root.setAttribute("data-theme-meta", THEME_META[t] || "#0a0410");
+      if (window.__haloTopBar) window.__haloTopBar();
       try { localStorage.setItem("halo_theme", t); } catch (e) {}
     }
 
@@ -93,6 +93,28 @@
 </head>
 <body data-pal="midnight">
 <script>document.body.setAttribute("data-pal", document.documentElement.getAttribute("data-pal-cached") || "midnight");</script>
+<script>
+  // Phone status bar: while the hero photo is on screen, tint the bar the
+  // same slate as the top of the photo so the image reads edge to edge.
+  // Past the hero it switches back to the theme colour.
+  (function () {
+    var HERO_TOP = "#20222a";
+    var m = document.querySelector('meta[name="theme-color"]');
+    var inHero = true;
+    window.__haloTopBar = function () {
+      if (!m) return;
+      m.setAttribute("content", inHero ? HERO_TOP : (document.documentElement.getAttribute("data-theme-meta") || "#0a0410"));
+    };
+    window.__haloTopBar();
+    document.addEventListener("DOMContentLoaded", function () {
+      var hero = document.getElementById("home");
+      if (!hero || !("IntersectionObserver" in window)) return;
+      new IntersectionObserver(function (e) {
+        inHero = e[0].isIntersecting; window.__haloTopBar();
+      }, { rootMargin: "0px 0px -100% 0px" }).observe(hero);
+    });
+  })();
+</script>
 
   <!-- ============ LANGUAGE TOGGLE (floating) ============ -->
   <div class="lang-toggle" role="group" aria-label="Language / Idioma">
