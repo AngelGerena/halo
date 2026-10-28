@@ -43,9 +43,13 @@ export default function SlideshowPage() {
   const eventRef = useRef(null);
   const audioRef = useRef(null);
   const [musicOn, setMusicOn] = useState(false);
+  const [names, setNames] = useState({});          // contributor id -> name
+  const [spot, setSpot] = useState(null);          // { photoId, count, name } while shot-of-the-night is up
   const [libTracks, setLibTracks] = useState([]);
 
   const HOLD = 6500; // ms per photo
+  const SPOT_EVERY = 10 * 60 * 1000; // shot-of-the-night cadence
+  const SPOT_HOLD = 10000;           // how long it stays up
 
   // While no photos exist yet, the big screen doubles as the invitation:
   // a large QR to the guest page so the room knows what to do.
@@ -63,6 +67,10 @@ export default function SlideshowPage() {
       const { data: evrow } = await supabase.from("events").select("*").eq("code", code).single();
       setEvent(evrow || false);
       eventRef.current = evrow || null;
+      if (evrow) {
+        const { data: people } = await supabase.from("contributors").select("id,name").eq("event_id", evrow.id);
+        const m = {}; (people || []).forEach((c) => { m[c.id] = c.name; }); setNames(m);
+      }
       const { data: lib } = await supabase.from("music_library").select("*").eq("active", true);
       setLibTracks(lib || []);
       if (evrow) await refresh(evrow.id, true);
@@ -138,9 +146,30 @@ export default function SlideshowPage() {
   // advance timer
   useEffect(() => {
     if (paused || photos.length < 2) return;
-    const tmr = setTimeout(() => go(1), HOLD);
+    const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : HOLD);
     return () => clearTimeout(tmr);
-  }, [idx, paused, photos.length]);
+  }, [idx, paused, photos.length, spot]);
+
+  // ---- Shot of the night ----
+  // Every 10 minutes, if any photo has hearts, jump to the most-hearted one
+  // and hold it with a ribbon naming the guest who took it. Rooms react to
+  // this; it also nudges people to heart more.
+  const countsRef = useRef(counts); useEffect(() => { countsRef.current = counts; }, [counts]);
+  const photosRef = useRef(photos); useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => {
+    if (!event || photos.length < 2) return;
+    const tmr = setInterval(() => {
+      const list = photosRef.current, c = countsRef.current;
+      let best = null, bestN = 0;
+      list.forEach((p, i) => { const n = c[p.id] || 0; if (n > bestN) { bestN = n; best = i; } });
+      if (best == null || bestN < 1) return;
+      const p = list[best];
+      setSpot({ photoId: p.id, count: bestN, name: p.contributor_id ? names[p.contributor_id] : null });
+      setPrevIdx(idx); setIdx(best);
+      setTimeout(() => setSpot(null), SPOT_HOLD);
+    }, SPOT_EVERY);
+    return () => clearInterval(tmr);
+  }, [event, photos.length, names]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function go(dir) {
     setPhotos((cur) => {
@@ -308,8 +337,21 @@ export default function SlideshowPage() {
         </div>
       )}
 
+      {/* Shot of the night ribbon (every 10 min, most-hearted photo) */}
+      {spot && spot.photoId === cur.id && (
+        <div style={{ position: "absolute", top: "4vh", left: "50%", transform: "translateX(-50%)", textAlign: "center", animation: "countPop .5s ease-out" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: ".6vw", background: C.gold, color: C.ink, padding: ".55vw 1.8vw", borderRadius: 999, fontSize: "1.15vw", fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
+            <svg viewBox="0 0 24 24" style={{ width: "1.3vw", height: "1.3vw" }}><path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} /></svg>
+            {t("live.shotOfNight")} · {spot.count}
+          </div>
+          {spot.name && spot.name !== "Guest" && (
+            <div style={{ marginTop: ".6vw", color: C.text, fontSize: "1.1vw", textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{t("live.by")} {spot.name}</div>
+          )}
+        </div>
+      )}
+
       {/* Moment of the Service ribbon */}
-      {isMoment && (
+      {isMoment && !(spot && spot.photoId === cur.id) && (
         <div style={{ position: "absolute", top: "4vh", left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, padding: ".5vw 1.6vw", borderRadius: 999, fontSize: "1.1vw", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
           {t("live.moment")}
         </div>
