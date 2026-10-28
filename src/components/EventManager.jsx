@@ -29,7 +29,7 @@ import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS } from "../lib/looks.js";
-import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon } from "./Icons.jsx";
+import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon } from "./Icons.jsx";
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
@@ -501,7 +501,7 @@ export function EventDetail({ event, api, back }) {
         const items = [
           { k: "cover", done: !!coverPath, label: t("ready.cover"), action: () => setSettingsOpen(true) },
           { k: "settings", done: !!readyDone.settings, label: t("ready.settings"), action: () => setSettingsOpen(true) },
-          { k: "qr", done: !!readyDone.qr, label: t("ready.qr"), action: () => { try { document.getElementById("halo-qr-box")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {} } },
+          { k: "qr", done: !!readyDone.qr, label: t("ready.qr"), action: async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); } },
           { k: "photo", done: photos.length > 0, label: t("ready.photo"), action: () => window.open(eventUrl, "_blank", "noreferrer") },
           { k: "live", done: !!readyDone.live, label: t("ready.live"), action: () => { markReady("live"); window.open(liveUrl, "_blank", "noreferrer"); } },
         ];
@@ -541,6 +541,8 @@ export function EventDetail({ event, api, back }) {
                 <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
               </a>
             )}
+            <button onClick={async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); }}
+              title={t("admin.tableCard.help")} style={{ background: C.gold, color: C.ink, border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}><PrintIcon /> {t("admin.tableCard")}</button>
             <button onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); alert(t("admin.linkCopied") + "\n" + eventUrl); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.copyLink")}</button>
           </div>
         </div>
