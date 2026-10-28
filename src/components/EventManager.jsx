@@ -278,27 +278,46 @@ export function EventDetail({ event, api, back }) {
     setTvCopied(true); setTimeout(() => setTvCopied(false), 2000);
   }
 
+  // Load everything, and reload when the event changes under us. The live
+  // pulse below subscribes to realtime so the host sees uploads land without
+  // refreshing; a slow poll is the safety net if the socket drops.
+  const [lastChange, setLastChange] = useState(null); // Date of the latest upload/heart seen
+  const [tick, setTick] = useState(0);                // re-render every 30 s so "2 min ago" stays honest
+  async function loadAll() {
+    const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
+      supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
+      supabase.from("contributors").select("*").eq("event_id", event.id),
+      supabase.from("reactions").select("photo_id,created_at").eq("event_id", event.id),
+    ]);
+    const names = Object.fromEntries((co || []).map((c) => [c.id, c.name]));
+    const cmap = {};
+    (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
+    setCounts(cmap);
+    setContributors(co || []);
+    setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, ownerName: names[p.contributor_id] || "Unknown" })));
+    const latest = [...(ph || []).map((p) => p.created_at), ...(rx || []).map((r) => r.created_at)].filter(Boolean).sort().pop();
+    if (latest) setLastChange(new Date(latest));
+    setLoading(false);
+  }
   useEffect(() => {
     QRCode.toDataURL(eventUrl, { width: 320, margin: 1, color: { dark: "#16294C", light: "#ffffff" } }).then(setQr).catch(() => setQr(""));
-    (async () => {
-      const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
-        supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
-        supabase.from("contributors").select("*").eq("event_id", event.id),
-        supabase.from("reactions").select("photo_id").eq("event_id", event.id),
-      ]);
-      const names = Object.fromEntries((co || []).map((c) => [c.id, c.name]));
-      const cmap = {};
-      (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
-      setCounts(cmap);
-      setContributors(co || []);
-      setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, ownerName: names[p.contributor_id] || "Unknown" })));
-      setLoading(false);
-    })();
+    loadAll();
+    const channel = supabase
+      .channel(`host-${event.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "photos", filter: `event_id=eq.${event.id}` }, () => { setLastChange(new Date()); loadAll(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reactions", filter: `event_id=eq.${event.id}` }, (p) => { setLastChange(new Date()); const id = p.new?.photo_id; if (id) setCounts((c) => ({ ...c, [id]: (c[id] || 0) + 1 })); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "contributors", filter: `event_id=eq.${event.id}` }, () => loadAll())
+      .subscribe();
+    const poll = setInterval(loadAll, 60000);
+    const t = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => { supabase.removeChannel(channel); clearInterval(poll); clearInterval(t); };
+  }, [event.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
     (async () => {
       const { data: lib } = await supabase.from("music_library").select("*").eq("active", true).order("created_at", { ascending: false });
       setLibTracks(lib || []);
     })();
-  }, [event.id]);
+  }, []);
 
   async function updateEvent(patch) {
     const j = await api.fn("update-event", { eventId: event.id, patch });
@@ -525,6 +544,31 @@ export function EventDetail({ event, api, back }) {
                 ))}
               </ul>
             )}
+          </div>
+        );
+      })()}
+
+      {/* ---- LIVE PULSE ---- what's happening right now, no refresh needed */}
+      {(() => {
+        void tick;
+        const now = Date.now();
+        const recent = photos.filter((p) => now - new Date(p.created_at).getTime() < 5 * 60 * 1000).length;
+        const heartsTotal = Object.values(counts).reduce((a, b) => a + b, 0);
+        const ago = lastChange ? Math.max(0, Math.round((now - lastChange.getTime()) / 60000)) : null;
+        const live = ago != null && ago < 5;
+        return (
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: C.card, border: `1px solid ${live ? C.gold : "rgba(255,255,255,.12)"}`, borderRadius: 16, padding: "12px 16px" }}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: live ? "#4ade80" : C.second, boxShadow: live ? "0 0 0 4px rgba(74,222,128,.18)" : "none", animation: live ? "pulseDot 1.6s ease-in-out infinite" : "none", flexShrink: 0 }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+              {live ? t("pulse.live") : t("pulse.quiet")}
+              <span style={{ fontWeight: 400, color: C.second }}>
+                {" · "}{recent} {t("pulse.recent")}{" · "}{contributors.length} {t("pulse.guests")}{" · "}{heartsTotal} {t("pulse.hearts")}{pending.length ? ` · ${pending.length} ${t("pulse.waiting")}` : ""}
+              </span>
+            </div>
+            <div style={{ marginLeft: "auto", fontSize: 12, color: C.second }}>
+              {ago == null ? t("pulse.nothingYet") : ago === 0 ? t("pulse.justNow") : `${t("pulse.last")} ${ago} ${ago === 1 ? t("pulse.minute") : t("pulse.minutes")}`}
+            </div>
+            <style>{`@keyframes pulseDot { 0%,100% { transform: scale(1) } 50% { transform: scale(1.35) } }`}</style>
           </div>
         );
       })()}
