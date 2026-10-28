@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
-import { fetchReactions, like, getDeviceId } from "../lib/reactions.js";
+import { fetchReactions, like, getDeviceId, rxKey } from "../lib/reactions.js";
+import { ReactionBuddy, LIVE_REACTION_CSS } from "../components/LiveReactions.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import QRCode from "qrcode";
 
@@ -216,30 +217,40 @@ export default function SlideshowPage() {
     const t = setInterval(send, 5000);
     return () => clearInterval(t);
   }, [idx, photos]);
-  function spawnHearts(n = 1) {
+  // Each reaction becomes an animated character (heart buddy or thumbs-up
+  // buddy). A quick run of reactions on the same photo earns a big one.
+  const streakRef = useRef({ n: 0, at: 0 });
+  function spawnHearts(n = 1, kind = "heart") {
+    const now = Date.now();
+    streakRef.current = now - streakRef.current.at < 2500 ? { n: streakRef.current.n + n, at: now } : { n, at: now };
+    const big = streakRef.current.n >= 5;
+    if (big) streakRef.current = { n: 0, at: now };
     const batch = Array.from({ length: n }, (_, i) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}-${i}`,
-      x: 8 + Math.random() * 84,          // vw
-      size: 2.2 + Math.random() * 2.2,     // vw
-      drift: (Math.random() - 0.5) * 12,   // vw sway
-      dur: 2.6 + Math.random() * 1.2,      // s
-      delay: i * 0.12,
+      id: `${now}-${Math.random().toString(36).slice(2)}-${i}`,
+      kind,
+      big: big && i === n - 1,
+      x: 8 + Math.random() * 78,          // vw
+      size: 5 + Math.random() * 3,         // vw
+      drift: (Math.random() - 0.5) * 14,   // vw sway
+      dur: 4.2 + Math.random() * 1.4,      // s
+      delay: i * 0.15,
+      blink: (Math.random() * 1.8).toFixed(2),
     }));
-    setFloaters((f) => [...f, ...batch].slice(-40));
-    setTimeout(() => setFloaters((f) => f.filter((h) => !batch.some((b) => b.id === h.id))), 4200);
+    setFloaters((f) => [...f, ...batch].slice(-30));
+    setTimeout(() => setFloaters((f) => f.filter((h) => !batch.some((b) => b.id === h.id))), 6400);
   }
   const [countPop, setCountPop] = useState(0);
   function onHeart(row) {
     if (!row || !row.photo_id) return;
     if (row.device_id && row.device_id === getDeviceId()) return; // our own tap, already shown
     setCounts((prev) => ({ ...prev, [row.photo_id]: (prev[row.photo_id] || 0) + 1 }));
-    if (row.photo_id === curIdRef.current) { spawnHearts(1); setCountPop((n) => n + 1); }
+    if (row.photo_id === curIdRef.current) { spawnHearts(1, row.kind || "heart"); setCountPop((n) => n + 1); }
   }
 
   async function likeCurrent() {
     const cur = photos[idx];
-    if (!cur || !event || liked.has(cur.id)) return;
-    setLiked((prev) => new Set(prev).add(cur.id));
+    if (!cur || !event || liked.has(rxKey(cur.id, "heart"))) return;
+    setLiked((prev) => new Set(prev).add(rxKey(cur.id, "heart")));
     setCounts((prev) => ({ ...prev, [cur.id]: (prev[cur.id] || 0) + 1 }));
     spawnHearts(1); setCountPop((n) => n + 1);
     try { await like(cur.id, event.id); } catch { /* keep optimistic */ }
@@ -329,7 +340,7 @@ export default function SlideshowPage() {
   }
   const isMoment = event && event.featured_photo_id && cur.id === event.featured_photo_id;
   const curCount = counts[cur.id] || 0;
-  const curLiked = liked.has(cur.id);
+  const curLiked = liked.has(rxKey(cur.id, "heart"));
 
   return (
     <Stage onMouseMove={wake} onClick={wake}>
@@ -342,12 +353,12 @@ export default function SlideshowPage() {
 
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(11,20,38,.6) 100%)", pointerEvents: "none" }} />
 
-      {/* Floating hearts: one per guest heart on the photo currently showing */}
+      {/* Animated reaction characters: one per guest heart or like on the photo currently showing */}
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
         {floaters.map((h) => (
-          <svg key={h.id} viewBox="0 0 24 24" style={{ position: "absolute", left: `${h.x}vw`, bottom: "-6vw", width: `${h.size}vw`, height: `${h.size}vw`, "--drift": `${h.drift}vw`, animation: `heartFloat ${h.dur}s cubic-bezier(.2,.7,.3,1) ${h.delay}s forwards`, filter: "drop-shadow(0 4px 10px rgba(0,0,0,.35))" }}>
-            <path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} />
-          </svg>
+          <div key={h.id} className={"rx-float" + (h.big ? " rx-big" : "")} style={{ left: `${h.x}vw`, width: `${h.big ? h.size * 2 : h.size}vw`, height: `${h.big ? h.size * 2 : h.size}vw`, "--drift": `${h.drift}vw`, "--dur": `${h.big ? h.dur + 1 : h.dur}s`, "--blink": `${h.blink}s`, animationDelay: `${h.delay}s` }}>
+            <ReactionBuddy kind={h.kind} big={h.big} />
+          </div>
         ))}
       </div>
 
@@ -441,12 +452,7 @@ export default function SlideshowPage() {
 
       <style>{`
         @keyframes grow { from { width: 0 } to { width: 100% } }
-        @keyframes heartFloat {
-          0%   { transform: translate(0, 0) scale(.6); opacity: 0 }
-          10%  { opacity: 1; transform: translate(calc(var(--drift) * .2), -8vh) scale(1.05) }
-          50%  { transform: translate(calc(var(--drift) * .6), -38vh) scale(1) }
-          100% { transform: translate(var(--drift), -78vh) scale(.9); opacity: 0 }
-        }
+        ${LIVE_REACTION_CSS}
         @keyframes countPop { 0% { transform: scale(1) } 35% { transform: scale(1.28) } 100% { transform: scale(1) } }
         @keyframes kb0 { from { transform: scale(1.04) translate(0,0) } to { transform: scale(1.15) translate(-2%, -1.5%) } }
         @keyframes kb1 { from { transform: scale(1.15) translate(-2%, 1.5%) } to { transform: scale(1.04) translate(0,0) } }
