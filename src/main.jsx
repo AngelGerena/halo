@@ -14,6 +14,7 @@ import SignUpPage from "./pages/SignUpPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import DemoPage from "./pages/DemoPage.jsx";
 
 // The marketing/landing page is served as a static file at the site root by
 // Netlify (public/landing.html -> "/"), so React only owns the real app
@@ -32,6 +33,7 @@ createRoot(document.getElementById("root")).render(
             <Route path="/live/:code" element={<SlideshowPage />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/legal" element={<Legal />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/login" element={<LoginPage />} />
