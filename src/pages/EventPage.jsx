@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
-import { fetchReactions, like } from "../lib/reactions.js";
+import { fetchReactions, like, rxKey } from "../lib/reactions.js";
 import { signPhotoUploads, putToR2 } from "../lib/r2upload.js";
 import { scoreImage, C, hamming } from "../lib/score.js";
 import { Footer } from "../components/UI.jsx";
@@ -73,20 +73,21 @@ export default function EventPage() {
       .subscribe();
     return () => supabase.removeChannel(ch);
   }, [event, contributor]);
-  // Hearts: counts for every photo we show + the set this device has hearted.
-  const [counts, setCounts] = useState({});
+  // Reactions: per-kind counts for every photo we show + the set this device has sent.
+  const [kinds, setKinds] = useState({});
   const [liked, setLiked] = useState(() => new Set());
   async function refreshReactions(ids) {
     if (!ids.length) return;
     const r = await fetchReactions(ids);
-    setCounts((prev) => ({ ...prev, ...r.counts }));
+    setKinds((prev) => ({ ...prev, ...r.kinds }));
     setLiked((prev) => new Set([...prev, ...r.liked]));
   }
-  async function onLike(photoId) {
-    if (liked.has(photoId)) return;
-    setLiked((prev) => new Set(prev).add(photoId));
-    setCounts((prev) => ({ ...prev, [photoId]: (prev[photoId] || 0) + 1 }));
-    try { await like(photoId, event.id); } catch { /* keep optimistic */ }
+  async function onLike(photoId, kind = "heart") {
+    const key = rxKey(photoId, kind);
+    if (liked.has(key)) return;
+    setLiked((prev) => new Set(prev).add(key));
+    setKinds((prev) => ({ ...prev, [photoId]: { ...(prev[photoId] || {}), [kind]: ((prev[photoId] || {})[kind] || 0) + 1 } }));
+    try { await like(photoId, event.id, kind); } catch { /* keep optimistic */ }
   }
   async function loadEveryone(evrow) {
     if (!evrow) return;
@@ -498,7 +499,7 @@ export default function EventPage() {
               </div>
             )}
             {galleryShown.length > 0 ? (
-              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} counts={counts} liked={liked} onLike={onLike} />
+              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} kinds={kinds} liked={liked} onLike={onLike} />
             ) : (
               <div style={{ textAlign: "center", padding: "40px 20px", color: C.second }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{t("up.emptyTitle")}</div>
