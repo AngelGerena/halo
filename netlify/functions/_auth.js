@@ -66,7 +66,7 @@ export async function authenticate(event) {
     isAdmin = !!(profile && profile.is_admin);
   } catch { isAdmin = false; }
 
-  return { ok: true, isAdmin, userId: user.id, viaPasscode: false };
+  return { ok: true, isAdmin, userId: user.id, email: (user.email || "").toLowerCase() || null, viaPasscode: false };
 }
 
 /**
@@ -76,7 +76,7 @@ export async function authenticate(event) {
  * @param {object} auth      the result of authenticate()
  * @returns {Promise<boolean>} true if auth is admin, or owns the event
  */
-export async function ownsEventOrAdmin(supabase, eventId, auth) {
+export async function ownsEventOrAdmin(supabase, eventId, auth, { allowCohost = true } = {}) {
   if (!auth || !auth.ok) return false;
   if (auth.isAdmin) return true;            // app-global admins own everything
   if (!auth.userId || !eventId) return false;
@@ -84,5 +84,14 @@ export async function ownsEventOrAdmin(supabase, eventId, auth) {
   const { data: ev, error } = await supabase
     .from("events").select("owner_id").eq("id", eventId).single();
   if (error || !ev) return false;
-  return ev.owner_id === auth.userId;
+  if (ev.owner_id === auth.userId) return true;
+
+  // Co-hosts (invited by email) can run the event, but not delete it or
+  // change who the co-hosts are; those callers pass allowCohost: false.
+  if (!allowCohost || !auth.email) return false;
+  try {
+    const { data: row } = await supabase
+      .from("event_cohosts").select("id").eq("event_id", eventId).eq("email", auth.email).maybeSingle(); // emails are stored lowercased
+    return !!row;
+  } catch { return false; } // table not created yet
 }

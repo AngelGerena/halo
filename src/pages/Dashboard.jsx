@@ -44,8 +44,13 @@ function DashboardInner() {
 
   async function loadEvents() {
     // RLS scopes this to the signed-in client's own events.
-    const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
-    setEvents(data || []);
+    const { data: own } = await supabase.from("events").select("*").order("created_at", { ascending: false });
+    // Plus events this person co-hosts (invited by email by the owner).
+    let co = [];
+    try { co = (await api.fn("cohost-events", {})).events || []; } catch {}
+    const seen = new Set((own || []).map((e) => e.id));
+    const data = [...(own || []), ...co.filter((e) => !seen.has(e.id))];
+    setEvents(data);
     setLoading(false);
     // Deep link from the morning-after email: /dashboard?event=CODE opens
     // that event directly (once), then cleans the URL.
