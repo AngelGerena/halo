@@ -311,6 +311,10 @@ const STRINGS = {
   "admin.modSection.help": { en: "Both off = every photo goes straight to the gallery and live screen. Turn one on to hold photos for your approval first.", es: "Ambos apagados = cada foto va directo a la galer\u00eda y a la pantalla en vivo. Activa uno para retener fotos hasta que las apruebes." },
   // ---- V2 Phase 2: engagement (reactions, moment, recurring, connect CTA) ----
   "react.heart": { en: "Love this photo", es: "Me encanta esta foto" },
+  "live.photoWord": { en: "photo", es: "foto" },
+  "live.photosWord": { en: "photos", es: "fotos" },
+  "live.guestWord": { en: "guest", es: "invitado" },
+  "live.guestsWord": { en: "guests", es: "invitados" },
   "live.shotOfNight": { en: "Most loved so far", es: "La más querida hasta ahora" },
   "live.by": { en: "by", es: "de" },
   "live.moment": { en: "Moment of the Service", es: "Momento del Servicio" },
