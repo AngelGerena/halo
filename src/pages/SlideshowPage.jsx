@@ -174,8 +174,22 @@ export default function SlideshowPage() {
     const tmr = setInterval(load, 60000); // safety net if realtime drops
     return () => { alive = false; clearInterval(tmr); };
   }, [event]);
+  // ---- Top photographers ----
+  // Every BOARD_EVERY slides, a "Top photographers tonight" card shows the
+  // five guests with the most photos on the wall. Friendly competition: it
+  // reliably gets people shooting more. Needs at least two named guests.
+  const BOARD_EVERY = 12, BOARD_HOLD = 9000;
+  const [board, setBoard] = useState(null); // [{ name, n }]
+
   useEffect(() => {
     advancesRef.current += 1;
+    if (advancesRef.current % BOARD_EVERY === 0) {
+      if (spot) return;
+      const tally = {};
+      photos.forEach((p) => { const nm = p.contributor_id && names[p.contributor_id]; if (nm && nm !== "Guest") tally[p.contributor_id] = (tally[p.contributor_id] || 0) + 1; });
+      const top = Object.entries(tally).map(([id, n]) => ({ name: names[id], n })).sort((a, b) => b.n - a.n).slice(0, 5);
+      if (top.length >= 2) { setWishCard(null); setBoard(top); return; }
+    }
     if (advancesRef.current % WISH_EVERY !== 0 || !wishes.length || spot) return;
     let w = null;
     while (freshWishRef.current.length && !w) { const id = freshWishRef.current.shift(); w = wishes.find((x) => x.id === id) || null; }
@@ -185,6 +199,10 @@ export default function SlideshowPage() {
 
   // advance timer
   useEffect(() => {
+    if (board) {
+      const tmr = setTimeout(() => setBoard(null), BOARD_HOLD);
+      return () => clearTimeout(tmr);
+    }
     if (wishCard) {
       const tmr = setTimeout(() => setWishCard(null), WISH_HOLD);
       return () => clearTimeout(tmr);
@@ -195,7 +213,7 @@ export default function SlideshowPage() {
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, photos.length, spot, wishCard]);
+  }, [idx, paused, photos.length, spot, wishCard, board]);
 
   // ---- Shot of the night ----
   // Every 10 minutes, if any photo has hearts, jump to the most-hearted one
@@ -483,6 +501,26 @@ export default function SlideshowPage() {
         );
       })()}
 
+      {/* Top photographers card */}
+      {board && (
+        <div key="board" style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, rgba(10,4,16,.7), rgba(10,4,16,.93))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
+          <div style={{ width: "min(56vw, 900px)", textAlign: "center" }}>
+            <div style={{ color: C.gold, fontSize: "1.1vw", fontWeight: 800, letterSpacing: ".35em", textTransform: "uppercase" }}>{t("live.boardEyebrow")}</div>
+            <div className="serif" style={{ color: "#fff", fontSize: "3.6vw", fontWeight: 700, lineHeight: 1.1, margin: ".6vw 0 2.2vw" }}>{t("live.boardTitle")}</div>
+            <div style={{ display: "grid", gap: ".9vw" }}>
+              {board.map((r, i) => (
+                <div key={r.name + i} style={{ display: "flex", alignItems: "center", gap: "1.4vw", background: i === 0 ? "rgba(255,184,107,.16)" : "rgba(255,255,255,.06)", border: `1px solid ${i === 0 ? C.gold : "rgba(255,255,255,.14)"}`, borderRadius: "1.2vw", padding: "1vw 1.6vw", animation: `boardIn .6s cubic-bezier(.2,.9,.3,1.2) ${0.25 + i * 0.12}s both` }}>
+                  <div style={{ width: "3vw", height: "3vw", flex: "0 0 auto", borderRadius: "50%", display: "grid", placeItems: "center", background: i === 0 ? C.gold : "rgba(255,255,255,.12)", color: i === 0 ? "#1a0f0a" : "#fff", fontWeight: 800, fontSize: "1.5vw" }}>{i + 1}</div>
+                  <div style={{ flex: 1, textAlign: "left", color: "#fff", fontSize: "1.9vw", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                  <div style={{ color: i === 0 ? C.gold : "rgba(255,255,255,.85)", fontSize: "1.6vw", fontWeight: 800 }}>{r.n} <span style={{ fontSize: "1vw", fontWeight: 600, opacity: .8 }}>{r.n === 1 ? t("live.boardPhoto") : t("live.boardPhotos")}</span></div>
+                </div>
+              ))}
+            </div>
+            <div style={{ color: "rgba(255,255,255,.75)", fontSize: "1.15vw", marginTop: "2vw" }}>{t("live.boardSub")}</div>
+          </div>
+        </div>
+      )}
+
       {/* Guestbook message card */}
       {wishCard && (
         <div key={"w" + wishCard.id} style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, rgba(10,4,16,.72), rgba(10,4,16,.92))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
@@ -538,6 +576,7 @@ export default function SlideshowPage() {
       <style>{`
         @keyframes grow { from { width: 0 } to { width: 100% } }
         ${LIVE_REACTION_CSS}
+        @keyframes boardIn { from { opacity: 0; transform: translateY(1.4vw) scale(.97) } to { opacity: 1; transform: none } }
         @keyframes chIn { from { opacity: 0; transform: translate(-50%, 2vh) scale(.96) } to { opacity: 1; transform: translate(-50%, 0) scale(1) } }
         @keyframes countPop { 0% { transform: scale(1) } 35% { transform: scale(1.28) } 100% { transform: scale(1) } }
         @keyframes kb0 { from { transform: scale(1.04) translate(0,0) } to { transform: scale(1.15) translate(-2%, -1.5%) } }
