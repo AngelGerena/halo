@@ -26,6 +26,7 @@ export default function EventPage() {
   const [kidsInFrame, setKidsInFrame] = useState(false);
   useEffect(() => { if (tab === "gallery" && event) loadEveryone(event); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps // consent: children in these photos
   const inputRef = useRef(null);
+  const cameraRef = useRef(null);
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
@@ -272,12 +273,21 @@ export default function EventPage() {
               ))}
             </div>
 
-            {/* 2) THE action — biggest thing on the screen */}
-            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
-              onClick={() => inputRef.current?.click()} style={S.drop}>
-              <div style={S.dropIc} aria-hidden="true">&#43;</div>
-              <div style={{ fontWeight: 700, fontSize: 18 }}>{t("up.tapToAdd")}</div>
-              <div style={{ fontSize: 12.5, color: C.second, marginTop: 4 }}>{t("up.dragHere")}</div>
+            {/* 2) THE action — biggest thing on the screen. Camera-first: the
+                big button opens the phone camera directly (capture attr; on a
+                laptop it just opens the picker). A second button opens the
+                photo library for shots already taken. */}
+            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }} style={S.drop}>
+              <button type="button" onClick={() => cameraRef.current?.click()} style={S.camBtn}>
+                <span style={S.camIc}><CameraIcon size={30} /></span>
+                <span style={{ display: "block", fontWeight: 800, fontSize: 19, marginTop: 10 }}>{t("up.takePhoto")}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.takePhotoSub")}</span>
+              </button>
+              <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
+                <UploadIcon size={18} /> {t("up.fromLibrary")}
+              </button>
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
+                onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <input ref={inputRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </div>
@@ -436,7 +446,10 @@ const S = {
   welcomeCard: { background: "rgba(255,255,255,.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
   note: { textAlign: "center", fontSize: 11.5, color: C.second, marginTop: 16, letterSpacing: ".03em" },
   thumb: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" },
-  drop: { cursor: "pointer", border: "1.6px dashed rgba(255,255,255,.28)", background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "34px 20px", textAlign: "center" },
+  drop: { border: "1.6px dashed rgba(255,255,255,.28)", background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "22px 20px 20px", textAlign: "center" },
   dropIc: { width: 46, height: 46, margin: "0 auto 10px", borderRadius: "50%", border: `3px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: 22 },
+  camBtn: { display: "block", width: "100%", background: "transparent", border: "none", color: C.text, padding: "6px 0 14px", cursor: "pointer", textAlign: "center" },
+  camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" },
+  libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
   tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "#0d0716", backdropFilter: "blur(8px)" },
 };

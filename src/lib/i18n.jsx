@@ -44,6 +44,9 @@ const STRINGS = {
   // uploader
   "up.welcome": { en: "Welcome", es: "Bienvenido" },
   "up.uploadEverything": { en: "upload everything, HALO keeps the best.", es: "sube todo, HALO conserva las mejores." },
+  "up.takePhoto": { en: "Take a photo", es: "Toma una foto" },
+  "up.takePhotoSub": { en: "Opens your camera. Snap it and it’s in.", es: "Abre tu cámara. Tómala y listo." },
+  "up.fromLibrary": { en: "Choose from your photos", es: "Elegir de tus fotos" },
   "up.tapToAdd": { en: "Add your photos", es: "Agrega tus fotos" },
   "up.dragHere": { en: "You can pick a bunch at once. Tap each one, then tap “Add”.", es: "Puedes elegir varias a la vez. Toca cada una y luego “Agregar”." },
   "up.uploading": { en: "Sending", es: "Enviando" },
@@ -51,8 +54,8 @@ const STRINGS = {
   "up.keptByHalo": { en: "Kept by HALO", es: "Conservadas por HALO" },
   // ---- friendly guest upload screen (plain language, no jargon) ----
   "up.howTitle": { en: "It’s easy", es: "Es muy fácil" },
-  "up.step1": { en: "Snap a photo", es: "Toma una foto" },
-  "up.step2": { en: "Tap Add", es: "Toca Agregar" },
+  "up.step1": { en: "Tap the big button", es: "Toca el botón grande" },
+  "up.step2": { en: "Snap it or pick one", es: "Tómala o elige una" },
   "up.step3": { en: "See it on the big screen", es: "Mírala en la pantalla grande" },
   "up.hintFirst": { en: "Tap the big button above to add your first photo!", es: "¡Toca el botón grande de arriba para agregar tu primera foto!" },
   "up.countOne": { en: "1 photo added.", es: "1 foto agregada." },
