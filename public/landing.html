@@ -36,7 +36,14 @@
 
     function applyTheme(t) {
       if (!t || !VALID[t]) t = "midnight";
-      document.body ? document.body.setAttribute("data-pal", t) : root.setAttribute("data-pal-pending", t);
+      // Swap instantly: no colour animations while the theme changes.
+      root.classList.add("pal-swap");
+      if (document.body) document.body.setAttribute("data-pal", t);
+      root.setAttribute("data-pal-cached", t);
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        root.classList.remove("pal-swap");
+        root.classList.remove("pal-wait");
+      }); });
       var m = document.querySelector('meta[name="theme-color"]');
       if (m && THEME_META[t]) m.setAttribute("content", THEME_META[t]);
       try { localStorage.setItem("halo_theme", t); } catch (e) {}
@@ -45,8 +52,16 @@
     // 1) Instant: last-known theme from localStorage (no network wait, no flash).
     var cached = null;
     try { cached = localStorage.getItem("halo_theme"); } catch (e) {}
-    // Body isn't parsed yet in <head>; stash it and apply on DOMContentLoaded too.
+    // Body isn't parsed yet in <head>; stash it. A one-line script right after
+    // <body> applies it before anything paints.
     root.setAttribute("data-pal-cached", cached && VALID[cached] ? cached : "midnight");
+    // First visit (nothing cached): keep the page invisible for a moment so it
+    // doesn't paint in the default colours and then switch. Shown as soon as
+    // the saved theme arrives, or after 900 ms at the latest.
+    if (!(cached && VALID[cached])) {
+      root.classList.add("pal-wait");
+      setTimeout(function () { root.classList.remove("pal-wait"); }, 900);
+    }
 
     // 2) Fresh: fetch the live config and apply theme + swap any custom photos.
     function swap(id, url) {
@@ -66,18 +81,18 @@
           swap("img-quinceanera", cfg.images.quinceanera);
         }
       })
-      .catch(function () {});
+      .catch(function () { root.classList.remove("pal-wait"); });
 
     // Apply the cached theme the moment the body exists (covers the pre-fetch gap).
     document.addEventListener("DOMContentLoaded", function () {
-      if (!document.body.getAttribute("data-pal")) {
-        applyTheme(root.getAttribute("data-pal-cached") || "midnight");
-      }
+      document.body.setAttribute("data-pal", root.getAttribute("data-pal-cached") || "midnight");
     });
   })();
   </script>
+<style>html.pal-swap *,html.pal-swap *::before,html.pal-swap *::after{transition:none!important}html.pal-wait body{opacity:0}html body{transition:opacity .25s ease,background .4s ease,color .4s ease}</style>
 </head>
 <body data-pal="midnight">
+<script>document.body.setAttribute("data-pal", document.documentElement.getAttribute("data-pal-cached") || "midnight");</script>
 
   <!-- ============ LANGUAGE TOGGLE (floating) ============ -->
   <div class="lang-toggle" role="group" aria-label="Language / Idioma">
