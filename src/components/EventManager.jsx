@@ -54,7 +54,7 @@ export function Toggle({ on, onClick, title, help }) {
 // ---- Create event -----------------------------------------------------------
 // `api.fn("create-event", {...})` is expected to resolve { event } on success.
 // `api.fn("translate", {...})` resolves { translations: { name, host, date } }.
-export function CreateEvent({ api, onCreated }) {
+export function CreateEvent({ api, onCreated, renderTrigger }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -109,6 +109,7 @@ export function CreateEvent({ api, onCreated }) {
   }
 
   if (!open) {
+    if (renderTrigger) return renderTrigger(() => setOpen(true));
     return <button onClick={() => setOpen(true)} style={{ marginTop: 18, background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14 }}>{t("admin.createEvent")}</button>;
   }
 

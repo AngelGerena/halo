@@ -346,6 +346,15 @@ const STRINGS = {
   "admin.publishing": { en: "Publishing…", es: "Publicando…" },
 
   // client dashboard (owner-scoped space)
+  "dash.title": { en: "My events", es: "Mis eventos" },
+  "dash.createSub": { en: "Wedding, quinceañera, church service or party", es: "Boda, quinceañera, servicio o fiesta" },
+  "dash.wall": { en: "Live wall", es: "Pantalla" },
+  "dash.copy": { en: "Copy", es: "Copiar" },
+  "dash.copied": { en: "Copied", es: "Copiado" },
+  "dash.photos": { en: "Photos", es: "Fotos" },
+  "dash.guests": { en: "Guests", es: "Invitados" },
+  "dash.clips": { en: "Clips", es: "Videos" },
+  "dash.waiting": { en: "Your guests' photos will show up here as soon as the first one lands.", es: "Las fotos de tus invitados aparecerán aquí en cuanto llegue la primera." },
   "dash.myEvents": { en: "My Events", es: "Mis Eventos" },
   "dash.space": { en: "Your space", es: "Tu espacio" },
   "dash.signOut": { en: "Sign out", es: "Cerrar sesión" },
