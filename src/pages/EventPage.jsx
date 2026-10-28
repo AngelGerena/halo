@@ -27,6 +27,7 @@ export default function EventPage() {
   const [kidsInFrame, setKidsInFrame] = useState(false);
   useEffect(() => { if (tab === "gallery" && event) loadEveryone(event); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps // consent: children in these photos
   const inputRef = useRef(null);
+  const cameraRef = useRef(null);
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
@@ -47,7 +48,9 @@ export default function EventPage() {
   }, [code]);
 
   // Warm the in-browser explicit-content model in the background.
-  useEffect(() => { if (contributor) preloadNsfw(); }, [contributor]);
+  // Warm the model as soon as the event loads: with add-first there is no name
+  // screen to hide the load behind anymore.
+  useEffect(() => { if (event) preloadNsfw(); }, [event]);
 
   // Everyone's photos (the whole event), for the Gallery tab. Only kept +
   // approved rows: anything held for the host (kids-flagged, review mode,
@@ -107,6 +110,55 @@ export default function EventPage() {
     refreshReactions(rows.map((p) => p.id));
   }
 
+  // Add first, name after. The first upload silently creates the guest as
+  // "Guest" (anon:true); once their photos are in we ask who to thank.
+  const ANON_NAME = "Guest";
+  async function ensureContributor() {
+    if (contributor) return contributor;
+    const { data, error } = await supabase
+      .from("contributors")
+      .insert({ event_id: event.id, name: ANON_NAME, email: null })
+      .select().single();
+    if (error) { alert(t("event.startError")); return null; }
+    const c = { id: data.id, name: data.name, anon: true };
+    localStorage.setItem(LS_KEY(code), JSON.stringify(c));
+    setContributor(c);
+    loadEveryone(event);
+    return c;
+  }
+  async function addFilesFirst(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const c = await ensureContributor();
+    if (!c) return;
+    setTab("add");
+    // addFiles reads `contributor` from state; pass the fresh one explicitly.
+    await addFiles(files, c);
+  }
+  const [nameSaving, setNameSaving] = useState(false);
+  async function saveName() {
+    if (!name.trim() || !contributor) return;
+    setNameSaving(true);
+    try {
+      const r = await fetch("/.netlify/functions/rename-contributor", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contributorId: contributor.id, name: name.trim(), email: email.trim() || null }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "save failed");
+      const c = { id: contributor.id, name: j.contributor.name, anon: false };
+      localStorage.setItem(LS_KEY(code), JSON.stringify(c));
+      setContributor(c);
+      if (email.trim()) {
+        fetch("/.netlify/functions/notify-welcome", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), name: c.name, eventName: event.name, galleryUrl: `${window.location.origin}/g/${c.id}` }),
+        }).catch(() => {});
+      }
+    } catch (e) { alert(t("event.startError")); }
+    finally { setNameSaving(false); }
+  }
+
   async function startSession() {
     if (!name.trim()) return;
     const { data, error } = await supabase
@@ -130,8 +182,9 @@ export default function EventPage() {
     }
   }
 
-  async function addFiles(fileList) {
+  async function addFiles(fileList, who = contributor) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (!who) return addFilesFirst(files);
     setUploading((u) => u + files.length);
 
     // moderation gate: public immediately, or held for the super-admin to review first.
@@ -160,13 +213,13 @@ export default function EventPage() {
 
         // Upload straight to R2 via a short-lived presigned URL (secret stays server-side).
         const [signed] = await signPhotoUploads({
-          eventId: event.id, contributorId: contributor.id, count: 1, contentType: f.type || "image/jpeg",
+          eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg",
         });
         const path = signed.path;
         await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
         const { data: row, error } = await supabase.from("photos").insert({
           event_id: event.id,
-          contributor_id: contributor.id,
+          contributor_id: who.id,
           storage_path: path,
           quality: s.quality, focus: s.focus, exposure: s.exposure,
           kept, width: s.width, height: s.height,
@@ -186,7 +239,7 @@ export default function EventPage() {
         // account), so edit-photo can authorize the enhancement.
         fetch("/.netlify/functions/edit-photo", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoId: row.id, contributorId: contributor.id }),
+          body: JSON.stringify({ photoId: row.id, contributorId: who.id }),
         })
           .then((r) => (r.ok ? r.json() : null))
           .then((res) => {
@@ -244,19 +297,25 @@ export default function EventPage() {
             )}
           </div>
 
+          {/* No form before the first photo. Two buttons, then we ask who to thank. */}
           <div style={S.welcomeCard}>
             <p className="serif" style={{ fontStyle: "italic", fontSize: 16, lineHeight: 1.4, color: "#e9e3ef", textAlign: "center", margin: "0 0 18px" }}>
               {t("event.welcomeQuote")}
             </p>
-            <label className="eyebrow" style={{ display: "block", marginBottom: 7 }}>{t("event.yourName")}</label>
-            <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")}
-              onKeyDown={(e) => e.key === "Enter" && startSession()} style={{ marginBottom: 14 }} />
-            <label className="eyebrow" style={{ display: "block", marginBottom: 7 }}>
-              {t("event.email")} <span style={{ textTransform: "none", letterSpacing: 0, color: C.second }}>· {t("event.optional")}</span>
-            </label>
-            <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com"
-              onKeyDown={(e) => e.key === "Enter" && startSession()} style={{ marginBottom: 18 }} />
-            <button className="btn-gold btn-full" onClick={startSession}>{t("event.start")}</button>
+            <button type="button" onClick={() => cameraRef.current?.click()} style={{ ...S.camBtn, padding: "0 0 12px" }}>
+              <span style={S.camIc}><CameraIcon size={30} /></span>
+              <span style={{ display: "block", fontWeight: 800, fontSize: 19, marginTop: 10 }}>{t("up.takePhoto")}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.takePhotoSub")}</span>
+            </button>
+            <div style={{ textAlign: "center" }}>
+              <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
+                <UploadIcon size={18} /> {t("up.fromLibrary")}
+              </button>
+            </div>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
+              onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
+            <input ref={inputRef} type="file" accept="image/*" multiple hidden
+              onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
           </div>
           <p style={S.note}>{t("event.welcomeNote")}</p>
         </div>
@@ -286,7 +345,7 @@ export default function EventPage() {
           </a>
           <div style={{ minWidth: 0 }}>
             <div className="display" style={{ fontSize: 20, lineHeight: 1 }}>{ev(event, "name")}</div>
-            <div style={{ color: C.second, fontSize: 11.5, marginTop: 3 }}>{t("up.welcome")}, {contributor.name}</div>
+            <div style={{ color: C.second, fontSize: 11.5, marginTop: 3 }}>{contributor.anon ? t("up.welcomeAnon") : `${t("up.welcome")}, ${contributor.name}`}</div>
           </div>
         </div>
 
@@ -319,12 +378,21 @@ export default function EventPage() {
               ))}
             </div>
 
-            {/* 2) THE action — biggest thing on the screen */}
-            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
-              onClick={() => inputRef.current?.click()} style={S.drop}>
-              <div style={S.dropIc} aria-hidden="true">&#43;</div>
-              <div style={{ fontWeight: 700, fontSize: 18 }}>{t("up.tapToAdd")}</div>
-              <div style={{ fontSize: 12.5, color: C.second, marginTop: 4 }}>{t("up.dragHere")}</div>
+            {/* 2) THE action — biggest thing on the screen. Camera-first: the
+                big button opens the phone camera directly (capture attr; on a
+                laptop it just opens the picker). A second button opens the
+                photo library for shots already taken. */}
+            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }} style={S.drop}>
+              <button type="button" onClick={() => cameraRef.current?.click()} style={S.camBtn}>
+                <span style={S.camIc}><CameraIcon size={30} /></span>
+                <span style={{ display: "block", fontWeight: 800, fontSize: 19, marginTop: 10 }}>{t("up.takePhoto")}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.takePhotoSub")}</span>
+              </button>
+              <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
+                <UploadIcon size={18} /> {t("up.fromLibrary")}
+              </button>
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
+                onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <input ref={inputRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </div>
@@ -366,6 +434,21 @@ export default function EventPage() {
 
             {/* 4) Kids question — still here for hosts who want it, but below the
                 action and phrased as a simple question rather than a warning. */}
+            {/* 2b) Who should we thank? Only once they've added something and
+                haven't told us their name yet. Name is what the host sees under
+                each photo and what the gallery link is addressed to. */}
+            {contributor.anon && photos.length > 0 && (
+              <div style={{ marginTop: 14, background: C.panel, border: `1px solid ${C.gold}`, borderRadius: 16, padding: "14px 16px" }}>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>{t("up.whoTitle")}</div>
+                <div style={{ fontSize: 12.5, color: C.second, marginTop: 3, marginBottom: 12 }}>{t("up.whoSub")}</div>
+                <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")} autoComplete="name"
+                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 10 }} />
+                <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("up.whoEmail")} autoComplete="email"
+                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 12 }} />
+                <button className="btn-gold btn-full" onClick={saveName} disabled={nameSaving || !name.trim()} style={{ opacity: nameSaving || !name.trim() ? 0.6 : 1 }}>{nameSaving ? t("up.whoSaving") : t("up.whoSave")}</button>
+              </div>
+            )}
+
             <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
               style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
                 background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(255,255,255,.03)",
@@ -483,7 +566,10 @@ const S = {
   welcomeCard: { background: "rgba(255,255,255,.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
   note: { textAlign: "center", fontSize: 11.5, color: C.second, marginTop: 16, letterSpacing: ".03em" },
   thumb: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" },
-  drop: { cursor: "pointer", border: "1.6px dashed rgba(255,255,255,.28)", background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "34px 20px", textAlign: "center" },
+  drop: { border: "1.6px dashed rgba(255,255,255,.28)", background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "22px 20px 20px", textAlign: "center" },
   dropIc: { width: 46, height: 46, margin: "0 auto 10px", borderRadius: "50%", border: `3px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: 22 },
+  camBtn: { display: "block", width: "100%", background: "transparent", border: "none", color: C.text, padding: "6px 0 14px", cursor: "pointer", textAlign: "center" },
+  camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" },
+  libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
   tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "#0d0716", backdropFilter: "blur(8px)" },
 };
