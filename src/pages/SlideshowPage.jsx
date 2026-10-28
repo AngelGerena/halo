@@ -131,6 +131,11 @@ export default function SlideshowPage() {
         { event: "INSERT", schema: "public", table: "reactions", filter: `event_id=eq.${event.id}` },
         (payload) => onHeart(payload.new)
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "wishes", filter: `event_id=eq.${event.id}` },
+        (payload) => { const w = payload.new; if (w && w.status === "approved") { setWishes((cur) => [w, ...cur.filter((x) => x.id !== w.id)]); freshWishRef.current.push(w.id); } }
+      )
       .subscribe();
 
     // 2) Fallback poll — slow, just in case the socket silently drops.
@@ -150,15 +155,47 @@ export default function SlideshowPage() {
     return () => { alive = false; };
   }, [event, photos.length]);
 
+  // ---- Guestbook messages ----
+  // Every WISH_EVERY slides, a guest's message gets its own full-screen card
+  // for WISH_HOLD. Brand-new messages jump the queue; otherwise they rotate.
+  const WISH_EVERY = 5, WISH_HOLD = 9000;
+  const [wishes, setWishes] = useState([]);
+  const [wishCard, setWishCard] = useState(null);
+  const freshWishRef = useRef([]);
+  const wishTurnRef = useRef(0);
+  const advancesRef = useRef(0);
+  useEffect(() => {
+    if (!event) return;
+    let alive = true;
+    const load = () => supabase.from("wishes").select("*").eq("event_id", event.id).eq("status", "approved")
+      .order("created_at", { ascending: false }).limit(300)
+      .then(({ data }) => { if (alive && data) setWishes(data); });
+    load();
+    const tmr = setInterval(load, 60000); // safety net if realtime drops
+    return () => { alive = false; clearInterval(tmr); };
+  }, [event]);
+  useEffect(() => {
+    advancesRef.current += 1;
+    if (advancesRef.current % WISH_EVERY !== 0 || !wishes.length || spot) return;
+    let w = null;
+    while (freshWishRef.current.length && !w) { const id = freshWishRef.current.shift(); w = wishes.find((x) => x.id === id) || null; }
+    if (!w) { w = wishes[wishTurnRef.current % wishes.length]; wishTurnRef.current += 1; }
+    setWishCard(w);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // advance timer
   useEffect(() => {
+    if (wishCard) {
+      const tmr = setTimeout(() => setWishCard(null), WISH_HOLD);
+      return () => clearTimeout(tmr);
+    }
     if (paused || photos.length < 2) return;
     // Clips play once (up to WALL_SECONDS), then the wall moves on.
     const item = photos[idx];
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, photos.length, spot]);
+  }, [idx, paused, photos.length, spot, wishCard]);
 
   // ---- Shot of the night ----
   // Every 10 minutes, if any photo has hearts, jump to the most-hearted one
@@ -445,6 +482,19 @@ export default function SlideshowPage() {
           </div>
         );
       })()}
+
+      {/* Guestbook message card */}
+      {wishCard && (
+        <div key={"w" + wishCard.id} style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, rgba(10,4,16,.72), rgba(10,4,16,.92))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
+          <div style={{ maxWidth: "62vw", textAlign: "center", padding: "0 4vw" }}>
+            <svg viewBox="0 0 48 36" style={{ width: "4.2vw", height: "auto", opacity: .9 }} aria-hidden="true"><path d="M0 36V22C0 9.5 6.5 2 19 0l2 5c-7 2-10.5 6-11 12h9v19H0Zm27 0V22C27 9.5 33.5 2 46 0l2 5c-7 2-10.5 6-11 12h9v19H27Z" fill={C.gold} /></svg>
+            <div className="serif" style={{ color: "#fff", fontSize: wishCard.message.length > 160 ? "2.6vw" : wishCard.message.length > 80 ? "3.2vw" : "3.9vw", lineHeight: 1.3, fontWeight: 600, marginTop: "1.6vw", textShadow: "0 2px 18px rgba(0,0,0,.45)", overflowWrap: "anywhere" }}>{wishCard.message}</div>
+            <div style={{ marginTop: "2vw", color: C.gold, fontSize: "1.3vw", fontWeight: 700, letterSpacing: ".08em" }}>
+              {wishCard.name ? `${t("live.wishFrom")} ${wishCard.name}` : t("live.wishAnon")}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Moment of the Service ribbon */}
       {isMoment && !(spot && spot.photoId === cur.id) && (

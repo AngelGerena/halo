@@ -37,6 +37,10 @@ export default function EventPage() {
   const videoRef = useRef(null);
   const [notice, setNotice] = useState(""); // friendly one-line message (e.g. clip too long)
   const [challenge, setChallenge] = useState(null); // challenge id the next upload answers
+  // Guestbook: a short message for the couple / guest of honor.
+  const [wish, setWish] = useState("");
+  const [wishName, setWishName] = useState("");
+  const [wishState, setWishState] = useState("idle"); // idle | sending | sent | error
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
@@ -330,6 +334,26 @@ export default function EventPage() {
     return true;
   }
 
+  async function sendWish() {
+    const message = wish.trim().slice(0, 280);
+    if (!message || !event) return;
+    const who = contributor && !contributor.anon && contributor.name !== ANON_NAME ? contributor.name : (wishName.trim() || null);
+    setWishState("sending");
+    try {
+      await withRetry(async () => {
+        const { error } = await supabase.from("wishes").insert({
+          event_id: event.id,
+          contributor_id: contributor ? contributor.id : null,
+          name: who,
+          message,
+          status: event.moderation_mode === "review" ? "pending" : "approved",
+        });
+        if (error) throw error;
+      }, 3);
+      setWish(""); setWishState("sent");
+    } catch { setWishState("error"); }
+  }
+
   async function addFiles(fileList, who = contributor) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/") || isVideoFile(f));
     if (!who) return addFilesFirst(files);
@@ -576,6 +600,34 @@ export default function EventPage() {
                 </div>
               );
             })()}
+
+            {/* Guestbook: a message that shows on the big screen and goes in the keepsake */}
+            <div style={{ marginTop: 16, background: "rgba(255,255,255,.04)", border: `1px solid ${C.line2}`, borderRadius: 16, padding: "14px 14px 12px" }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>{t("gb.title")}</div>
+              <div style={{ fontSize: 12, color: C.second, margin: "3px 0 10px" }}>{t("gb.sub")}</div>
+              {wishState === "sent" ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between", flexWrap: "wrap" }}>
+                  <div style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>{t("gb.thanks")}</div>
+                  <button type="button" onClick={() => setWishState("idle")} style={{ ...S.libBtn, padding: "7px 14px", fontSize: 13 }}>{t("gb.another")}</button>
+                </div>
+              ) : (
+                <>
+                  {(!contributor || contributor.anon || contributor.name === ANON_NAME) && (
+                    <input value={wishName} onChange={(e) => setWishName(e.target.value)} placeholder={t("gb.name")} maxLength={60} autoComplete="name"
+                      style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, background: "rgba(0,0,0,.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, fontFamily: "inherit" }} />
+                  )}
+                  <textarea value={wish} onChange={(e) => setWish(e.target.value.slice(0, 280))} rows={3} placeholder={t("gb.placeholder")}
+                    style={{ width: "100%", boxSizing: "border-box", background: "rgba(0,0,0,.25)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 15, lineHeight: 1.45, fontFamily: "inherit", resize: "vertical" }} />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
+                    <span style={{ fontSize: 11, color: wishState === "error" ? C.pink : C.second }}>{wishState === "error" ? t("gb.error") : `${wish.length}/280`}</span>
+                    <button type="button" onClick={sendWish} disabled={!wish.trim() || wishState === "sending"}
+                      style={{ background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "9px 18px", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: !wish.trim() || wishState === "sending" ? 0.55 : 1 }}>
+                      {wishState === "sending" ? t("gb.sending") : t("gb.send")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             {waiting.length > 0 && (
               <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>

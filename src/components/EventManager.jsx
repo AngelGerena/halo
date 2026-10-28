@@ -27,7 +27,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
-import { downloadZip, downloadOne } from "../lib/zipDownload.js";
+import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS } from "../lib/looks.js";
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
@@ -433,13 +433,28 @@ export function EventDetail({ event, api, back }) {
   }
   // One ZIP with every photo currently shown (respects the kept/all and tag filters).
   const [zipping, setZipping] = useState(null); // null | { done, total }
+  // Guestbook messages (host sees all, including hidden ones).
+  const [wishes, setWishes] = useState([]);
+  const loadWishes = async () => {
+    try { const r = await api.fn("manage-wishes", { eventId: event.id }); setWishes(r.wishes || []); } catch { /* table not created yet */ }
+  };
+  useEffect(() => { loadWishes(); const tmr = setInterval(loadWishes, 45000); return () => clearInterval(tmr); }, [event.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function setWishStatus(id, status) {
+    setWishes((cur) => cur.map((w) => (w.id === id ? { ...w, status } : w)));
+    try { await api.fn("manage-wishes", { eventId: event.id, wishIds: [id], status }); } catch (e) { alert(e.message); loadWishes(); }
+  }
+  function wishesText() {
+    const shown = wishes.filter((w) => w.status === "approved");
+    return `${ev(event, "name")} — ${t("admin.wishes")}\n\n` + shown.slice().reverse().map((w) => `"${w.message}"\n  — ${w.name || (lang === "es" ? "Un invitado" : "A guest")}\n`).join("\n");
+  }
   async function downloadAll() {
     if (zipping || !shown.length) return;
     setZipping({ done: 0, total: shown.length });
     try {
       const items = shown.map((p) => ({ url: hrefFor(p), name: fileNameFor(p) }));
       const slug = String(event.name || event.code).replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
-      const { missing } = await downloadZip(items, `HALO_${slug || event.code}_${items.length}-photos.zip`, (done, total) => setZipping({ done, total }));
+      const extras = wishes.some((w) => w.status === "approved") ? [{ name: "guestbook-messages.txt", text: wishesText() }] : [];
+      const { missing } = await downloadZip(items, `HALO_${slug || event.code}_${items.length}-photos.zip`, (done, total) => setZipping({ done, total }), extras);
       if (missing.length) alert(t("admin.zipMissing").replace("{n}", missing.length));
     } catch (e) { alert(t("admin.zipFailed")); }
     finally { setZipping(null); }
@@ -652,6 +667,34 @@ export function EventDetail({ event, api, back }) {
           </div>
         </div>
       )}
+
+      {/* ---- GUESTBOOK MESSAGES ---- */}
+      <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 800, color: C.text, fontSize: 15 }}>{t("admin.wishes")} ({wishes.filter((w) => w.status === "approved").length})</summary>
+        <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px" }}>{t("admin.wishes.help")}</p>
+        {wishes.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.second }}>{t("admin.wishesNone")}</div>
+        ) : (
+          <>
+            <div style={{ display: "grid", gap: 8, maxHeight: 360, overflowY: "auto" }}>
+              {wishes.map((w) => (
+                <div key={w.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,255,255,.03)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", opacity: w.status === "hidden" ? 0.5 : 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, color: C.text, overflowWrap: "anywhere" }}>{w.message}</div>
+                    <div style={{ fontSize: 11, color: C.second, marginTop: 3 }}>{w.name || "—"}{w.status === "hidden" ? ` · ${t("admin.hidden")}` : w.status === "pending" ? ` · ${t("grid.pending")}` : ""}</div>
+                  </div>
+                  <button type="button" onClick={() => setWishStatus(w.id, w.status === "approved" ? "hidden" : "approved")}
+                    style={{ flex: "0 0 auto", background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>
+                    {w.status === "approved" ? t("admin.hide") : t("admin.show")}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => saveBlob(new Blob([wishesText()], { type: "text/plain;charset=utf-8" }), `HALO_${event.code}_guestbook.txt`)}
+              style={{ marginTop: 10, background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{t("admin.wishesDownload")}</button>
+          </>
+        )}
+      </details>
 
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has
