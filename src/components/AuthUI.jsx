@@ -151,7 +151,7 @@ export function AuthShell({ title, sub, children }) {
         </div>
         <div className="lw-glass">{children}</div>
         <p className="lw-foot">
-          HALO by <a href="https://finessemedia.pro" target="_blank" rel="noopener noreferrer">Finesse Media</a>
+          HALO {t("auth.by")} <a href="https://finessemedia.pro" target="_blank" rel="noopener noreferrer">Finesse Media</a>
         </p>
       </div>
     </div>
@@ -170,7 +170,25 @@ export function AuthField({ label, hint, children }) {
   );
 }
 
+// Error text for the auth pages. Pages store either one of our own keys
+// ("auth.err.*") or the raw message from Supabase; both come out in the
+// active language, and switching EN/ES re-translates an error already showing.
+export function authErrorText(err, t) {
+  if (!err) return "";
+  if (err.startsWith("auth.err.")) return t(err);
+  const m = err.toLowerCase();
+  if (m.includes("invalid login")) return t("auth.err.invalid");
+  if (m.includes("not confirmed")) return t("auth.err.unconfirmed");
+  if (m.includes("already registered") || m.includes("already exists")) return t("auth.err.exists");
+  if (m.includes("rate limit") || m.includes("too many") || m.includes("security purposes")) return t("auth.err.rate");
+  if (m.includes("invalid") && m.includes("email")) return t("auth.err.badEmail");
+  if (m.includes("different from the old")) return t("auth.err.samePw");
+  if (m.includes("at least 6")) return t("auth.err.short");
+  return err;
+}
+
 export function AuthButton({ busy, busyLabel, children, ...rest }) {
+  const { t } = useI18n();
   return (
     <button
       type="submit"
@@ -179,7 +197,7 @@ export function AuthButton({ busy, busyLabel, children, ...rest }) {
       style={{ marginTop: 4, opacity: busy ? 0.6 : 1, cursor: busy ? "default" : "pointer" }}
       {...rest}
     >
-      {busy ? busyLabel || "Please wait…" : children}
+      {busy ? busyLabel || t("auth.wait") : children}
     </button>
   );
 }

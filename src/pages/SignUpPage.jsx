@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
-import { AuthShell, AuthField, AuthButton, AuthError } from "../components/AuthUI.jsx";
+import { AuthShell, AuthField, AuthButton, AuthError, authErrorText } from "../components/AuthUI.jsx";
+import { useI18n } from "../lib/i18n.jsx";
 
 export default function SignUpPage() {
+  const { t } = useI18n();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,9 +19,9 @@ export default function SignUpPage() {
     if (busy) return;
     setErr("");
 
-    if (!fullName.trim()) { setErr("Please enter your full name."); return; }
-    if (!email.trim()) { setErr("Please enter your email."); return; }
-    if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    if (!fullName.trim()) { setErr("auth.err.name"); return; }
+    if (!email.trim()) { setErr("auth.err.email"); return; }
+    if (password.length < 6) { setErr("auth.err.short"); return; }
 
     setBusy(true);
     try {
@@ -43,7 +45,7 @@ export default function SignUpPage() {
         body: JSON.stringify({ email: email.trim(), name: fullName.trim(), needsConfirm }),
       }).catch(() => {});
     } catch (e2) {
-      setErr(e2?.message || "Could not create your account. Please try again.");
+      setErr(e2?.message || "auth.err.signup");
     } finally {
       setBusy(false);
     }
@@ -52,16 +54,11 @@ export default function SignUpPage() {
   if (done) {
     return (
       <AuthShell
-        eyebrow="HALO Accounts"
-        title={done === "in" ? "You're in" : "Check your email"}
-        sub={
-          done === "in"
-            ? "Your account is ready. You can head to your dashboard now."
-            : `We sent a confirmation link to ${email.trim()}. Open it to activate your account, then sign in.`
-        }
+        title={done === "in" ? t("signup.inTitle") : t("auth.checkEmail")}
+        sub={done === "in" ? t("signup.inSub") : t("signup.verifySub").replace("{email}", email.trim())}
       >
         <Link to="/login" className="btn-gold btn-full" style={{ marginTop: 6 }}>
-          Go to sign in
+          {t("auth.goSignIn")}
         </Link>
       </AuthShell>
     );
@@ -69,23 +66,22 @@ export default function SignUpPage() {
 
   return (
     <AuthShell
-      eyebrow="HALO Accounts"
-      title="Create your account"
-      sub="One account to create events, curate galleries, and share them with your clients."
+      title={t("signup.title")}
+      sub={t("signup.sub")}
     >
       <form onSubmit={submit} noValidate>
-        <AuthField label="Full name">
+        <AuthField label={t("signup.name")}>
           <input
             className="field"
             type="text"
             autoComplete="name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="e.g. Angel Gerena"
+            placeholder={t("signup.namePh")}
           />
         </AuthField>
 
-        <AuthField label="Email">
+        <AuthField label={t("auth.email")}>
           <input
             className="field"
             type="email"
@@ -93,31 +89,31 @@ export default function SignUpPage() {
             inputMode="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPh")}
           />
         </AuthField>
 
-        <AuthField label="Password" hint="At least 6 characters.">
+        <AuthField label={t("auth.password")} hint={t("auth.min6")}>
           <input
             className="field"
             type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a password"
+            placeholder={t("signup.pwPh")}
           />
         </AuthField>
 
-        {err && <AuthError>{err}</AuthError>}
+        {err && <AuthError>{authErrorText(err, t)}</AuthError>}
 
-        <AuthButton busy={busy} busyLabel="Creating account…">
-          Create account
+        <AuthButton busy={busy} busyLabel={t("signup.busy")}>
+          {t("signup.btn")}
         </AuthButton>
       </form>
 
       <p style={{ textAlign: "center", color: C.second, fontSize: 13.5, marginTop: 18, marginBottom: 0 }}>
-        Already have an account?{" "}
-        <Link to="/login" style={{ color: C.gold, fontWeight: 600 }}>Sign in</Link>
+        {t("signup.have")}{" "}
+        <Link to="/login" style={{ color: C.gold, fontWeight: 600 }}>{t("auth.signIn")}</Link>
       </p>
     </AuthShell>
   );
