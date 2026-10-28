@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
-import { AuthShell, AuthField, AuthButton, AuthError, AuthNote } from "../components/AuthUI.jsx";
+import { AuthShell, AuthField, AuthButton, AuthError, AuthNote, authErrorText } from "../components/AuthUI.jsx";
+import { useI18n } from "../lib/i18n.jsx";
 
 // Two modes on one component:
 //   mode="request"  -> /reset         : email field, sends the reset link.
@@ -14,6 +15,7 @@ export default function ResetPasswordPage({ mode = "request" }) {
 }
 
 function RequestReset() {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -23,7 +25,7 @@ function RequestReset() {
     e?.preventDefault();
     if (busy) return;
     setErr("");
-    if (!email.trim()) { setErr("Enter your email."); return; }
+    if (!email.trim()) { setErr("auth.err.email"); return; }
 
     setBusy(true);
     try {
@@ -33,7 +35,7 @@ function RequestReset() {
       if (error) throw error;
       setSent(true);
     } catch (e2) {
-      setErr(e2?.message || "Could not send the reset email. Please try again.");
+      setErr(e2?.message || "auth.err.reset");
     } finally {
       setBusy(false);
     }
@@ -42,12 +44,11 @@ function RequestReset() {
   if (sent) {
     return (
       <AuthShell
-        eyebrow="HALO Accounts"
-        title="Check your email"
-        sub={`If an account exists for ${email.trim()}, we sent a link to reset your password. Open it on this device to continue.`}
+        title={t("auth.checkEmail")}
+        sub={t("reset.sentSub").replace("{email}", email.trim())}
       >
         <Link to="/login" className="btn-gold btn-full" style={{ marginTop: 6 }}>
-          Back to sign in
+          {t("auth.backSignIn")}
         </Link>
       </AuthShell>
     );
@@ -55,12 +56,11 @@ function RequestReset() {
 
   return (
     <AuthShell
-      eyebrow="HALO Accounts"
-      title="Reset your password"
-      sub="Enter the email on your account and we'll send you a secure link to set a new password."
+      title={t("reset.title")}
+      sub={t("reset.sub")}
     >
       <form onSubmit={submit} noValidate>
-        <AuthField label="Email">
+        <AuthField label={t("auth.email")}>
           <input
             className="field"
             type="email"
@@ -68,26 +68,27 @@ function RequestReset() {
             inputMode="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPh")}
           />
         </AuthField>
 
-        {err && <AuthError>{err}</AuthError>}
+        {err && <AuthError>{authErrorText(err, t)}</AuthError>}
 
-        <AuthButton busy={busy} busyLabel="Sending link…">
-          Send reset link
+        <AuthButton busy={busy} busyLabel={t("reset.busy")}>
+          {t("reset.btn")}
         </AuthButton>
       </form>
 
       <p style={{ textAlign: "center", color: C.second, fontSize: 13.5, marginTop: 18, marginBottom: 0 }}>
-        Remembered it?{" "}
-        <Link to="/login" style={{ color: C.gold, fontWeight: 600 }}>Sign in</Link>
+        {t("reset.remembered")}{" "}
+        <Link to="/login" style={{ color: C.gold, fontWeight: 600 }}>{t("auth.signIn")}</Link>
       </p>
     </AuthShell>
   );
 }
 
 function ConfirmReset() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);   // recovery session detected?
   const [checking, setChecking] = useState(true);
@@ -127,8 +128,8 @@ function ConfirmReset() {
     e?.preventDefault();
     if (busy) return;
     setErr("");
-    if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
-    if (password !== confirm) { setErr("Those passwords don't match."); return; }
+    if (password.length < 6) { setErr("auth.err.short"); return; }
+    if (password !== confirm) { setErr("auth.err.match"); return; }
 
     setBusy(true);
     try {
@@ -136,7 +137,7 @@ function ConfirmReset() {
       if (error) throw error;
       setDone(true);
     } catch (e2) {
-      setErr(e2?.message || "Could not update your password. Request a fresh link and try again.");
+      setErr(e2?.message || "auth.err.update");
     } finally {
       setBusy(false);
     }
@@ -145,9 +146,8 @@ function ConfirmReset() {
   if (done) {
     return (
       <AuthShell
-        eyebrow="HALO Accounts"
-        title="Password updated"
-        sub="Your new password is set. You can sign in with it now."
+        title={t("reset.doneTitle")}
+        sub={t("reset.doneSub")}
       >
         <button
           type="button"
@@ -155,7 +155,7 @@ function ConfirmReset() {
           className="btn-gold btn-full"
           style={{ marginTop: 6 }}
         >
-          Go to sign in
+          {t("auth.goSignIn")}
         </button>
       </AuthShell>
     );
@@ -163,7 +163,7 @@ function ConfirmReset() {
 
   if (checking) {
     return (
-      <AuthShell eyebrow="HALO Accounts" title="Verifying link…" sub="One moment while we check your reset link." >
+      <AuthShell title={t("reset.checkingTitle")} sub={t("reset.checkingSub")}>
         <div style={{ height: 8 }} />
       </AuthShell>
     );
@@ -172,12 +172,11 @@ function ConfirmReset() {
   if (!ready) {
     return (
       <AuthShell
-        eyebrow="HALO Accounts"
-        title="Link expired or invalid"
-        sub="This reset link didn't check out — it may have expired or already been used. Request a new one and try again."
+        title={t("reset.badTitle")}
+        sub={t("reset.badSub")}
       >
         <Link to="/reset" className="btn-gold btn-full" style={{ marginTop: 6 }}>
-          Request a new link
+          {t("reset.newLink")}
         </Link>
       </AuthShell>
     );
@@ -185,39 +184,38 @@ function ConfirmReset() {
 
   return (
     <AuthShell
-      eyebrow="HALO Accounts"
-      title="Set a new password"
-      sub="Choose a new password for your account."
+      title={t("reset.setTitle")}
+      sub={t("reset.setSub")}
     >
       <form onSubmit={submit} noValidate>
-        <AuthNote>Your reset link is verified. Set your new password below.</AuthNote>
+        <AuthNote>{t("reset.verified")}</AuthNote>
 
-        <AuthField label="New password" hint="At least 6 characters.">
+        <AuthField label={t("reset.newPw")} hint={t("auth.min6")}>
           <input
             className="field"
             type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="New password"
+            placeholder={t("reset.newPw")}
           />
         </AuthField>
 
-        <AuthField label="Confirm password">
+        <AuthField label={t("reset.confirmPw")}>
           <input
             className="field"
             type="password"
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Re-enter new password"
+            placeholder={t("reset.confirmPh")}
           />
         </AuthField>
 
-        {err && <AuthError>{err}</AuthError>}
+        {err && <AuthError>{authErrorText(err, t)}</AuthError>}
 
-        <AuthButton busy={busy} busyLabel="Updating…">
-          Update password
+        <AuthButton busy={busy} busyLabel={t("reset.updating")}>
+          {t("reset.update")}
         </AuthButton>
       </form>
     </AuthShell>
