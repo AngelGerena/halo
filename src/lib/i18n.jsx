@@ -44,6 +44,8 @@ const STRINGS = {
   // uploader
   "up.welcome": { en: "Welcome", es: "Bienvenido" },
   "up.uploadEverything": { en: "upload everything, HALO keeps the best.", es: "sube todo, HALO conserva las mejores." },
+  "up.onScreenNow": { en: "Your photo is on the big screen right now!", es: "¡Tu foto está en la pantalla grande ahora mismo!" },
+  "up.onScreenNowSub": { en: "Look up. That one’s yours.", es: "Mira la pantalla. Esa es tuya." },
   "up.welcomeAnon": { en: "Welcome! Add a photo to get started.", es: "¡Bienvenido! Agrega una foto para empezar." },
   "up.whoTitle": { en: "Who should we thank for these?", es: "¿A quién le damos las gracias por estas?" },
   "up.whoSub": { en: "Your name goes with your photos. Add your email and we’ll send you your gallery link.", es: "Tu nombre va con tus fotos. Agrega tu correo y te enviamos el enlace de tu galería." },
