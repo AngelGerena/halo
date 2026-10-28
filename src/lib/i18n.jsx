@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 
 const STRINGS = {
   // header / brand
+  "auth.live": { en: "Live now", es: "En vivo" },
   "brand.tagline": { en: "Every moment, beautifully gathered", es: "Cada momento, bellamente reunido" },
   "nav.myGallery": { en: "My Gallery", es: "Mi Galería" },
   "nav.admin": { en: "Admin", es: "Administrador" },
