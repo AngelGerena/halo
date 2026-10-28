@@ -30,6 +30,7 @@ import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS } from "../lib/looks.js";
+import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
@@ -174,7 +175,7 @@ export function CreateEvent({ api, onCreated }) {
 // Full management surface for one event. All reads use the anon client (RLS
 // scopes a client to their own event); all mutations go through `api.fn(...)`.
 export function EventDetail({ event, api, back }) {
-  const { t, ev } = useI18n();
+  const { t, ev, lang } = useI18n();
   const [photos, setPhotos] = useState([]);
   const [contributors, setContributors] = useState([]);
   const [counts, setCounts] = useState({});
@@ -199,6 +200,8 @@ export function EventDetail({ event, api, back }) {
   // no way to see or change them after the fact: "protect children" silently
   // defaulted ON for every event. Surfaced here so what you see is what's set.
   const [look, setLook] = useState(event.look || "midnight");
+  const [chOn, setChOn] = useState(!(Array.isArray(event.challenges) && event.challenges.length === 0));
+  const [chText, setChText] = useState(() => (challengesFor(event).length ? challengesFor(event) : DEFAULT_CHALLENGES).map((c) => challengeText(c, lang)).join("\n"));
   const [requireReview, setRequireReview] = useState(event.moderation_mode === "review");
   const [protectMinors, setProtectMinors] = useState(event.protect_minors !== false);
   const [currentSession, setCurrentSession] = useState(event.current_session || "");
@@ -348,6 +351,11 @@ export function EventDetail({ event, api, back }) {
     try {
       const patch = {
         look: look || null,
+        challenges: !chOn ? [] : (() => {
+          const lines = chText.split("\n").map((x) => x.trim()).filter(Boolean);
+          const isDefault = lines.length === DEFAULT_CHALLENGES.length && lines.every((l, i) => l === DEFAULT_CHALLENGES[i].en || l === DEFAULT_CHALLENGES[i].es);
+          return isDefault ? null : parseChallengeLines(chText);
+        })(),
         moderation_mode: requireReview ? "review" : "off",
         protect_minors: !!protectMinors,
         is_recurring: isRecurring,
@@ -784,6 +792,19 @@ export function EventDetail({ event, api, back }) {
                 );
               })}
             </div>
+          </div>
+          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.challenges")}</div>
+            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.challenges.help")}</p>
+            <Toggle on={chOn} onClick={() => setChOn((v) => !v)} title={t("admin.challengesOn")} />
+            {chOn && (
+              <>
+                <textarea value={chText} onChange={(e) => setChText(e.target.value)} rows={8}
+                  style={{ width: "100%", marginTop: 8, background: "rgba(255,255,255,.04)", color: C.text, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "10px 12px", fontSize: 13, lineHeight: 1.5, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+                <button type="button" onClick={() => setChText(DEFAULT_CHALLENGES.map((c) => challengeText(c, lang)).join("\n"))}
+                  style={{ marginTop: 6, background: "none", border: "none", color: C.gold, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>{t("admin.challengesReset")}</button>
+              </>
+            )}
           </div>
           <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.modSection")}</div>
