@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { fetchReactions, like, rxKey } from "../lib/reactions.js";
+import { shrinkImage } from "../lib/shrink.js";
 import { signPhotoUploads, putToR2 } from "../lib/r2upload.js";
 import { scoreImage, C, hamming } from "../lib/score.js";
 import { Footer } from "../components/UI.jsx";
@@ -194,8 +195,10 @@ export default function EventPage() {
     const needsReview = event.moderation_mode === "review" || (event.protect_minors && kidsInFrame);
     const sessionLabel = event.current_session || null; // recurring-service session tag
 
-    for (const f of files) {
+    for (const original of files) {
       try {
+        // Shrink on the phone first: 5-10x smaller, so uploads finish on busy venue Wi-Fi.
+        const f = await shrinkImage(original);
         const s = await scoreImage(f);
         // Best-of-burst: if this shot near-matches an already-kept one this session,
         // and the earlier one is at least as good, file it as a duplicate (not kept).
