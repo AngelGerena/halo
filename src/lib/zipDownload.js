@@ -38,7 +38,8 @@ export function saveBlob(blob, filename) {
 }
 
 // items: [{ url, name }]. onProgress(done, total). Resolves { saved, missing }.
-export async function downloadZip(items, zipName, onProgress = () => {}) {
+// extras: [{ name, text }] small text files added at the end (e.g. guestbook messages).
+export async function downloadZip(items, zipName, onProgress = () => {}, extras = []) {
   const parts = [];
   let finish;
   const done = new Promise((res, rej) => { finish = { res, rej }; });
@@ -75,6 +76,11 @@ export async function downloadZip(items, zipName, onProgress = () => {}) {
   }
   await Promise.all(Array.from({ length: Math.min(4, total) }, worker));
 
+  for (const x of extras) {
+    const f = new ZipPassThrough(uniq(x.name));
+    zip.add(f);
+    f.push(enc.encode(x.text), true);
+  }
   if (missing.length) {
     const f = new ZipPassThrough("missing.txt");
     zip.add(f);
