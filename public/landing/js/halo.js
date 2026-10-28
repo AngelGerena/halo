@@ -143,8 +143,14 @@
   var initial = null;
   try { initial = localStorage.getItem("halo_lang"); } catch(e){}
   if (!initial) {
-    var nav = (navigator.language || navigator.userLanguage || "en").toLowerCase();
-    initial = nav.indexOf("es") === 0 ? "es" : "en";
+    // First of the visitor's preferred languages that HALO speaks.
+    var prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || navigator.userLanguage || "en"];
+    initial = "en";
+    for (var i = 0; i < prefs.length; i++) {
+      var c = String(prefs[i] || "").toLowerCase();
+      if (c.indexOf("es") === 0) { initial = "es"; break; }
+      if (c.indexOf("en") === 0) { initial = "en"; break; }
+    }
   }
   apply(initial);
 })();
