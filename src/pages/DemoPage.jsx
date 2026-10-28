@@ -91,7 +91,7 @@ export default function DemoPage() {
           <div className="demo-phone">
             <div style={{ fontSize: 11, letterSpacing: ".22em", textTransform: "uppercase", color: C.gold, fontWeight: 800, marginBottom: 10 }}>{t("demo.phoneLabel")}</div>
             <div style={{ background: "#120a19", border: "1px solid rgba(255,255,255,.12)", borderRadius: 28, padding: "18px 16px", boxShadow: "0 24px 60px rgba(0,0,0,.5)" }}>
-              <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>Stephen &amp; Sandra</div>
+              <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15 }}>Maya &amp; Daniel</div>
               <div style={{ textAlign: "center", color: "#b9b2c4", fontSize: 11.5, margin: "2px 0 14px" }}>{t("demo.phoneSub")}</div>
               <button type="button" onClick={() => camRef.current?.click()} style={{ display: "block", width: "100%", background: "transparent", border: "none", color: "#fff", cursor: "pointer", padding: "4px 0 10px" }}>
                 <span style={{ width: 66, height: 66, margin: "0 auto", borderRadius: "50%", background: C.gold, color: "#1a0f0a", display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" }}><CameraIcon size={28} /></span>
@@ -133,7 +133,7 @@ export default function DemoPage() {
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(10,4,16,.55) 100%)" }} />
               <div style={{ position: "absolute", top: "4%", left: "3%", display: "flex", alignItems: "center", gap: 8, fontFamily: "Georgia, serif", fontWeight: 700, fontSize: "clamp(11px, 1.5vw, 17px)", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>
                 <span style={{ width: "1.7em", height: "1.7em", borderRadius: "50%", border: `2px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: ".8em" }}>&#9673;</span>
-                Stephen &amp; Sandra
+                Maya &amp; Daniel
               </div>
               {ch && (
                 <div style={{ position: "absolute", left: "50%", bottom: "6%", transform: "translateX(-50%)", background: "rgba(10,4,16,.66)", border: `1px solid ${C.gold}`, borderRadius: 14, padding: "6px 14px", textAlign: "center", maxWidth: "80%" }}>
