@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
-import { fetchReactions, like } from "../lib/reactions.js";
+import { fetchReactions, like, getDeviceId } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
 import QRCode from "qrcode";
 
@@ -102,13 +102,19 @@ export default function SlideshowPage() {
   useEffect(() => {
     if (!event) return;
 
-    // 1) Realtime: fire a refresh only when a photo for THIS event changes.
+    // 1) Realtime: fire a refresh only when a photo for THIS event changes,
+    //    and animate hearts the moment a guest taps one.
     const channel = supabase
       .channel(`live-${event.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "photos", filter: `event_id=eq.${event.id}` },
         () => refresh(event.id, false)
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "reactions", filter: `event_id=eq.${event.id}` },
+        (payload) => onHeart(payload.new)
       )
       .subscribe();
 
@@ -152,11 +158,39 @@ export default function SlideshowPage() {
     else { a.volume = 0.6; a.play().then(() => setMusicOn(true)).catch(() => {}); }
   }
 
+  // ---- Live hearts ----
+  // A guest's heart arrives over realtime. Bump the count; if it's for the
+  // photo on screen right now, float a heart up from the bottom. Hearts for
+  // other photos just update their count for the next time they come round.
+  const [floaters, setFloaters] = useState([]); // [{id, x, size, hue}]
+  const curIdRef = useRef(null);
+  useEffect(() => { curIdRef.current = photos[idx]?.id || null; }, [idx, photos]);
+  function spawnHearts(n = 1) {
+    const batch = Array.from({ length: n }, (_, i) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}-${i}`,
+      x: 8 + Math.random() * 84,          // vw
+      size: 2.2 + Math.random() * 2.2,     // vw
+      drift: (Math.random() - 0.5) * 12,   // vw sway
+      dur: 2.6 + Math.random() * 1.2,      // s
+      delay: i * 0.12,
+    }));
+    setFloaters((f) => [...f, ...batch].slice(-40));
+    setTimeout(() => setFloaters((f) => f.filter((h) => !batch.some((b) => b.id === h.id))), 4200);
+  }
+  const [countPop, setCountPop] = useState(0);
+  function onHeart(row) {
+    if (!row || !row.photo_id) return;
+    if (row.device_id && row.device_id === getDeviceId()) return; // our own tap, already shown
+    setCounts((prev) => ({ ...prev, [row.photo_id]: (prev[row.photo_id] || 0) + 1 }));
+    if (row.photo_id === curIdRef.current) { spawnHearts(1); setCountPop((n) => n + 1); }
+  }
+
   async function likeCurrent() {
     const cur = photos[idx];
     if (!cur || !event || liked.has(cur.id)) return;
     setLiked((prev) => new Set(prev).add(cur.id));
     setCounts((prev) => ({ ...prev, [cur.id]: (prev[cur.id] || 0) + 1 }));
+    spawnHearts(1); setCountPop((n) => n + 1);
     try { await like(cur.id, event.id); } catch { /* keep optimistic */ }
   }
 
@@ -257,6 +291,23 @@ export default function SlideshowPage() {
 
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(11,20,38,.6) 100%)", pointerEvents: "none" }} />
 
+      {/* Floating hearts: one per guest heart on the photo currently showing */}
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        {floaters.map((h) => (
+          <svg key={h.id} viewBox="0 0 24 24" style={{ position: "absolute", left: `${h.x}vw`, bottom: "-6vw", width: `${h.size}vw`, height: `${h.size}vw`, "--drift": `${h.drift}vw`, animation: `heartFloat ${h.dur}s cubic-bezier(.2,.7,.3,1) ${h.delay}s forwards`, filter: "drop-shadow(0 4px 10px rgba(0,0,0,.35))" }}>
+            <path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} />
+          </svg>
+        ))}
+      </div>
+
+      {/* Always-on heart count for the photo on screen (pops when it changes) */}
+      {curCount > 0 && (
+        <div key={countPop} style={{ position: "absolute", right: "2.2vw", top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "rgba(10,4,16,.55)", color: C.text, padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
+          <svg viewBox="0 0 24 24" style={{ width: "1.4vw", height: "1.4vw" }}><path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} /></svg>
+          {curCount}
+        </div>
+      )}
+
       {/* Moment of the Service ribbon */}
       {isMoment && (
         <div style={{ position: "absolute", top: "4vh", left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, padding: ".5vw 1.6vw", borderRadius: 999, fontSize: "1.1vw", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
@@ -297,6 +348,13 @@ export default function SlideshowPage() {
 
       <style>{`
         @keyframes grow { from { width: 0 } to { width: 100% } }
+        @keyframes heartFloat {
+          0%   { transform: translate(0, 0) scale(.6); opacity: 0 }
+          10%  { opacity: 1; transform: translate(calc(var(--drift) * .2), -8vh) scale(1.05) }
+          50%  { transform: translate(calc(var(--drift) * .6), -38vh) scale(1) }
+          100% { transform: translate(var(--drift), -78vh) scale(.9); opacity: 0 }
+        }
+        @keyframes countPop { 0% { transform: scale(1) } 35% { transform: scale(1.28) } 100% { transform: scale(1) } }
         @keyframes kb0 { from { transform: scale(1.04) translate(0,0) } to { transform: scale(1.15) translate(-2%, -1.5%) } }
         @keyframes kb1 { from { transform: scale(1.15) translate(-2%, 1.5%) } to { transform: scale(1.04) translate(0,0) } }
         @keyframes kb2 { from { transform: scale(1.05) translate(1.5%, 1%) } to { transform: scale(1.16) translate(-1.5%, -1.5%) } }
