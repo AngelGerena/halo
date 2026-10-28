@@ -27,6 +27,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
+import { downloadZip, downloadOne } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS } from "../lib/looks.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon } from "./Icons.jsx";
@@ -407,16 +408,28 @@ export function EventDetail({ event, api, back }) {
     } catch (e) { alert(e.message); setDeletingEvent(false); }
   }
 
-  function download(p) {
+  function fileNameFor(p) {
     const useEdited = version === "edited" && p.edited_url;
-    const href = useEdited ? p.edited_url : p.url;
     const tag = useEdited ? "edited" : "orig";
-    const a = document.createElement("a");
-    a.href = href; a.download = `HALO_${event.code}_${p.ownerName.replace(/\s+/g, "-")}_${tag}_${p.id.slice(0, 6)}.jpg`;
-    document.body.appendChild(a); a.click(); a.remove();
+    return `HALO_${event.code}_${(p.ownerName || "Guest").replace(/[^\p{L}\p{N}]+/gu, "-")}_${tag}_${p.id.slice(0, 6)}.jpg`;
   }
+  function hrefFor(p) { return version === "edited" && p.edited_url ? p.edited_url : p.url; }
+  async function download(p) {
+    try { await downloadOne(hrefFor(p), fileNameFor(p)); }
+    catch { window.open(hrefFor(p), "_blank", "noopener"); } // fall back to opening it
+  }
+  // One ZIP with every photo currently shown (respects the kept/all and tag filters).
+  const [zipping, setZipping] = useState(null); // null | { done, total }
   async function downloadAll() {
-    for (const p of shown) { download(p); await new Promise((r) => setTimeout(r, 350)); }
+    if (zipping || !shown.length) return;
+    setZipping({ done: 0, total: shown.length });
+    try {
+      const items = shown.map((p) => ({ url: hrefFor(p), name: fileNameFor(p) }));
+      const slug = String(event.name || event.code).replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+      const { missing } = await downloadZip(items, `HALO_${slug || event.code}_${items.length}-photos.zip`, (done, total) => setZipping({ done, total }));
+      if (missing.length) alert(t("admin.zipMissing").replace("{n}", missing.length));
+    } catch (e) { alert(t("admin.zipFailed")); }
+    finally { setZipping(null); }
   }
 
   function toggleSelect(id) {
@@ -919,7 +932,7 @@ export function EventDetail({ event, api, back }) {
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
               </div>
               <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
-              <button onClick={downloadAll} style={{ background: C.gold, color: C.ink, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.downloadAllBtn")} ({filter === "all" ? photos.length : shown.length})</button>
+              <button onClick={downloadAll} disabled={!!zipping} style={{ background: C.gold, color: C.onInk, padding: "7px 14px", borderRadius: 999, fontSize: 12, opacity: zipping ? 0.8 : 1, minWidth: 150 }}>{zipping ? t("admin.zipping").replace("{done}", zipping.done).replace("{total}", zipping.total) : `${t("admin.downloadAllBtn")} (${shown.length})`}</button>
               {!selectMode ? (
                 <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
               ) : (
