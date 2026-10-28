@@ -26,7 +26,7 @@ export async function fetchBytes(url, tries = 3) {
 // opens the image instead of downloading it).
 export async function downloadOne(url, filename) {
   const bytes = await fetchBytes(url);
-  saveBlob(new Blob([bytes], { type: "image/jpeg" }), filename);
+  saveBlob(new Blob([bytes], { type: /\.(mp4|mov|m4v|webm|3gp)$/i.test(filename) ? "video/mp4" : "image/jpeg" }), filename);
 }
 
 export function saveBlob(blob, filename) {

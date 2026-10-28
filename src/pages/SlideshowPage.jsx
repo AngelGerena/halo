@@ -7,6 +7,7 @@ import { ReactionBuddy, LIVE_REACTION_CSS } from "../components/LiveReactions.js
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
 import QRCode from "qrcode";
+import { WALL_SECONDS } from "../lib/clip.js";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -91,6 +92,7 @@ export default function SlideshowPage() {
     const mapped = (data || []).map((p) => ({
       ...p,
       url: p.edited_path ? publicUrl(p.edited_path) : publicUrl(p.storage_path),
+      video_url: p.video_path ? publicUrl(p.video_path) : null,
     }));
     if (initial) {
       mapped.forEach((p) => seen.current.add(p.id));
@@ -150,7 +152,10 @@ export default function SlideshowPage() {
   // advance timer
   useEffect(() => {
     if (paused || photos.length < 2) return;
-    const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : HOLD);
+    // Clips play once (up to WALL_SECONDS), then the wall moves on.
+    const item = photos[idx];
+    const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
+    const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
   }, [idx, paused, photos.length, spot]);
 
@@ -350,9 +355,18 @@ export default function SlideshowPage() {
       {tapPrompt}
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
-        <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading />
+        <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading still={!!prev.video_url} />
       )}
-      <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />
+      {cur.video_url
+        ? <ClipFrame key={"v" + cur.id + idx} src={cur.video_url} poster={cur.url} onDone={() => { if (!paused && photos.length > 1) go(1); }} />
+        : <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />}
+      {cur.video_url && (
+        <div style={{ position: "absolute", right: "2.2vw", bottom: "2.4vw", display: "flex", alignItems: "center", gap: ".6vw", background: "rgba(10,4,16,.6)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+          <svg viewBox="0 0 24 24" width="1.3em" height="1.3em" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6.5" width="12.5" height="11" rx="2" /><path d="m15.5 10.5 5-3v9l-5-3" /></svg>
+          <span style={{ letterSpacing: ".12em" }}>{t("live.video")}</span>
+          {cur.contributor_id && names[cur.contributor_id] ? <span style={{ fontWeight: 500, opacity: .9 }}>{t("live.by")} {names[cur.contributor_id]}</span> : null}
+        </div>
+      )}
 
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(11,20,38,.6) 100%)", pointerEvents: "none" }} />
 
@@ -469,11 +483,39 @@ export default function SlideshowPage() {
   );
 }
 
-function Frame({ src, fading, variant = 0 }) {
+function Frame({ src, fading, variant = 0, still = false }) {
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", animation: fading ? "none" : "fadeIn 1s ease", opacity: fading ? 0 : 1, transition: "opacity 1s ease" }}>
       <img className="kb-img" src={src} alt=""
-        style={{ width: "100%", height: "100%", objectFit: "cover", animation: `kb${variant} 8s ease-out forwards`, willChange: "transform" }} />
+        style={{ width: "100%", height: "100%", objectFit: "cover", animation: still ? "none" : `kb${variant} 8s ease-out forwards`, willChange: "transform" }} />
+    </div>
+  );
+}
+
+// A guest's clip on the wall: muted (the music keeps playing), plays once up
+// to WALL_SECONDS. Phone clips are often vertical, so the clip sits whole in
+// the middle over a soft blurred copy of its own frame instead of being
+// cropped. If the TV can't play the format, its still frame stays up instead.
+function ClipFrame({ src, poster, onDone }) {
+  const ref = useRef(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const v = ref.current; if (!v) return;
+    v.muted = true;
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+  }, []);
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", animation: "fadeIn 1s ease", background: "#000" }}>
+      <img src={poster} alt="" style={{ position: "absolute", inset: "-6%", width: "112%", height: "112%", objectFit: "cover", filter: "blur(28px) brightness(.55)" }} />
+      {failed ? (
+        <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
+      ) : (
+        <video ref={ref} src={src} poster={poster} muted autoPlay playsInline preload="auto"
+          onError={() => setFailed(true)}
+          onEnded={onDone}
+          onTimeUpdate={(e) => { if (e.currentTarget.currentTime >= WALL_SECONDS) { e.currentTarget.pause(); onDone && onDone(); } }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
+      )}
     </div>
   );
 }

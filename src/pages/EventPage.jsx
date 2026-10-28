@@ -9,7 +9,8 @@ import { Footer } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
-import { CameraIcon, UploadIcon, ScreenIcon } from "../components/Icons.jsx";
+import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Icons.jsx";
+import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
 import { preloadNsfw } from "../lib/nsfw.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
@@ -32,6 +33,8 @@ export default function EventPage() {
   useEffect(() => { if (tab === "gallery" && event) loadEveryone(event); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps // consent: children in these photos
   const inputRef = useRef(null);
   const cameraRef = useRef(null);
+  const videoRef = useRef(null);
+  const [notice, setNotice] = useState(""); // friendly one-line message (e.g. clip too long)
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
@@ -99,7 +102,7 @@ export default function EventPage() {
       .eq("event_id", evrow.id).eq("kept", true).eq("status", "approved");
     if (evrow.current_session) q = q.eq("session_label", evrow.current_session);
     const { data } = await q.order("created_at", { ascending: false }).limit(500);
-    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null }));
+    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
     setEveryone(rows);
     refreshReactions(rows.map((p) => p.id));
   }
@@ -109,7 +112,7 @@ export default function EventPage() {
       .from("photos").select("*")
       .eq("contributor_id", contributorId)
       .order("created_at", { ascending: false });
-    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null }));
+    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
     setPhotos(rows);
     refreshReactions(rows.map((p) => p.id));
   }
@@ -277,16 +280,65 @@ export default function EventPage() {
     return true;
   }
 
+  // A short video clip: its still frame becomes storage_path (so every grid,
+  // email and thumbnail just works) and the clip itself goes in video_path.
+  async function uploadClip(file, who, kids) {
+    const info = await probeClip(file);
+    if (file.size > MAX_CLIP_BYTES || info.duration > MAX_CLIP_SECONDS + 0.5) {
+      const err = new Error("clip too long"); err.tooLong = true; throw err;
+    }
+    const needsReview = event.moderation_mode === "review" || (event.protect_minors && kids);
+    const poster = new File([info.poster], "frame.jpg", { type: "image/jpeg" });
+    let flagged = false;
+    if (info.decoded) {
+      try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(poster)).flagged; } catch {}
+    }
+    const status = (needsReview || flagged) ? "pending" : "approved";
+    const posterPath = await withRetry(async () => {
+      const [s1] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: "image/jpeg" });
+      await putToR2(s1.uploadUrl, poster, s1.contentType);
+      return s1.path;
+    });
+    const videoPath = await withRetry(async () => {
+      const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4" });
+      await putToR2(s2.uploadUrl, file, s2.contentType);
+      return s2.path;
+    }, 5);
+    const row = await withRetry(async () => {
+      const { data, error } = await supabase.from("photos").insert({
+        event_id: event.id,
+        contributor_id: who.id,
+        storage_path: posterPath,
+        video_path: videoPath,
+        duration: info.duration || null,
+        quality: 100, kept: true,
+        width: info.width || null, height: info.height || null,
+        has_minors: kids,
+        status,
+        session_label: event.current_session || null,
+        auto_flagged: flagged,
+        tags: kids ? ["kids"] : [],
+      }).select().single();
+      if (error) throw error;
+      return data;
+    });
+    setPhotos((prev) => [{ ...row, url: publicUrl(posterPath), video_url: publicUrl(videoPath) }, ...prev]);
+    return true;
+  }
+
   async function addFiles(fileList, who = contributor) {
-    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/") || isVideoFile(f));
     if (!who) return addFilesFirst(files);
+    setNotice("");
     const kids = kidsInFrame;
     setUploading((u) => u + files.length);
     for (const original of files) {
       try {
-        await uploadOne(original, who, kids);
+        if (isVideoFile(original)) await uploadClip(original, who, kids);
+        else await uploadOne(original, who, kids);
       } catch (e) {
         console.error(e);
+        if (e && e.tooLong) { setNotice(t("up.clipTooLong").replace("{s}", MAX_CLIP_SECONDS)); continue; }
         setWaiting((w) => [...w, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: original, who, kids }]);
       } finally {
         setUploading((u) => Math.max(0, u - 1));
@@ -308,7 +360,8 @@ export default function EventPage() {
     try {
       for (const item of [...waitingRef.current]) {
         try {
-          await uploadOne(item.file, item.who, item.kids);
+          if (isVideoFile(item.file)) await uploadClip(item.file, item.who, item.kids);
+          else await uploadOne(item.file, item.who, item.kids);
           setWaiting((w) => w.filter((x) => x.id !== item.id));
         } catch { break; } // still offline; try again later
       }
@@ -379,7 +432,7 @@ export default function EventPage() {
             </div>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
               onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
-            <input ref={inputRef} type="file" accept="image/*" multiple hidden
+            <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden
               onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
           </div>
           <p style={S.note}>{t("event.welcomeNote")}</p>
@@ -453,14 +506,29 @@ export default function EventPage() {
                 <span style={{ display: "block", fontWeight: 800, fontSize: 19, marginTop: 10 }}>{t("up.takePhoto")}</span>
                 <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.takePhotoSub")}</span>
               </button>
-              <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
-                <UploadIcon size={18} /> {t("up.fromLibrary")}
-              </button>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                <button type="button" onClick={() => videoRef.current?.click()} style={S.libBtn}>
+                  <VideoIcon size={18} /> {t("up.recordVideo")}
+                </button>
+                <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
+                  <UploadIcon size={18} /> {t("up.fromLibrary")}
+                </button>
+              </div>
+              <div style={{ fontSize: 11.5, color: C.second, marginTop: 8 }}>{t("up.videoHint").replace("{s}", MAX_CLIP_SECONDS)}</div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
-              <input ref={inputRef} type="file" accept="image/*" multiple hidden
+              <input ref={videoRef} type="file" accept="video/*" capture="environment" hidden
+                onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+              <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </div>
+
+            {notice && (
+              <div role="alert" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,61,129,.1)", border: `1px solid rgba(255,61,129,.35)`, borderRadius: 12, padding: "10px 12px", fontSize: 13, color: C.text }}>
+                <span style={{ flex: 1 }}>{notice}</span>
+                <button type="button" onClick={() => setNotice("")} aria-label={t("up.dismiss")} style={{ background: "none", border: "none", color: C.second, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>{t("up.dismiss")}</button>
+              </div>
+            )}
 
             {waiting.length > 0 && (
               <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
