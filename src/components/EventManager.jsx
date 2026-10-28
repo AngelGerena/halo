@@ -21,7 +21,7 @@
 // pass a passcode-based api, deleting ~500 duplicated lines. It was left
 // untouched here to avoid colliding with the auth/admin migration happening in
 // parallel.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
@@ -29,7 +29,9 @@ import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
-import { LOOKS } from "../lib/looks.js";
+import { LOOKS, getLook } from "../lib/looks.js";
+
+const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
 
@@ -451,6 +453,38 @@ export function EventDetail({ event, api, back }) {
     } catch (e) { setCohostErr(e.message); } finally { setCohostBusy(false); }
   }
 
+  // Highlight video: a ~60 s film of the best-loved photos, made in the browser.
+  const [hlVertical, setHlVertical] = useState(true);
+  const [hl, setHl] = useState(null); // null | { busy, sec, total } | { url, type, seconds } | { error }
+  const hlAbort = useRef(null);
+  async function makeHighlightVideo() {
+    const { pickHighlights, makeHighlight } = await import("../lib/highlight.js");
+    const chosen = pickHighlights(photos, counts, 20);
+    if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
+    const look = getLook(event.look || "midnight");
+    const music = event.music_url === "none" ? null
+      : event.music_url ? ((event.music_url.startsWith("/") || event.music_url.startsWith("http")) ? event.music_url : publicUrl(event.music_url))
+      : (HL_MUSIC[event.category] || "/music/cinematic.mp3");
+    const ctrl = new AbortController(); hlAbort.current = ctrl;
+    setHl({ busy: true, sec: 0, total: 60 });
+    try {
+      const r = await makeHighlight({
+        photos: chosen.map((p) => ({ url: p.edited_url || p.url })),
+        eyebrow: t("hl.eyebrow"),
+        title: ev(event, "name"),
+        subtitle: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "),
+        outroTitle: t("hl.outroTitle"),
+        outroSub: t("hl.outroSub").replace("{n}", contributors.length).replace("{p}", photos.length),
+        musicUrl: music, vertical: hlVertical, gold: look.gold, bg: look.light ? "#17150f" : look.ink,
+        watermark: "HALO", signal: ctrl.signal,
+        onProgress: (sec, total) => setHl({ busy: true, sec, total }),
+      });
+      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds });
+    } catch (e) {
+      setHl(e.message === "cancelled" ? null : { error: e.message === "unsupported" ? t("hl.unsupported") : t("hl.failed") });
+    }
+  }
+
   // Guestbook messages (host sees all, including hidden ones).
   const [wishes, setWishes] = useState([]);
   const loadWishes = async () => {
@@ -711,6 +745,47 @@ export function EventDetail({ event, api, back }) {
           )}
         </details>
       )}
+
+      {/* ---- HIGHLIGHT VIDEO ---- */}
+      <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: C.gold, display: "inline-flex" }}><VideoIcon size={20} /></span>
+          <div style={{ fontWeight: 800, color: C.text, fontSize: 15 }}>{t("hl.title")}</div>
+        </div>
+        <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px", lineHeight: 1.5 }}>{t("hl.help")}</p>
+        {hl && hl.url ? (
+          <div>
+            <video src={hl.url} controls playsInline style={{ width: "100%", maxWidth: hlVertical ? 260 : 520, maxHeight: 460, borderRadius: 12, background: "#000", display: "block" }} />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              <a href={hl.url} download={`HALO_${event.code}_highlight.${hl.type === "video/mp4" ? "mp4" : "webm"}`} style={{ textDecoration: "none" }}>
+                <button type="button" style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("hl.download")}</button>
+              </a>
+              <button type="button" onClick={() => { URL.revokeObjectURL(hl.url); setHl(null); }} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("hl.again")}</button>
+            </div>
+            {hl.type !== "video/mp4" && <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0" }}>{t("hl.webmNote")}</p>}
+          </div>
+        ) : hl && hl.busy ? (
+          <div>
+            <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>{t("hl.making").replace("{s}", hl.sec).replace("{t}", hl.total)}</div>
+            <div style={{ height: 8, background: "rgba(255,255,255,.08)", borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(100, (hl.sec / Math.max(1, hl.total)) * 100)}%`, height: "100%", background: C.gold, transition: "width .9s linear" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 10 }}>
+              <span style={{ fontSize: 11.5, color: C.second }}>{t("hl.keepOpen")}</span>
+              <button type="button" onClick={() => hlAbort.current && hlAbort.current.abort()} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("ch.cancel")}</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.line2}`, overflow: "hidden" }}>
+              <button type="button" onClick={() => setHlVertical(true)} aria-pressed={hlVertical} style={{ background: hlVertical ? C.gold : "transparent", color: hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.vertical")}</button>
+              <button type="button" onClick={() => setHlVertical(false)} aria-pressed={!hlVertical} style={{ background: !hlVertical ? C.gold : "transparent", color: !hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.wide")}</button>
+            </div>
+            <button type="button" onClick={makeHighlightVideo} style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("hl.make")}</button>
+            {hl && hl.error && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{hl.error}</span>}
+          </div>
+        )}
+      </div>
 
       {/* ---- GUESTBOOK MESSAGES ---- */}
       <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
