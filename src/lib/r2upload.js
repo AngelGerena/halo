@@ -12,7 +12,8 @@ export async function signPhotoUploads({ eventId, contributorId, count = 1, cont
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || "Could not prepare upload");
-  return j.items; // [{ uploadUrl, path }]
+  // Each item carries the exact Content-Type the URL was signed for; PUT with it.
+  return j.items.map((it) => ({ ...it, contentType: j.contentType })); // [{ uploadUrl, path, contentType }]
 }
 
 // Admin hero/music uploads (passcode-gated). Returns { uploadUrl, path }.

@@ -25,7 +25,7 @@ export default function GalleryPage() {
         const { data } = await supabase.from("photos").select("*")
           .eq("contributor_id", contributorId).eq("kept", true).eq("status", "approved")
           .order("created_at", { ascending: false });
-        const mapped = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null }));
+        const mapped = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
         setPhotos(mapped);
         const r = await fetchReactions(mapped.map((p) => p.id));
         setCounts(r.counts); setLiked(r.liked);

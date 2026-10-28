@@ -72,6 +72,15 @@ export function CameraIcon({ size = 22, ...rest }) {
   );
 }
 
+export function VideoIcon({ size = 22, ...rest }) {
+  return (
+    <svg viewBox="0 0 24 24" style={base(size)} aria-hidden="true" {...rest}>
+      <rect x="3" y="6.5" width="12.5" height="11" rx="2" {...P} />
+      <path d="m15.5 10.5 5-3v9l-5-3" {...P} />
+    </svg>
+  );
+}
+
 export function UploadIcon({ size = 22, ...rest }) {
   return (
     <svg viewBox="0 0 24 24" style={base(size)} aria-hidden="true" {...rest}>
