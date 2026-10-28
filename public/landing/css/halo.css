@@ -8,7 +8,7 @@
    --ov is an "R,G,B" triplet used in rgba() for photo/hero overlays so the wash
    matches each theme's base background.
    ============================================================================ */
-html{font-variant-emoji:text}
+html{font-variant-emoji:text;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;width:100%;max-width:100%;overflow-x:hidden;scroll-behavior:smooth}
 /* Hard belt-and-suspenders guard: clip any stray horizontal overflow at the
@@ -321,7 +321,7 @@ em{font-style:italic}
 /* ============ EARLY ACCESS SIGNUP FORM ============ */
 .signup-form{max-width:640px;margin:36px auto 0;text-align:left}
 .signup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.field{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--field-bg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;transition:border-color .2s,background .2s}
+.field{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--field-bg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;transition:border-color .2s,background .2s}
 .field::placeholder{color:var(--field-ph)}
 .field:focus{outline:none;border-color:var(--accent);background:var(--field-bg-focus)}
 .field.wide{grid-column:1 / -1}

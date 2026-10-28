@@ -20,6 +20,7 @@
 /* arrows/symbols render as text, never colored emoji on iPhone */
 html { font-variant-emoji: text; }
 html, body { max-width: 100%; overflow-x: hidden; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* stop iPhone enlarging text when turned sideways */
 
 * { box-sizing: border-box; }
 
@@ -73,6 +74,13 @@ input[type="checkbox"], input[type="radio"], input[type="range"], input[type="fi
   background: transparent;
 }
 input::placeholder, textarea::placeholder { color: #7d7589; }
+/* iPhone zooms the whole page in when you tap a text box whose text is
+   smaller than 16px, and a zoomed page then slides left and right. Keep
+   every field at 16px on phones (beats the inline 14-15px sizes). */
+@media (max-width: 820px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea, select, .field { font-size: 16px !important; }
+}
 :root[data-look="blush"] input::placeholder, :root[data-look="blush"] textarea::placeholder,
 :root[data-look="ivory"] input::placeholder, :root[data-look="ivory"] textarea::placeholder,
 :root[data-look="rosegold"] input::placeholder, :root[data-look="rosegold"] textarea::placeholder { color: #8d847c; }
