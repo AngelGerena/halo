@@ -3,26 +3,29 @@
 // Legacy key names (ink, gold, bg, second, text, white, headerGrad, inkDeep,
 // goldLight) are KEPT so existing components keep working — their VALUES moved
 // to the landing palette, with meanings adjusted for a dark UI.
+// Colors resolve through CSS variables (declared on :root in styles.css) so a
+// per-event "look" can restyle the guest page and live screen by setting the
+// variables; the literal values are the fallbacks and the default look.
+const v = (name, fb) => `var(--${name}, ${fb})`;
 export const C = {
-  ink: "#0a0410",        // base background (deep near-black plum) — was the dark text color
-  inkDeep: "#06030b",    // deepest background (bars, slideshow base)
-  panel: "#140a20",      // raised panel / card surface
-  panel2: "#1a1020",     // warm charcoal-plum (welcome background)
-  gold: "#ffb86b",       // champagne gold accent
-  goldLight: "#ffd9a8",  // lighter gold (hovers, highlights)
-  pink: "#ff3d81",       // halo pink
-  purple: "#7b2ff7",     // halo purple
-  teal: "#00c2cb",       // halo teal
-  bg: "#06030b",         // app background
-  second: "#b9b2c4",     // muted/secondary text (light on dark)
-  text: "#ffffff",       // primary text (white on dark)
-  line: "rgba(255,255,255,.1)",
-  line2: "rgba(255,255,255,.18)",
+  ink: v("ink", "#0a0410"),          // base background (deep near-black plum)
+  inkDeep: v("bg", "#06030b"),       // deepest background (bars, slideshow base)
+  panel: v("panel", "#140a20"),      // raised panel / card surface
+  panel2: v("panel2", "#1a1020"),    // warm charcoal-plum (welcome background)
+  gold: v("gold", "#ffb86b"),        // accent (champagne gold by default)
+  goldLight: v("gold-light", "#ffd9a8"),
+  pink: v("pink", "#ff3d81"),        // second accent (hearts)
+  purple: v("purple", "#7b2ff7"),
+  teal: v("teal", "#00c2cb"),
+  bg: v("bg", "#06030b"),            // app background
+  second: v("second", "#b9b2c4"),    // muted/secondary text
+  text: v("text", "#ffffff"),        // primary text
+  line: v("line", "rgba(255,255,255,.1)"),
+  line2: v("line2", "rgba(255,255,255,.18)"),
   white: "#ffffff",
-  // dark-UI semantic helpers (used by the admin after the redesign):
-  card: "#140a20",       // raised card/panel surface (replaces old white cards)
-  onInk: "#ffffff",      // readable text on dark primary buttons / ink surfaces
-  headerGrad: "linear-gradient(120deg, #06030b, #140a20 60%, #1a1020)", // dark cinematic header
+  card: v("panel", "#140a20"),       // raised card/panel surface
+  onInk: v("on-ink", "#ffffff"),     // readable text on accent/ink buttons
+  headerGrad: "linear-gradient(120deg, var(--bg, #06030b), var(--panel, #140a20) 60%, var(--panel2, #1a1020))",
 };
 
 // ---- helpers ----
