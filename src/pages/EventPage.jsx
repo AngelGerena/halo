@@ -5,7 +5,7 @@ import { fetchReactions, like, rxKey } from "../lib/reactions.js";
 import { shrinkImage } from "../lib/shrink.js";
 import { signPhotoUploads, putToR2 } from "../lib/r2upload.js";
 import { scoreImage, C, hamming } from "../lib/score.js";
-import { Footer } from "../components/UI.jsx";
+import { Footer, LangToggle } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
@@ -431,6 +431,7 @@ export default function EventPage() {
     return (
       <Dark welcome>
         <div style={{ maxWidth: 460, margin: "0 auto", padding: "26px 20px 48px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", margin: "-12px 0 10px" }}><LangToggle /></div>
           <div style={{ textAlign: "center", marginBottom: 22 }}>
             {coverUrl ? (
               <div style={S.coverWrap}>
@@ -495,6 +496,7 @@ export default function EventPage() {
             <div className="display" style={{ fontSize: 20, lineHeight: 1 }}>{ev(event, "name")}</div>
             <div style={{ color: C.second, fontSize: 11.5, marginTop: 3 }}>{contributor.anon ? t("up.welcomeAnon") : `${t("up.welcome")}, ${contributor.name}`}</div>
           </div>
+          <div style={{ marginLeft: "auto", flex: "0 0 auto" }}><LangToggle /></div>
         </div>
 
         {/* ---- ADD tab ----

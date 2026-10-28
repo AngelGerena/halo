@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 // HALO bilingual system (English / Spanish).
 // Every user-facing string lives here under a key. Components call t("key")
@@ -516,10 +516,24 @@ export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(() => {
     const saved = typeof localStorage !== "undefined" && localStorage.getItem(LANG_KEY);
     if (saved === "en" || saved === "es") return saved;
-    // default from browser, fallback English
-    const nav = typeof navigator !== "undefined" ? navigator.language : "en";
-    return nav && nav.toLowerCase().startsWith("es") ? "es" : "en";
+    // Default from the phone's language settings: the first of the guest's
+    // preferred languages that HALO speaks (so an "es-US" phone, or one set
+    // to Spanish with English as a backup, opens in Spanish). Fallback English.
+    try {
+      const prefs = (typeof navigator !== "undefined" && (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language])) || [];
+      for (const l of prefs) {
+        const c = String(l || "").toLowerCase();
+        if (c.startsWith("es")) return "es";
+        if (c.startsWith("en")) return "en";
+      }
+    } catch {}
+    return "en";
   });
+
+  // Keep <html lang> in step so screen readers and translators know the language.
+  useEffect(() => {
+    try { document.documentElement.lang = lang; } catch {}
+  }, [lang]);
 
   const setLang = useCallback((l) => {
     setLangState(l);
