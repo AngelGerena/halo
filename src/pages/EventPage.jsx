@@ -11,6 +11,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
 import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Icons.jsx";
 import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
+import { challengesFor, challengeText } from "../lib/challenges.js";
 import { preloadNsfw } from "../lib/nsfw.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
@@ -35,6 +36,7 @@ export default function EventPage() {
   const cameraRef = useRef(null);
   const videoRef = useRef(null);
   const [notice, setNotice] = useState(""); // friendly one-line message (e.g. clip too long)
+  const [challenge, setChallenge] = useState(null); // challenge id the next upload answers
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
   // load event by code
@@ -208,7 +210,7 @@ export default function EventPage() {
   }
 
   // Score, upload and record one photo. Returns true when it's safely in.
-  async function uploadOne(original, who, kids) {
+  async function uploadOne(original, who, kids, challengeId = null) {
     // Shrink on the phone first: 5-10x smaller, so uploads finish on busy venue Wi-Fi.
     const f = await shrinkImage(original);
     const s = await scoreImage(f);
@@ -253,6 +255,7 @@ export default function EventPage() {
         is_burst_dup: isBurstDup,
         auto_flagged: flagged,
         tags,
+        ...(challengeId ? { challenge: challengeId } : {}),
       }).select().single();
       if (error) throw error;
       return data;
@@ -282,7 +285,7 @@ export default function EventPage() {
 
   // A short video clip: its still frame becomes storage_path (so every grid,
   // email and thumbnail just works) and the clip itself goes in video_path.
-  async function uploadClip(file, who, kids) {
+  async function uploadClip(file, who, kids, challengeId = null) {
     const info = await probeClip(file);
     if (file.size > MAX_CLIP_BYTES || info.duration > MAX_CLIP_SECONDS + 0.5) {
       const err = new Error("clip too long"); err.tooLong = true; throw err;
@@ -318,6 +321,7 @@ export default function EventPage() {
         session_label: event.current_session || null,
         auto_flagged: flagged,
         tags: kids ? ["kids"] : [],
+        ...(challengeId ? { challenge: challengeId } : {}),
       }).select().single();
       if (error) throw error;
       return data;
@@ -331,15 +335,16 @@ export default function EventPage() {
     if (!who) return addFilesFirst(files);
     setNotice("");
     const kids = kidsInFrame;
+    const ch = challenge;
     setUploading((u) => u + files.length);
     for (const original of files) {
       try {
-        if (isVideoFile(original)) await uploadClip(original, who, kids);
-        else await uploadOne(original, who, kids);
+        if (isVideoFile(original)) await uploadClip(original, who, kids, ch);
+        else await uploadOne(original, who, kids, ch);
       } catch (e) {
         console.error(e);
         if (e && e.tooLong) { setNotice(t("up.clipTooLong").replace("{s}", MAX_CLIP_SECONDS)); continue; }
-        setWaiting((w) => [...w, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: original, who, kids }]);
+        setWaiting((w) => [...w, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: original, who, kids, ch }]);
       } finally {
         setUploading((u) => Math.max(0, u - 1));
       }
@@ -347,6 +352,7 @@ export default function EventPage() {
     // The kids question is about THIS batch. Reset it so a guest who checked
     // it once (on purpose or by accident) doesn't have every later photo held.
     if (kidsInFrame) setKidsInFrame(false);
+    if (ch) setChallenge(null);
     loadEveryone(event);
   }
 
@@ -360,8 +366,8 @@ export default function EventPage() {
     try {
       for (const item of [...waitingRef.current]) {
         try {
-          if (isVideoFile(item.file)) await uploadClip(item.file, item.who, item.kids);
-          else await uploadOne(item.file, item.who, item.kids);
+          if (isVideoFile(item.file)) await uploadClip(item.file, item.who, item.kids, item.ch);
+          else await uploadOne(item.file, item.who, item.kids, item.ch);
           setWaiting((w) => w.filter((x) => x.id !== item.id));
         } catch { break; } // still offline; try again later
       }
@@ -529,6 +535,47 @@ export default function EventPage() {
                 <button type="button" onClick={() => setNotice("")} aria-label={t("up.dismiss")} style={{ background: "none", border: "none", color: C.second, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>{t("up.dismiss")}</button>
               </div>
             )}
+
+            {/* Photo challenges: tap one, the camera opens, the photo is tagged with it. */}
+            {(() => {
+              const list = challengesFor(event);
+              if (!list.length) return null;
+              const done = new Set(photos.map((p) => p.challenge).filter(Boolean));
+              const active = list.find((c) => c.id === challenge);
+              return (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>{t("ch.title")}</div>
+                    <div style={{ fontSize: 12, color: C.gold, fontWeight: 700 }}>{t("ch.progress").replace("{done}", list.filter((c) => done.has(c.id)).length).replace("{total}", list.length)}</div>
+                  </div>
+                  {active && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.12)", border: `1px solid ${C.gold}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.text }}><strong>{t("ch.now")}</strong> {challengeText(active, lang)}</div>
+                      <button type="button" onClick={() => inputRef.current?.click()} style={{ ...S.libBtn, padding: "6px 10px", fontSize: 12 }}>{t("ch.fromLibrary")}</button>
+                      <button type="button" onClick={() => setChallenge(null)} style={{ background: "none", border: "none", color: C.second, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{t("ch.cancel")}</button>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+                    {list.map((c) => {
+                      const isDone = done.has(c.id), on = c.id === challenge;
+                      return (
+                        <button key={c.id} type="button" onClick={() => { setChallenge(c.id); cameraRef.current?.click(); }}
+                          style={{ flex: "0 0 auto", width: 150, minHeight: 74, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, background: on ? "rgba(255,184,107,.18)" : isDone ? "rgba(255,255,255,.04)" : "rgba(255,255,255,.07)", border: `1px solid ${on ? C.gold : isDone ? "rgba(255,184,107,.45)" : C.line2}`, borderRadius: 14, padding: "10px 12px", color: C.text, cursor: "pointer" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.25 }}>{challengeText(c, lang)}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: isDone ? C.gold : C.second }}>
+                            {isDone ? (
+                              <><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{t("ch.done")}</>
+                            ) : (
+                              <><CameraIcon size={13} />{t("ch.shoot")}</>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {waiting.length > 0 && (
               <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>

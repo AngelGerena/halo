@@ -8,6 +8,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
 import QRCode from "qrcode";
 import { WALL_SECONDS } from "../lib/clip.js";
+import { challengesFor, challengeText } from "../lib/challenges.js";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -25,7 +26,7 @@ function resolveMusic(ev) {
 // polls for new uploads, shows live heart counts, and spotlights the
 // admin-pinned "Moment of the Service".
 export default function SlideshowPage() {
-  const { t, ev } = useI18n();
+  const { t, ev, lang } = useI18n();
   const { code } = useParams();
   const [event, setEvent] = useState(null);
   // Per-event look: restyle via CSS variables while this page is mounted.
@@ -428,6 +429,23 @@ export default function SlideshowPage() {
         </div>
       )}
 
+      {/* Photo challenge lower-third: which prompt this shot answers, and who took it */}
+      {(() => {
+        if (!cur.challenge) return null;
+        const c = challengesFor(event).find((x) => x.id === cur.challenge);
+        if (!c) return null;
+        const who = cur.contributor_id && names[cur.contributor_id] && names[cur.contributor_id] !== "Guest" ? names[cur.contributor_id] : null;
+        return (
+          <div key={"ch" + cur.id} style={{ position: "absolute", left: "50%", bottom: "6vh", transform: "translateX(-50%)", textAlign: "center", pointerEvents: "none", animation: "chIn .7s cubic-bezier(.2,.9,.3,1.2) both", maxWidth: "70vw" }}>
+            <div style={{ display: "inline-block", background: "rgba(10,4,16,.66)", border: `1px solid ${C.gold}`, borderRadius: 18, padding: "1vw 2vw", backdropFilter: "blur(8px)", boxShadow: "0 10px 34px rgba(0,0,0,.45)" }}>
+              <div style={{ color: C.gold, fontSize: ".9vw", fontWeight: 800, letterSpacing: ".3em", textTransform: "uppercase" }}>{t("live.challenge")}</div>
+              <div className="serif" style={{ color: "#fff", fontSize: "2.1vw", fontWeight: 700, lineHeight: 1.15, marginTop: ".3vw" }}>{challengeText(c, lang)}</div>
+              {who && <div style={{ color: "rgba(255,255,255,.85)", fontSize: "1.05vw", marginTop: ".35vw" }}>{t("live.by")} {who}</div>}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Moment of the Service ribbon */}
       {isMoment && !(spot && spot.photoId === cur.id) && (
         <div style={{ position: "absolute", top: "4vh", left: "50%", transform: "translateX(-50%)", background: C.gold, color: C.ink, padding: ".5vw 1.6vw", borderRadius: 999, fontSize: "1.1vw", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
@@ -470,6 +488,7 @@ export default function SlideshowPage() {
       <style>{`
         @keyframes grow { from { width: 0 } to { width: 100% } }
         ${LIVE_REACTION_CSS}
+        @keyframes chIn { from { opacity: 0; transform: translate(-50%, 2vh) scale(.96) } to { opacity: 1; transform: translate(-50%, 0) scale(1) } }
         @keyframes countPop { 0% { transform: scale(1) } 35% { transform: scale(1.28) } 100% { transform: scale(1) } }
         @keyframes kb0 { from { transform: scale(1.04) translate(0,0) } to { transform: scale(1.15) translate(-2%, -1.5%) } }
         @keyframes kb1 { from { transform: scale(1.15) translate(-2%, 1.5%) } to { transform: scale(1.04) translate(0,0) } }
