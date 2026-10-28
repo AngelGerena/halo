@@ -186,77 +186,108 @@ export default function EventPage() {
     }
   }
 
+  // ---- Uploads that never get lost ----
+  // Each photo is tried up to 4 times with growing pauses (1 s, 2.5 s, 6 s).
+  // If it still can't go (Wi-Fi dropped, phone went into a dead spot), it
+  // waits in `waiting` and goes again on its own when the connection returns
+  // or every 20 s. The guest sees "N waiting to send" instead of a silent loss.
+  const [waiting, setWaiting] = useState([]); // [{ id, file, who, kids }]
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function withRetry(fn, tries = 4) {
+    let pause = 1000;
+    for (let i = 0; ; i++) {
+      try { return await fn(); }
+      catch (e) {
+        if (i >= tries - 1 || (typeof navigator !== "undefined" && navigator.onLine === false)) throw e;
+        await sleep(pause); pause *= 2.5;
+      }
+    }
+  }
+
+  // Score, upload and record one photo. Returns true when it's safely in.
+  async function uploadOne(original, who, kids) {
+    // Shrink on the phone first: 5-10x smaller, so uploads finish on busy venue Wi-Fi.
+    const f = await shrinkImage(original);
+    const s = await scoreImage(f);
+    // moderation gate: public immediately, or held for the super-admin to review first.
+    const needsReview = event.moderation_mode === "review" || (event.protect_minors && kids);
+    const sessionLabel = event.current_session || null; // recurring-service session tag
+    // Best-of-burst: if this shot near-matches an already-kept one this session,
+    // and the earlier one is at least as good, file it as a duplicate (not kept).
+    let isBurstDup = false;
+    if (s.phash) {
+      for (const h of burstRef.current) {
+        if (hamming(h.phash, s.phash) <= 10 && h.quality >= s.quality) { isBurstDup = true; break; }
+      }
+    }
+    const kept = !isBurstDup && s.quality >= (event.keep_threshold ?? 45);
+
+    // In-browser explicit-content auto-flag (graceful: never blocks an upload).
+    let flagged = false;
+    try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(f)).flagged; } catch {}
+    const status = (needsReview || flagged) ? "pending" : "approved";
+    const tags = kids ? ["kids"] : []; // reliable auto-tag from the consent flag
+
+    // Upload straight to R2 via a short-lived presigned URL (secret stays server-side).
+    const path = await withRetry(async () => {
+      const [signed] = await signPhotoUploads({
+        eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg",
+      });
+      await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
+      return signed.path;
+    });
+    const row = await withRetry(async () => {
+      const { data, error } = await supabase.from("photos").insert({
+        event_id: event.id,
+        contributor_id: who.id,
+        storage_path: path,
+        quality: s.quality, focus: s.focus, exposure: s.exposure,
+        kept, width: s.width, height: s.height,
+        has_minors: kids,
+        status,
+        session_label: sessionLabel,
+        phash: s.phash,
+        is_burst_dup: isBurstDup,
+        auto_flagged: flagged,
+        tags,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    });
+    // Only remember it for burst matching once it's really in, so a retry
+    // of the same photo is never mistaken for its own duplicate.
+    if (kept && s.phash) burstRef.current.push({ phash: s.phash, quality: s.quality });
+    setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
+
+    // fire auto-edit in the background; patch the row when ready.
+    // contributorId proves this guest uploaded the photo (guests have no
+    // account), so edit-photo can authorize the enhancement.
+    fetch("/.netlify/functions/edit-photo", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoId: row.id, contributorId: who.id }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((res) => {
+        if (res?.edited_path) {
+          setPhotos((prev) => prev.map((p) =>
+            p.id === row.id ? { ...p, edited_path: res.edited_path, edited_url: publicUrl(res.edited_path) } : p));
+        }
+      })
+      .catch(() => {});
+    return true;
+  }
+
   async function addFiles(fileList, who = contributor) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
     if (!who) return addFilesFirst(files);
+    const kids = kidsInFrame;
     setUploading((u) => u + files.length);
-
-    // moderation gate: public immediately, or held for the super-admin to review first.
-    const needsReview = event.moderation_mode === "review" || (event.protect_minors && kidsInFrame);
-    const sessionLabel = event.current_session || null; // recurring-service session tag
-
     for (const original of files) {
       try {
-        // Shrink on the phone first: 5-10x smaller, so uploads finish on busy venue Wi-Fi.
-        const f = await shrinkImage(original);
-        const s = await scoreImage(f);
-        // Best-of-burst: if this shot near-matches an already-kept one this session,
-        // and the earlier one is at least as good, file it as a duplicate (not kept).
-        let isBurstDup = false;
-        if (s.phash) {
-          for (const h of burstRef.current) {
-            if (hamming(h.phash, s.phash) <= 10 && h.quality >= s.quality) { isBurstDup = true; break; }
-          }
-        }
-        const kept = !isBurstDup && s.quality >= (event.keep_threshold ?? 45);
-        if (kept && s.phash) burstRef.current.push({ phash: s.phash, quality: s.quality });
-
-        // In-browser explicit-content auto-flag (graceful: never blocks an upload).
-        let flagged = false;
-        try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(f)).flagged; } catch {}
-        const status = (needsReview || flagged) ? "pending" : "approved";
-        const tags = kidsInFrame ? ["kids"] : []; // reliable auto-tag from the consent flag
-
-        // Upload straight to R2 via a short-lived presigned URL (secret stays server-side).
-        const [signed] = await signPhotoUploads({
-          eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg",
-        });
-        const path = signed.path;
-        await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
-        const { data: row, error } = await supabase.from("photos").insert({
-          event_id: event.id,
-          contributor_id: who.id,
-          storage_path: path,
-          quality: s.quality, focus: s.focus, exposure: s.exposure,
-          kept, width: s.width, height: s.height,
-          has_minors: kidsInFrame,
-          status,
-          session_label: sessionLabel,
-          phash: s.phash,
-          is_burst_dup: isBurstDup,
-          auto_flagged: flagged,
-          tags,
-        }).select().single();
-        if (error) throw error;
-        setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
-
-        // fire auto-edit in the background; patch the row when ready.
-        // contributorId proves this guest uploaded the photo (guests have no
-        // account), so edit-photo can authorize the enhancement.
-        fetch("/.netlify/functions/edit-photo", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoId: row.id, contributorId: who.id }),
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((res) => {
-            if (res?.edited_path) {
-              setPhotos((prev) => prev.map((p) =>
-                p.id === row.id ? { ...p, edited_path: res.edited_path, edited_url: publicUrl(res.edited_path) } : p));
-            }
-          })
-          .catch(() => {});
+        await uploadOne(original, who, kids);
       } catch (e) {
         console.error(e);
+        setWaiting((w) => [...w, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: original, who, kids }]);
       } finally {
         setUploading((u) => Math.max(0, u - 1));
       }
@@ -266,6 +297,34 @@ export default function EventPage() {
     if (kidsInFrame) setKidsInFrame(false);
     loadEveryone(event);
   }
+
+  // Send anything still waiting. Runs on reconnect, every 20 s, or on tap.
+  const flushingRef = useRef(false);
+  const waitingRef = useRef(waiting); useEffect(() => { waitingRef.current = waiting; }, [waiting]);
+  async function flushWaiting() {
+    if (flushingRef.current || !waitingRef.current.length || !event) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    flushingRef.current = true;
+    try {
+      for (const item of [...waitingRef.current]) {
+        try {
+          await uploadOne(item.file, item.who, item.kids);
+          setWaiting((w) => w.filter((x) => x.id !== item.id));
+        } catch { break; } // still offline; try again later
+      }
+      loadEveryone(event);
+    } finally { flushingRef.current = false; }
+  }
+  useEffect(() => {
+    if (!waiting.length) return;
+    const onOnline = () => flushWaiting();
+    window.addEventListener("online", onOnline);
+    const tmr = setInterval(flushWaiting, 20000);
+    // Warn before closing the page while photos are still on the phone only.
+    const onLeave = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onLeave);
+    return () => { window.removeEventListener("online", onOnline); clearInterval(tmr); window.removeEventListener("beforeunload", onLeave); };
+  }, [waiting.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- loading / not-found ----
   if (loading) return <Dark><div style={S.center}><Ring small /><p style={{ color: C.second, marginTop: 14 }}>{t("event.opening")}</p></div></Dark>;
@@ -402,6 +461,17 @@ export default function EventPage() {
               <input ref={inputRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </div>
+
+            {waiting.length > 0 && (
+              <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
+                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(255,255,255,.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
+                  <div style={{ fontSize: 12, color: C.second }}>{t("up.waitingSub")}</div>
+                </div>
+                <button type="button" onClick={flushWaiting} style={{ flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{t("up.tryNow")}</button>
+              </div>
+            )}
 
             {uploading > 0 && (
               <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
