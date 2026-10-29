@@ -34,6 +34,8 @@ import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 import FrameSettings from "./FrameSettings.jsx";
 import EventExtras from "./EventExtras.jsx";
+import VideoMessages from "./VideoMessages.jsx";
+import { notMessage } from "../lib/videoMessage.js";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -388,7 +390,7 @@ export function EventDetail({ event, api, back }) {
     (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
     setCounts(cmap);
     setContributors(co || []);
-    setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || t("admin.unknownGuest") })));
+    setPhotos((ph || []).filter(notMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || t("admin.unknownGuest") })));
     const latest = [...(ph || []).map((p) => p.created_at), ...(rx || []).map((r) => r.created_at)].filter(Boolean).sort().pop();
     if (latest) setLastChange(new Date(latest));
     setLoading(false);
@@ -1059,6 +1061,8 @@ export function EventDetail({ event, api, back }) {
           </>
         )}
       </details>
+
+      {event.video_guestbook_enabled && <VideoMessages event={event} api={api} contributors={contributors} canDelete={!isCohost} />}
 
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has

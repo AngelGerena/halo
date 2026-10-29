@@ -12,6 +12,8 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
+import { isMessage, notMessage } from "../lib/videoMessage.js";
+import VideoMessageCard from "../components/VideoMessageCard.jsx";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -130,7 +132,10 @@ export default function SlideshowPage() {
       rows = rows.concat(data || []);
       if (!data || data.length < PAGE) break;
     }
-    const mapped = rows.map((p) => ({
+    // Video guestbook messages never join the photo rotation; with the
+    // switch on they play now and then as their own card (see below).
+    if (eventRef.current && eventRef.current.video_guestbook_enabled) setVmsgs(rows.filter(isMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), video_url: publicUrl(p.video_path) })));
+    const mapped = rows.filter(notMessage).map((p) => ({
       ...p,
       url: p.edited_path ? publicUrl(p.edited_path) : publicUrl(p.storage_path),
       video_url: p.video_path ? publicUrl(p.video_path) : null,
@@ -286,8 +291,25 @@ export default function SlideshowPage() {
     setWishCard(w);
   }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Video guestbook ----
+  // Every MSG_EVERY slides (switch on, approved messages only), one guest
+  // video message plays as its own card, newest unseen ones first.
+  const MSG_EVERY = 8;
+  const [vmsgs, setVmsgs] = useState([]);
+  const [msgCard, setMsgCard] = useState(null);
+  const msgTurnRef = useRef(0), msgShownRef = useRef(new Set());
+  useEffect(() => {
+    if (!event || !event.video_guestbook_enabled || !vmsgs.length || spot || msgCard) return;
+    if (advancesRef.current % MSG_EVERY !== 0) return;
+    const fresh = vmsgs.filter((m) => !msgShownRef.current.has(m.id));
+    const m = fresh.length ? fresh[fresh.length - 1] : vmsgs[msgTurnRef.current++ % vmsgs.length];
+    msgShownRef.current.add(m.id);
+    setWishCard(null); setBoard(null); setMsgCard(m);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // advance timer
   useEffect(() => {
+    if (msgCard) return; // the message card moves the wall on when it ends
     if (board) {
       const tmr = setTimeout(() => setBoard(null), BOARD_HOLD);
       return () => clearTimeout(tmr);
@@ -302,7 +324,7 @@ export default function SlideshowPage() {
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, hasTwo, spot, wishCard, board]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idx, paused, hasTwo, spot, wishCard, board, msgCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Not keyed on photos.length: new uploads arriving must not restart the
   // current slide's timer, or a busy room would freeze the wall on one photo.
 
@@ -663,6 +685,8 @@ export default function SlideshowPage() {
           </div>
         </div>
       )}
+
+      {msgCard && <VideoMessageCard key={"m" + msgCard.id} msg={msgCard} name={msgCard.contributor_id ? names[msgCard.contributor_id] : null} category={event && event.category} onDone={() => { setMsgCard(null); if (!paused && photos.length > 1) go(1); }} />}
 
       {/* Moment of the Service ribbon */}
       {isMoment && !(spot && spot.photoId === cur.id) && (
