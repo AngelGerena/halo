@@ -4,7 +4,8 @@
 // name, event name and gallery link are all looked up / built on the server,
 // so this endpoint can never be used to send HALO-branded mail to an arbitrary
 // address or with an arbitrary link. Each contributor is welcomed at most once
-// (contributors.welcomed_at), and calls are rate limited per IP.
+// (contributors.welcomed_at), and calls are rate limited per IP (generously:
+// a whole wedding shares one venue Wi-Fi address).
 import { createClient } from "@supabase/supabase-js";
 import { haloEmail, sendEmail, siteBase, isEmail } from "./_email.js";
 import { clientIp, overLimit, tooMany } from "./_ratelimit.js";
@@ -22,7 +23,7 @@ export async function handler(event) {
 
   // A guest joins once; 10 calls per 10 minutes per IP is plenty for a shared
   // venue Wi-Fi and stops anyone looping this endpoint.
-  if (overLimit("notify-welcome", clientIp(event), 10, 10 * 60 * 1000)) return tooMany();
+  if (overLimit("notify-welcome", clientIp(event), 300, 10 * 60 * 1000)) return tooMany();
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
