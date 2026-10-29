@@ -32,6 +32,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS, getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
+import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
@@ -50,6 +51,17 @@ export function Toggle({ on, onClick, title, help }) {
         <span style={{ display: "block", fontSize: 12, color: C.second, marginTop: 2 }}>{help}</span>
       </span>
     </button>
+  );
+}
+
+// Shown to co-hosts in place of owner-only actions (publish, permanent delete).
+function OwnerOnlyNote({ style }) {
+  const { t } = useI18n();
+  return (
+    <span data-testid="owner-only" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.second, lineHeight: 1.4, ...style }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+      {t("cohost.ownerOnly")}
+    </span>
   );
 }
 
@@ -89,7 +101,7 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
       if (tr.name) setNameEs(tr.name);
       if (tr.host) setHostEs(tr.host);
       if (tr.date) setDateEs(tr.date);
-    } catch (e) { setErr(e.message); } finally { setTranslating(false); }
+    } catch (e) { setErr(friendlyError(e, t)); } finally { setTranslating(false); }
   }
 
   async function create() {
@@ -107,7 +119,7 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
       setName(""); setHost(""); setDate(""); setCode(""); setThreshold(45); setCategory("");
       setNameEs(""); setHostEs(""); setDateEs(""); setRequireReview(false); setProtectMinors(true); setOpen(false);
       onCreated(j.event);
-    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+    } catch (e) { setErr(friendlyError(e, t)); } finally { setBusy(false); }
   }
 
   if (!open) {
@@ -181,6 +193,11 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
 // scopes a client to their own event); all mutations go through `api.fn(...)`.
 export function EventDetail({ event, api, back }) {
   const { t, ev, lang } = useI18n();
+  const dlg = useDialogs();
+  // Co-hosts can run the event but can't publish (email every guest) or
+  // permanently delete photos; the server enforces it, the UI hides it.
+  const isCohost = !!event._cohost;
+  const showErr = (e) => dlg.toast(friendlyError(e, t), "error");
   const [photos, setPhotos] = useState([]);
   const [contributors, setContributors] = useState([]);
   const [counts, setCounts] = useState({});
@@ -236,12 +253,33 @@ export function EventDetail({ event, api, back }) {
         const f = await findFaceFocus(file);
         if (f) { fx = f.x; fy = f.y; }
       }
+      clearTimeout(framingTimer.current); // auto framing wins over a pending drag save
       setCoverFx(fx); setCoverFy(fy); setCoverZoom(1);
       await updateEvent({ cover_focus_x: fx, cover_focus_y: fy });
     } catch (e) { console.warn("cover framing", e); }
     finally { setFocusBusy(false); }
   }
   const [coverFile, setCoverFile] = useState(null); // kept so "Auto" can re-run face detection
+  // Dragging / zooming the cover saves itself ~700 ms after the host stops, so
+  // the framing isn't lost if they never press Save. Same update path as autoFocus.
+  const framingTimer = useRef(null);
+  const [framingState, setFramingState] = useState(""); // "" | "saving" | "saved" | "error"
+  function scheduleFramingSave(fx, fy, zoom) {
+    clearTimeout(framingTimer.current);
+    setFramingState("");
+    framingTimer.current = setTimeout(async () => {
+      setFramingState("saving");
+      try {
+        // Only send zoom once it's used (or already stored), so this still works
+        // on a database that hasn't added the cover_zoom column yet.
+        const patch = { cover_focus_x: fx, cover_focus_y: fy };
+        if (zoom !== 1 || event.cover_zoom != null) patch.cover_zoom = zoom;
+        await updateEvent(patch);
+        setFramingState("saved");
+      } catch (e) { console.warn("cover framing save", e); setFramingState("error"); }
+    }, 700);
+  }
+  useEffect(() => () => clearTimeout(framingTimer.current), []);
   const [musicUrl, setMusicUrl] = useState(event.music_url || "");
   const [musicBusy, setMusicBusy] = useState(false);
   const [musicRightsOk, setMusicRightsOk] = useState(!!event.music_rights_ack);
@@ -280,12 +318,14 @@ export function EventDetail({ event, api, back }) {
   const today = () => new Date().toISOString().slice(0, 10);
 
   async function publish() {
-    if (!confirm(t("admin.publishConfirm2").replace("{n}", String(contributors.length)))) return;
+    if (isCohost) return;
+    const okGo = await dlg.confirm({ title: t("dlg.publishTitle"), message: t("admin.publishConfirm2").replace("{n}", String(contributors.length)), confirmLabel: t("admin.publishNotify") });
+    if (!okGo) return;
     setPublishing(true); setPublishMsg("");
     try {
       const j = await api.fn("publish-event", { eventId: event.id, origin: window.location.origin });
       setPublishMsg(`${t("admin.published")} · ${j.sent} ${j.sent === 1 ? t("admin.emailSent") : t("admin.emailsSent")}${j.failed ? `, ${j.failed} ${t("admin.failed")}` : ""}.`);
-    } catch (e) { setPublishMsg(e.message); } finally { setPublishing(false); }
+    } catch (e) { setPublishMsg(friendlyError(e, t)); } finally { setPublishing(false); }
   }
 
   // Live-screen (TV) QR — lets the host open the slideshow on the TV device by
@@ -333,7 +373,7 @@ export function EventDetail({ event, api, back }) {
     (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
     setCounts(cmap);
     setContributors(co || []);
-    setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || "Unknown" })));
+    setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || t("admin.unknownGuest") })));
     const latest = [...(ph || []).map((p) => p.created_at), ...(rx || []).map((r) => r.created_at)].filter(Boolean).sort().pop();
     if (latest) setLastChange(new Date(latest));
     setLoading(false);
@@ -363,8 +403,8 @@ export function EventDetail({ event, api, back }) {
     return j.event;
   }
 
-  async function pinMoment(id) { try { await updateEvent({ featured_photo_id: id }); setFeaturedId(id); } catch (e) { alert(e.message); } }
-  async function clearMoment() { try { await updateEvent({ featured_photo_id: null }); setFeaturedId(null); } catch (e) { alert(e.message); } }
+  async function pinMoment(id) { try { await updateEvent({ featured_photo_id: id }); setFeaturedId(id); } catch (e) { showErr(e); } }
+  async function clearMoment() { try { await updateEvent({ featured_photo_id: null }); setFeaturedId(null); } catch (e) { showErr(e); } }
   async function pinTopMoment() {
     const pool = photos.filter((p) => p.kept && p.status === "approved");
     if (pool.length === 0) return;
@@ -373,10 +413,10 @@ export function EventDetail({ event, api, back }) {
   }
 
   async function startNewSession() {
-    if (!confirm(t("admin.newSessionConfirm"))) return;
+    if (!(await dlg.confirm({ title: t("dlg.newSessionTitle"), message: t("admin.newSessionConfirm"), confirmLabel: t("dlg.newSessionGo") }))) return;
     const d = today();
-    try { await updateEvent({ is_recurring: true, current_session: d }); setIsRecurring(true); setCurrentSession(d); setSessionFilter(d); setSavedMsg(t("admin.saved")); }
-    catch (e) { alert(e.message); }
+    try { await updateEvent({ is_recurring: true, current_session: d }); setIsRecurring(true); setCurrentSession(d); setSessionFilter(d); setSavedMsg(t("admin.saved")); dlg.toast(t("admin.saved"), "success"); }
+    catch (e) { showErr(e); }
   }
 
   async function saveSettings() {
@@ -409,10 +449,12 @@ export function EventDetail({ event, api, back }) {
       };
       const updated = await updateEvent(patch);
       setCurrentSession(updated.current_session || "");
+      clearTimeout(framingTimer.current); // Save already sent the framing
       setSavedMsg(t("admin.saved"));
+      dlg.toast(t("admin.saved"), "success");
       markReady("settings");
       if (readyReturn.current) { readyReturn.current = false; setTimeout(() => flashTo("halo-ready"), 600); }
-    } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
+    } catch (e) { setSavedMsg(friendlyError(e, t)); } finally { setSaving(false); }
   }
 
   async function uploadCover(file) {
@@ -420,14 +462,14 @@ export function EventDetail({ event, api, back }) {
     setCoverBusy(true);
     try {
       const { uploadUrl, path, contentType } = await api.fn("sign-upload-admin", {
-        kind: "cover", filename: file.name, contentType: file.type || "image/jpeg",
+        kind: "cover", eventId: event.id, filename: file.name, contentType: file.type || "image/jpeg",
       });
       await putToR2(uploadUrl, file, contentType);
       setCoverPath(path);
       await updateEvent({ cover_path: path });
       setCoverFile(file);
       await autoFocus(path, file); // find the faces so the crop never beheads anyone
-    } catch (e) { alert(e.message); } finally { setCoverBusy(false); }
+    } catch (e) { showErr(e); } finally { setCoverBusy(false); }
   }
 
   async function uploadMusic(file) {
@@ -435,22 +477,22 @@ export function EventDetail({ event, api, back }) {
     setMusicBusy(true);
     try {
       const { uploadUrl, path, contentType } = await api.fn("sign-upload-admin", {
-        kind: "music", filename: file.name, contentType: file.type || "audio/mpeg",
+        kind: "music", eventId: event.id, filename: file.name, contentType: file.type || "audio/mpeg",
       });
       await putToR2(uploadUrl, file, contentType);
       setMusicUrl(path);
-    } catch (e) { alert(e.message); } finally { setMusicBusy(false); }
+    } catch (e) { showErr(e); } finally { setMusicBusy(false); }
   }
 
   async function deleteEvent() {
-    const typed = window.prompt(`${t("admin.deleteEventConfirm")} ${event.code}`);
+    const typed = await dlg.prompt({ title: t("admin.deleteEvent"), message: `${t("admin.deleteEventConfirm")} ${event.code}`, placeholder: event.code, confirmLabel: t("admin.deleteEvent"), danger: true, autoCapitalize: "characters" });
     if (typed === null) return;
-    if (typed.trim().toUpperCase() !== String(event.code).toUpperCase()) { alert(t("admin.deleteEventMismatch")); return; }
+    if (typed.trim().toUpperCase() !== String(event.code).toUpperCase()) { await dlg.alert({ title: t("dlg.nothingDeleted"), message: t("admin.deleteEventMismatch") }); return; }
     setDeletingEvent(true);
     try {
       await api.fn("delete-event", { eventId: event.id });
       back();
-    } catch (e) { alert(e.message); setDeletingEvent(false); }
+    } catch (e) { showErr(e); setDeletingEvent(false); }
   }
 
   function fileNameFor(p) {
@@ -485,7 +527,7 @@ export function EventDetail({ event, api, back }) {
       const r = await api.fn("manage-cohosts", { eventId: event.id, lang, ...body });
       setCohosts(r.cohosts || []);
       if (body.add) setCohostEmail("");
-    } catch (e) { setCohostErr(e.message); } finally { setCohostBusy(false); }
+    } catch (e) { setCohostErr(friendlyError(e, t)); } finally { setCohostBusy(false); }
   }
 
   // Highlight video: a ~60 s film of the best-loved photos, made in the browser.
@@ -543,7 +585,7 @@ export function EventDetail({ event, api, back }) {
   useEffect(() => { loadWishes(); const tmr = setInterval(loadWishes, 45000); return () => clearInterval(tmr); }, [event.id]); // eslint-disable-line react-hooks/exhaustive-deps
   async function setWishStatus(id, status) {
     setWishes((cur) => cur.map((w) => (w.id === id ? { ...w, status } : w)));
-    try { await api.fn("manage-wishes", { eventId: event.id, wishIds: [id], status }); } catch (e) { alert(e.message); loadWishes(); }
+    try { await api.fn("manage-wishes", { eventId: event.id, wishIds: [id], status }); } catch (e) { showErr(e); loadWishes(); }
   }
   function wishesText() {
     const shown = wishes.filter((w) => w.status === "approved");
@@ -557,8 +599,8 @@ export function EventDetail({ event, api, back }) {
       const slug = String(event.name || event.code).replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
       const extras = wishes.some((w) => w.status === "approved") ? [{ name: "guestbook-messages.txt", text: wishesText() }] : [];
       const { missing } = await downloadZip(items, `HALO_${slug || event.code}_${items.length}-photos.zip`, (done, total) => setZipping({ done, total }), extras);
-      if (missing.length) alert(t("admin.zipMissing").replace("{n}", missing.length));
-    } catch (e) { alert(t("admin.zipFailed")); }
+      if (missing.length) dlg.alert({ title: t("dlg.zipReady"), message: t("admin.zipMissing").replace("{n}", missing.length) });
+    } catch (e) { dlg.toast(t("admin.zipFailed"), "error"); }
     finally { setZipping(null); }
   }
 
@@ -575,7 +617,7 @@ export function EventDetail({ event, api, back }) {
       await api.fn("moderate-photos", { photoIds: ids, status });
       const set = new Set(ids);
       setPhotos((prev) => prev.map((p) => (set.has(p.id) ? { ...p, status } : p)));
-    } catch (e) { alert(e.message); } finally { setModerating(false); }
+    } catch (e) { showErr(e); } finally { setModerating(false); }
   }
 
   async function makeCrops(p) {
@@ -595,7 +637,7 @@ export function EventDetail({ event, api, back }) {
         document.body.appendChild(a); a.click(); a.remove();
         await new Promise((r) => setTimeout(r, 300));
       }
-    } catch (e) { alert(e.message); } finally {
+    } catch (e) { showErr(e); } finally {
       setCropping((prev) => { const n = new Set(prev); n.delete(p.id); return n; });
     }
   }
@@ -612,23 +654,25 @@ export function EventDetail({ event, api, back }) {
         op === "add" ? cur.add(tag) : cur.delete(tag);
         return { ...p, tags: Array.from(cur) };
       }));
-    } catch (e) { alert(e.message); } finally { setTagging(false); }
+    } catch (e) { showErr(e); } finally { setTagging(false); }
   }
 
   async function deleteIds(ids, label) {
-    if (ids.length === 0) return;
-    if (!confirm(`${t("admin.deleteConfirm1")} ${ids.length} ${ids.length === 1 ? t("admin.photos").toLowerCase().replace(/s$/, "") : t("admin.photos").toLowerCase()}${label ? ` (${label})` : ""}? ${t("admin.deleteConfirm2")}`)) return;
+    if (ids.length === 0 || isCohost) return;
+    const what = `${ids.length} ${ids.length === 1 ? t("admin.photos").toLowerCase().replace(/s$/, "") : t("admin.photos").toLowerCase()}${label ? ` (${label})` : ""}`;
+    const okDel = await dlg.confirm({ title: `${t("admin.deleteConfirm1")} ${what}?`, message: t("admin.deleteConfirm2"), confirmLabel: t("admin.delete"), danger: true });
+    if (!okDel) return;
     setDeleting(true);
     try {
       await api.fn("delete-photos", { photoIds: ids });
       const removed = new Set(ids);
       setPhotos((prev) => prev.filter((p) => !removed.has(p.id)));
       setSelected((prev) => { const n = new Set(prev); ids.forEach((i) => n.delete(i)); return n; });
-    } catch (e) { alert(t("admin.couldNotDelete") + " " + e.message); } finally { setDeleting(false); }
+    } catch (e) { dlg.toast(t("admin.couldNotDelete") + " " + friendlyError(e, t), "error"); } finally { setDeleting(false); }
   }
   const deleteOne = (id) => deleteIds([id]);
-  const deleteSelected = () => deleteIds([...selected], "selected");
-  const deleteAllRejected = () => deleteIds(photos.filter((p) => !p.kept).map((p) => p.id), "rejected");
+  const deleteSelected = () => deleteIds([...selected], t("admin.selected"));
+  const deleteAllRejected = () => deleteIds(photos.filter((p) => !p.kept).map((p) => p.id), t("admin.rejected"));
 
   const kept = photos.filter((p) => p.kept);
   const rejected = photos.filter((p) => !p.kept);
@@ -825,9 +869,13 @@ export function EventDetail({ event, api, back }) {
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("admin.afterEvent")}</div>
             <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("admin.afterEventHelp")}</p>
+            {isCohost ? (
+              <OwnerOnlyNote />
+            ) : (
             <button onClick={publish} disabled={publishing} style={{ minHeight: 40, background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, opacity: publishing ? 0.6 : 1 }}>
               {publishing ? t("admin.publishing") : event.published_at ? t("admin.resendEmails") : t("admin.publishNotify")}
             </button>
+            )}
             {publishMsg && <div style={{ fontSize: 12, color: C.second, marginTop: 8 }}>{publishMsg}</div>}
           </div>
         </div>
@@ -1094,9 +1142,17 @@ export function EventDetail({ event, api, back }) {
                   <>
                     <CoverFramer src={publicUrl(coverPath)} fx={coverFx} fy={coverFy} zoom={coverZoom} gold={C.gold}
                       labels={{ drag: t("admin.cover.drag"), dragShort: t("admin.cover.dragShort"), zoom: t("admin.cover.zoom") }}
-                      onChange={({ fx, fy, zoom }) => { setCoverFx(fx); setCoverFy(fy); setCoverZoom(zoom); }} />
+                      onChange={({ fx, fy, zoom }) => { setCoverFx(fx); setCoverFy(fy); setCoverZoom(zoom); scheduleFramingSave(fx, fy, zoom); }} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: C.second, lineHeight: 1.4 }}>{focusBusy ? t("admin.cover.framingBusy") : t("admin.cover.framingHow")}</span>
+                      <span style={{ fontSize: 11, color: C.second, lineHeight: 1.4 }}>
+                        {focusBusy ? t("admin.cover.framingBusy") : t("admin.cover.framingHow")}
+                        {framingState && (
+                          <span data-testid="framing-state" role="status" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontWeight: 700, color: framingState === "error" ? "#ff8a80" : C.gold, whiteSpace: "nowrap" }}>
+                            {framingState === "saved" && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>}
+                            {framingState === "saving" ? t("admin.cover.framingSaving") : framingState === "saved" ? t("admin.cover.framingSaved") : t("admin.cover.framingError")}
+                          </span>
+                        )}
+                      </span>
                       <button onClick={() => autoFocus(coverPath, coverFile)} disabled={focusBusy} style={{ flexShrink: 0, background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>{t("admin.cover.framingAuto")}</button>
                     </div>
                   </>
@@ -1112,7 +1168,7 @@ export function EventDetail({ event, api, back }) {
                   <input type="file" accept="image/*" hidden disabled={coverBusy} onChange={(e) => { uploadCover(e.target.files[0]); e.target.value = ""; }} />
                 </label>
                 {coverPath && !coverBusy && (
-                  <button onClick={async () => { try { await updateEvent({ cover_path: null }); setCoverPath(""); } catch (e) { alert(e.message); } }}
+                  <button onClick={async () => { try { await updateEvent({ cover_path: null }); setCoverPath(""); } catch (e) { showErr(e); } }}
                     style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "9px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.cover.remove")}</button>
                 )}
               </div>
@@ -1315,7 +1371,7 @@ export function EventDetail({ event, api, back }) {
               ) : (
                 <button onClick={exitSelect} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.done")}</button>
               )}
-              {rejected.length > 0 && (
+              {rejected.length > 0 && !isCohost && (
                 <button onClick={deleteAllRejected} disabled={deleting} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.clearRejected")} {rejected.length} {t("admin.rejected")}</button>
               )}
             </div>
@@ -1328,7 +1384,8 @@ export function EventDetail({ event, api, back }) {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button onClick={selectAllShown} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.selectAllShown")}</button>
                   <button onClick={() => setSelected(new Set())} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clear")}</button>
-                  <button onClick={deleteSelected} disabled={deleting || selected.size === 0} style={{ background: "#b3261e", color: "#fff", padding: "6px 14px", borderRadius: 999, fontSize: 12, opacity: deleting || selected.size === 0 ? 0.5 : 1 }}>{deleting ? t("admin.deleting") : `${t("admin.delete")} ${selected.size}`}</button>
+                  {isCohost && <OwnerOnlyNote />}
+                  {!isCohost && <button onClick={deleteSelected} disabled={deleting || selected.size === 0} style={{ background: "#b3261e", color: "#fff", padding: "6px 14px", borderRadius: 999, fontSize: 12, opacity: deleting || selected.size === 0 ? 0.5 : 1 }}>{deleting ? t("admin.deleting") : `${t("admin.delete")} ${selected.size}`}</button>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
@@ -1398,7 +1455,7 @@ export function EventDetail({ event, api, back }) {
                           <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                         )}
                         <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : t("admin.cropsBtn")}</button>
-                        <button onClick={() => deleteOne(p.id)} disabled={deleting} title={t("admin.deleteHelp")} aria-label="Delete photo" style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.delete")}</button>
+                        {!isCohost && <button onClick={() => deleteOne(p.id)} disabled={deleting} title={t("admin.deleteHelp")} aria-label={t("admin.deleteHelp")} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.delete")}</button>}
                       </div>
                     )}
                   </div>

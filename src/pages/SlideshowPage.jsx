@@ -77,8 +77,7 @@ export default function SlideshowPage() {
       setEvent(evrow || false);
       eventRef.current = evrow || null;
       if (evrow) {
-        const { data: people } = await supabase.from("contributors").select("id,name").eq("event_id", evrow.id);
-        const m = {}; (people || []).forEach((c) => { m[c.id] = c.name; }); setNames(m);
+        await loadNames(evrow.id);
       }
       const { data: lib } = await supabase.from("music_library").select("*").eq("active", true);
       setLibTracks(lib || []);
@@ -87,32 +86,83 @@ export default function SlideshowPage() {
     })();
   }, [code]);
 
+  // Guest names for "by Name" and the Top Photographers card. Re-read on
+  // every refresh so guests who join after the wall opens get credited.
+  const loadNames = useCallback(async (eventId) => {
+    const { data: people, error } = await supabase.from("contributors").select("id,name").eq("event_id", eventId);
+    if (error || !people) return; // keep what we have on a network blip
+    const m = {}; people.forEach((c) => { m[c.id] = c.name; }); setNames(m);
+  }, []);
+
+  // Fetch every approved, kept photo (pages of 1000, the API's row cap) and
+  // sync the wall with it: new photos slot in right after the one on screen,
+  // photos the host hid or deleted drop out, and auto-edited versions replace
+  // the originals. Stable identity (no deps) so the realtime channel and the
+  // fallback poll are set up once, not torn down on every slide.
+  const idxRef = useRef(0);
+  useEffect(() => { idxRef.current = idx; }, [idx]);
+  // One sync at a time: if the poll and a realtime ping overlap, the second
+  // one runs right after the first instead of racing it.
+  const syncing = useRef(false), again = useRef(false);
   const refresh = useCallback(async (eventId, initial = false) => {
-    let q = supabase.from("photos").select("*")
-      .eq("event_id", eventId).eq("kept", true).eq("status", "approved");
+    if (!initial && syncing.current) { again.current = true; return; }
+    syncing.current = true;
+    try { await syncWall(eventId, initial); } finally { syncing.current = false; }
+    if (again.current) { again.current = false; refresh(eventId, false); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const syncWall = useCallback(async (eventId, initial = false) => {
     const session = eventRef.current && eventRef.current.current_session;
-    if (session) q = q.eq("session_label", session); // V2: current weekly session only
-    const { data } = await q.order("created_at", { ascending: true });
-    const mapped = (data || []).map((p) => ({
+    const PAGE = 1000, MAX = 6000;
+    let rows = [];
+    for (let from = 0; from < MAX; from += PAGE) {
+      let q = supabase.from("photos").select("*")
+        .eq("event_id", eventId).eq("kept", true).eq("status", "approved");
+      if (session) q = q.eq("session_label", session); // V2: current weekly session only
+      const { data, error } = await q.order("created_at", { ascending: true }).range(from, from + PAGE - 1);
+      if (error) { if (initial) break; return; } // network blip: keep the wall as is
+      rows = rows.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+    const mapped = rows.map((p) => ({
       ...p,
       url: p.edited_path ? publicUrl(p.edited_path) : publicUrl(p.storage_path),
       video_url: p.video_path ? publicUrl(p.video_path) : null,
     }));
+    if (!initial) loadNames(eventId);
     if (initial) {
       mapped.forEach((p) => seen.current.add(p.id));
       setPhotos(shuffle(mapped));
-    } else {
-      const fresh = mapped.filter((p) => !seen.current.has(p.id));
-      if (fresh.length) {
-        fresh.forEach((p) => seen.current.add(p.id));
-        setPhotos((prev) => {
-          const copy = [...prev];
-          copy.splice(idx + 1, 0, ...fresh);
-          return copy;
-        });
-      }
+      return;
     }
-  }, [idx]);
+    const byId = new Map(mapped.map((p) => [p.id, p]));
+    const prev = photosRef.current || [];
+    const curId = prev[idxRef.current] && prev[idxRef.current].id;
+    // Keep the current order for photos still on the wall, with fresh data.
+    const kept = prev.filter((p) => byId.has(p.id)).map((p) => {
+      const n = byId.get(p.id);
+      return (n.url === p.url && n.video_url === p.video_url && n.updated_at === p.updated_at) ? p : n;
+    });
+    const fresh = mapped.filter((p) => !seen.current.has(p.id));
+    fresh.forEach((p) => seen.current.add(p.id));
+    // A photo that was removed and later approved again counts as new.
+    const back = mapped.filter((p) => seen.current.has(p.id) && !prev.some((x) => x.id === p.id) && !fresh.includes(p));
+    const incoming = [...fresh, ...back];
+    const changed = incoming.length || kept.length !== prev.length || kept.some((p, i) => p !== prev[i]);
+    if (!changed) return;
+    let at = curId ? kept.findIndex((p) => p.id === curId) : -1;
+    const next = [...kept];
+    if (at === -1) {
+      setPrevIdx(null);
+      // The photo on screen was removed: show the next one in its place.
+      at = Math.min(idxRef.current, Math.max(0, next.length - 1));
+      next.splice(at, 0, ...incoming);
+    } else {
+      next.splice(at + 1, 0, ...incoming);
+    }
+    photosRef.current = next;
+    setPhotos(next);
+    setIdx(next.length ? Math.min(at, next.length - 1) : 0);
+  }, [loadNames]);
 
   // New uploads arrive via Supabase Realtime (event-driven, near-instant) so we
   // don't hammer the database with constant polling. A slow 60s fallback poll
@@ -121,13 +171,21 @@ export default function SlideshowPage() {
     if (!event) return;
 
     // 1) Realtime: fire a refresh only when a photo for THIS event changes,
-    //    and animate hearts the moment a guest taps one.
+    //    and animate hearts the moment a guest taps one. Bursts (each upload
+    //    is an insert then an edit) collapse into one refresh.
+    let debounce = null;
+    const soon = () => { clearTimeout(debounce); debounce = setTimeout(() => refresh(event.id, false), 1200); };
     const channel = supabase
       .channel(`live-${event.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "photos", filter: `event_id=eq.${event.id}` },
-        () => refresh(event.id, false)
+        () => soon()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "contributors", filter: `event_id=eq.${event.id}` },
+        () => soon()
       )
       .on(
         "postgres_changes",
@@ -141,20 +199,41 @@ export default function SlideshowPage() {
       )
       .subscribe();
 
-    // 2) Fallback poll — slow, just in case the socket silently drops.
-    const tmr = setInterval(() => refresh(event.id, false), 60000);
+    // 2) Fallback poll, just in case the socket silently drops. Also catch up
+    //    right away when the TV's network or the tab comes back.
+    const tmr = setInterval(() => refresh(event.id, false), 45000);
+    const wake = () => { if (document.visibilityState !== "hidden") soon(); };
+    window.addEventListener("online", wake);
+    document.addEventListener("visibilitychange", wake);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(tmr);
+      clearTimeout(debounce);
+      window.removeEventListener("online", wake);
+      document.removeEventListener("visibilitychange", wake);
     };
   }, [event, refresh]);
+
+  // Keep the TV / laptop screen awake while the wall is open.
+  useEffect(() => {
+    if (!("wakeLock" in navigator)) return;
+    let lock = null, alive = true;
+    const grab = async () => {
+      if (document.visibilityState !== "visible") return;
+      try { const l = await navigator.wakeLock.request("screen"); if (alive) lock = l; else l.release(); } catch {}
+    };
+    grab();
+    const onVis = () => { if (document.visibilityState === "visible") grab(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { alive = false; document.removeEventListener("visibilitychange", onVis); try { lock && lock.release(); } catch {} };
+  }, []);
 
   // keep heart counts fresh as photos arrive (and on first load)
   useEffect(() => {
     if (!event || photos.length === 0) return;
     let alive = true;
-    fetchReactions(photos.map((p) => p.id)).then((r) => { if (alive) { setCounts(r.counts); setLiked(r.liked); } });
+    fetchReactions(photos.map((p) => p.id), event.id).then((r) => { if (alive) { setCounts(r.counts); setLiked(r.liked); } }).catch(() => {}); // keep last counts on a blip
     return () => { alive = false; };
   }, [event, photos.length]);
 
@@ -471,13 +550,13 @@ export default function SlideshowPage() {
           church's name. Fades while the full controls are showing. */}
       <div style={{ position: "absolute", top: "2.4vw", left: "2.2vw", display: "flex", alignItems: "center", gap: ".8vw", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
         {event.cover_path ? (
-          <img src={publicUrl(event.cover_path)} alt="" style={{ width: "3.2vw", height: "3.2vw", borderRadius: "50%", objectFit: "cover", objectPosition: `${Math.round((event.cover_focus_x ?? 0.5) * 100)}% ${Math.round((event.cover_focus_y ?? 0.5) * 100)}%`, border: `2px solid ${C.gold}`, boxShadow: "0 4px 14px rgba(0,0,0,.45)" }} />
+          <img src={publicUrl(event.cover_path)} alt="" style={{ width: "max(3.2vw, 30px)", height: "max(3.2vw, 30px)", borderRadius: "50%", objectFit: "cover", objectPosition: `${Math.round((event.cover_focus_x ?? 0.5) * 100)}% ${Math.round((event.cover_focus_y ?? 0.5) * 100)}%`, border: `2px solid ${C.gold}`, boxShadow: "0 4px 14px rgba(0,0,0,.45)" }} />
         ) : (
-          <span style={{ width: "3.2vw", height: "3.2vw", borderRadius: "50%", border: `2px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: "1.4vw" }}>&#9673;</span>
+          <span style={{ width: "max(3.2vw, 30px)", height: "max(3.2vw, 30px)", borderRadius: "50%", border: `2px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: "1.4vw" }}>&#9673;</span>
         )}
         <div>
-          <div className="serif" style={{ color: "#fff", fontSize: "1.5vw", lineHeight: 1.05, fontWeight: 700, textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{ev(event, "name")}</div>
-          {ev(event, "event_date") && <div style={{ color: C.gold, fontSize: ".8vw", letterSpacing: 2, textTransform: "uppercase", marginTop: ".2vw", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>{ev(event, "event_date")}</div>}
+          <div className="serif" style={{ color: "#fff", fontSize: "max(1.5vw, 13px)", lineHeight: 1.05, fontWeight: 700, textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{ev(event, "name")}</div>
+          {ev(event, "event_date") && <div style={{ color: C.gold, fontSize: "max(.8vw, 9px)", letterSpacing: 2, textTransform: "uppercase", marginTop: ".2vw", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>{ev(event, "event_date")}</div>}
         </div>
       </div>
 
