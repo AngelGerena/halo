@@ -18,6 +18,7 @@ import { formatEventDate } from "../lib/eventDate.js";
 import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
+import { useFilterGate } from "../components/FilterPicker.jsx";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 import { frameFor } from "../lib/frames.js";
 
@@ -304,6 +305,7 @@ export default function EventPage() {
   // waits in `waiting` and goes again on its own when the connection returns
   // or every 20 s. The guest sees "N waiting to send" instead of a silent loss.
   const [waiting, setWaiting] = useState([]); // [{ id, file, who, kids }]
+  const [filterGate, filterNode] = useFilterGate(event); // Fun filters (off unless the host turns it on)
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function withRetry(fn, tries = 4) {
     let pause = 1000;
@@ -366,6 +368,7 @@ export default function EventPage() {
         auto_flagged: flagged,
         tags,
         ...(challengeId ? { challenge: challengeId } : {}),
+        ...(event.filters_enabled && original.haloFilter ? { filter: original.haloFilter } : {}),
     };
     const row = await withRetry(async () => {
       const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert(rowIn).select(), signal).single());
@@ -577,6 +580,7 @@ export default function EventPage() {
   if (!contributor) {
     return (
       <Dark welcome>
+        {filterNode}
         <div style={{ maxWidth: 460, margin: "0 auto", padding: "26px 20px 48px" }}>
           <div style={{ display: "flex", justifyContent: "flex-end", margin: "-12px 0 10px" }}><LangToggle /></div>
           <div style={{ textAlign: "center", marginBottom: 22 }}>
@@ -609,9 +613,9 @@ export default function EventPage() {
               </button>
             </div>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
-              onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
+              onChange={(e) => { filterGate(e.target.files, addFilesFirst); e.target.value = ""; }} />
             <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden
-              onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
+              onChange={(e) => { filterGate(e.target.files, addFilesFirst); e.target.value = ""; }} />
           </div>
           {starting && (
             <div role="status" style={{ ...S.sendRow, justifyContent: "center", marginTop: 14 }}>
@@ -645,6 +649,7 @@ export default function EventPage() {
 
   return (
     <Dark>
+      {filterNode}
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 20px 96px" }}>
         {/* header: cover thumb + event name */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
@@ -724,11 +729,11 @@ export default function EventPage() {
               </div>
               <div style={{ fontSize: 11.5, color: C.second, marginTop: 8 }}>{t("up.videoHint").replace("{s}", MAX_CLIP_SECONDS)}</div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
-                onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+                onChange={(e) => { filterGate(e.target.files, addFiles); e.target.value = ""; }} />
               <input ref={videoRef} type="file" accept="video/*" capture="environment" hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden
-                onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+                onChange={(e) => { filterGate(e.target.files, addFiles); e.target.value = ""; }} />
             </div>
 
             {notice && (
