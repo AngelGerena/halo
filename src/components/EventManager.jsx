@@ -254,6 +254,22 @@ export function EventDetail({ event, api, back }) {
     setReadyDone((d) => { const n = { ...d, [k]: true }; try { localStorage.setItem(READY_KEY, JSON.stringify(n)); } catch {} return n; });
   }
   function hideReady() { setReadyHidden(true); try { localStorage.setItem(READY_KEY + "_hide", "1"); } catch {} }
+  const [readyShowDone, setReadyShowDone] = useState(false);
+  // "Do it" from the checklist: open settings, glide to the exact section and
+  // make it glow so the host sees where to act. After saving, glide back.
+  const readyReturn = useRef(false);
+  function flashTo(id) {
+    let tries = 0;
+    const go = () => {
+      const el = document.getElementById(id);
+      if (!el) { if (tries++ < 20) setTimeout(go, 50); return; }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("halo-flash"); void el.offsetWidth; el.classList.add("halo-flash");
+      setTimeout(() => el.classList.remove("halo-flash"), 2400);
+    };
+    go();
+  }
+  function goToSetting(id) { readyReturn.current = true; setSettingsOpen(true); flashTo(id); }
   const [deletingEvent, setDeletingEvent] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
@@ -389,6 +405,7 @@ export function EventDetail({ event, api, back }) {
       setCurrentSession(updated.current_session || "");
       setSavedMsg(t("admin.saved"));
       markReady("settings");
+      if (readyReturn.current) { readyReturn.current = false; setTimeout(() => flashTo("halo-ready"), 600); }
     } catch (e) { setSavedMsg(e.message); } finally { setSaving(false); }
   }
 
@@ -638,8 +655,8 @@ export function EventDetail({ event, api, back }) {
           it. Detected where we can; otherwise ticked when they do it here. */}
       {(() => {
         const items = [
-          { k: "cover", done: !!coverPath, label: t("ready.cover"), action: () => setSettingsOpen(true) },
-          { k: "settings", done: !!readyDone.settings, label: t("ready.settings"), action: () => setSettingsOpen(true) },
+          { k: "cover", done: !!coverPath, label: t("ready.cover"), action: () => goToSetting("set-cover") },
+          { k: "settings", done: !!readyDone.settings, label: t("ready.settings"), action: () => goToSetting("set-privacy") },
           { k: "qr", done: !!readyDone.qr, label: t("ready.qr"), action: async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); } },
           { k: "photo", done: photos.length > 0, label: t("ready.photo"), action: () => window.open(eventUrl, "_blank", "noreferrer") },
           { k: "live", done: !!readyDone.live, label: t("ready.live"), action: () => { markReady("live"); window.open(liveUrl, "_blank", "noreferrer"); } },
@@ -647,25 +664,58 @@ export function EventDetail({ event, api, back }) {
         const doneCount = items.filter((i) => i.done).length;
         const all = doneCount === items.length;
         if (readyHidden && all) return null;
+        const todo = items.filter((i) => !i.done), finished = items.filter((i) => i.done);
+        const Box = ({ on }) => (
+          <span aria-hidden="true" style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, background: on ? C.gold : "transparent", border: `2px solid ${on ? C.gold : C.second}`, color: C.ink, display: "grid", placeItems: "center" }}>
+            {on && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>}
+          </span>
+        );
+        if (all) return (
+          <div id="halo-ready" style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.08)", border: `1px solid ${C.gold}`, borderRadius: 14, padding: "10px 14px" }}>
+            <Box on />
+            <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.text }}><b>{t("ready.allDone")}</b> <span style={{ color: C.second }}>{t("ready.allDone.sub")}</span></div>
+            <button onClick={hideReady} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("ready.dismiss")}</button>
+          </div>
+        );
         return (
-          <div style={{ marginTop: 16, background: all ? "rgba(255,184,107,.08)" : C.card, border: `1px solid ${all ? C.gold : "rgba(255,255,255,.12)"}`, borderRadius: 16, padding: "14px 18px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{all ? t("ready.allDone") : t("ready.title")}</div>
-                <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{all ? t("ready.allDone.sub") : `${doneCount} / ${items.length} · ${t("ready.sub")}`}</div>
-              </div>
-              {all && <button onClick={hideReady} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("ready.dismiss")}</button>}
+          <div id="halo-ready" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: "14px 16px" }}>
+            <style>{`@keyframes haloFlash{0%{box-shadow:0 0 0 0 var(--gold)}25%{box-shadow:0 0 0 4px var(--gold)}100%{box-shadow:0 0 0 0 transparent}}.halo-flash{animation:haloFlash 1.2s ease-out 2;border-radius:14px}@media(prefers-reduced-motion:reduce){.halo-flash{animation:none;outline:3px solid var(--gold)}}`}</style>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t("ready.title")}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, whiteSpace: "nowrap" }}>{t("ready.left").replace("{n}", todo.length)}</div>
             </div>
-            {!all && (
-              <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "grid", gap: 6 }}>
-                {items.map((i) => (
-                  <li key={i.k} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-                    <span aria-hidden="true" style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, background: i.done ? C.gold : "transparent", border: `2px solid ${i.done ? C.gold : C.second}`, color: C.ink, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800 }}>{i.done ? "✓" : ""}</span>
-                    <span style={{ color: i.done ? C.second : C.text, textDecoration: i.done ? "line-through" : "none", flex: 1 }}>{i.label}</span>
-                    {!i.done && <button onClick={i.action} style={{ background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "4px 10px", borderRadius: 999, fontSize: 12 }}>{t("ready.go")}</button>}
-                  </li>
-                ))}
-              </ul>
+            <div style={{ height: 6, background: "rgba(255,255,255,.08)", borderRadius: 999, overflow: "hidden", margin: "10px 0 12px" }}>
+              <div style={{ width: `${(doneCount / items.length) * 100}%`, height: "100%", background: C.gold, borderRadius: 999, transition: "width .4s ease" }} />
+            </div>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+              {todo.map((i) => (
+                <li key={i.k}>
+                  <button type="button" onClick={i.action}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "rgba(255,255,255,.04)", border: `1px solid ${C.line2}`, borderRadius: 12, padding: "10px 12px", color: C.text, fontSize: 13.5, cursor: "pointer", minHeight: 48 }}>
+                    <Box on={false} />
+                    <span style={{ flex: 1, minWidth: 0, lineHeight: 1.35 }}>{i.label}</span>
+                    <span style={{ flexShrink: 0, color: C.gold, fontSize: 12.5, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      {t("ready.go")}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {finished.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <button type="button" onClick={() => setReadyShowDone((v) => !v)} aria-expanded={readyShowDone}
+                  style={{ background: "none", border: "none", padding: "4px 0", color: C.second, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                  {(readyShowDone ? t("ready.hideDone") : t("ready.showDone")).replace("{n}", finished.length)}
+                </button>
+                {readyShowDone && (
+                  <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "grid", gap: 6 }}>
+                    {finished.map((i) => (
+                      <li key={i.k} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: C.second }}><Box on />{i.label}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         );
@@ -994,7 +1044,7 @@ export function EventDetail({ event, api, back }) {
         <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 20 }}>
           <h3 className="serif" style={{ fontSize: 20, color: C.text, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
 
-          <div style={{ marginBottom: 18, paddingBottom: 16, borderBottom: `1px solid ${C.line}` }}>
+          <div id="set-cover" style={{ marginBottom: 18, borderBottom: `1px solid ${C.line}`, padding: "8px 8px 16px", marginLeft: -8, marginRight: -8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.cover")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.cover.help")}</p>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -1060,8 +1110,9 @@ export function EventDetail({ event, api, back }) {
               </>
             )}
           </div>
-          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
+          <div id="set-privacy" style={{ marginBottom: 14, borderBottom: `1px solid ${C.line2}`, padding: "8px 8px 14px", marginLeft: -8, marginRight: -8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.modSection")}</div>
+            {readyReturn.current && !readyDone.settings && <p style={{ fontSize: 12, color: C.gold, margin: "4px 0 0", fontWeight: 600 }}>{t("ready.thenSave")}</p>}
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.modSection.help")}</p>
             <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
             <Toggle on={protectMinors} onClick={() => setProtectMinors((v) => !v)} title={t("admin.protectMinors")} help={t("admin.protectMinors.help")} />
