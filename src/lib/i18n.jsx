@@ -398,6 +398,7 @@ const STRINGS = {
   "admin.publishConfirm": { en: "Publish this gallery and email all contributors who left an address?", es: "¿Publicar esta galería y enviar correo a todos los colaboradores que dejaron su dirección?" },
   "admin.publishFailed": { en: "Publish failed", es: "Error al publicar" },
   "admin.published": { en: "Published", es: "Publicado" },
+  "admin.publishMore": { en: "{n} still to send: tap Publish again to finish.", es: "Faltan {n} por enviar: toca Publicar otra vez para terminar." },
   "admin.emailsSent": { en: "emails sent", es: "correos enviados" },
   "admin.emailSent": { en: "email sent", es: "correo enviado" },
   "admin.failed": { en: "failed", es: "fallidos" },

@@ -324,7 +324,7 @@ export function EventDetail({ event, api, back }) {
     setPublishing(true); setPublishMsg("");
     try {
       const j = await api.fn("publish-event", { eventId: event.id, origin: window.location.origin });
-      setPublishMsg(`${t("admin.published")} · ${j.sent} ${j.sent === 1 ? t("admin.emailSent") : t("admin.emailsSent")}${j.failed ? `, ${j.failed} ${t("admin.failed")}` : ""}.`);
+      setPublishMsg(`${t("admin.published")} · ${j.sent} ${j.sent === 1 ? t("admin.emailSent") : t("admin.emailsSent")}${j.failed ? `, ${j.failed} ${t("admin.failed")}` : ""}.${j.remaining > 0 ? " " + t("admin.publishMore").replace("{n}", String(j.remaining)) : ""}`);
     } catch (e) { setPublishMsg(friendlyError(e, t)); } finally { setPublishing(false); }
   }
 
@@ -362,12 +362,25 @@ export function EventDetail({ event, api, back }) {
   // refreshing; a slow poll is the safety net if the socket drops.
   const [lastChange, setLastChange] = useState(null); // Date of the latest upload/heart seen
   const [tick, setTick] = useState(0);                // re-render every 30 s so "2 min ago" stays honest
+  // Reads past the API's 1,000-row cap in pages. Returns null on any error so
+  // a network blip keeps what's on screen instead of blanking the grid.
+  async function fetchAll(build) {
+    const PAGE = 1000; let rows = [];
+    for (let from = 0; from < 50000; from += PAGE) {
+      const { data, error } = await build().range(from, from + PAGE - 1);
+      if (error) return null;
+      rows = rows.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+    return rows;
+  }
   async function loadAll() {
-    const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
-      supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
-      supabase.from("contributors").select("id,event_id,name,created_at").eq("event_id", event.id),
-      supabase.from("reactions").select("photo_id,created_at").eq("event_id", event.id),
+    const [ph, co, rx] = await Promise.all([
+      fetchAll(() => supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }).order("id")),
+      fetchAll(() => supabase.from("contributors").select("id,event_id,name,created_at").eq("event_id", event.id).order("created_at").order("id")),
+      fetchAll(() => supabase.from("reactions").select("id,photo_id,created_at").eq("event_id", event.id).order("id")),
     ]);
+    if (!ph || !co || !rx) { setLoading(false); return; } // keep the last good view
     const names = Object.fromEntries((co || []).map((c) => [c.id, c.name]));
     const cmap = {};
     (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
