@@ -20,6 +20,8 @@ import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 import { frameFor } from "../lib/frames.js";
+import { isBoomerangFile, uploadBoomerang } from "../lib/boomerang.js";
+import { BoomerangButton, MediaThumb } from "../components/BoomerangPlayer.jsx";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -450,6 +452,14 @@ export default function EventPage() {
     return true;
   }
 
+  // Boomerangs arrive here already made into a sprite (see lib/boomerang.js).
+  async function sendBoomerang(file, who, kids, challengeId, onProgress) {
+    const row = await uploadBoomerang({ file, event, who, kids, challengeId, onProgress, retry: withRetry, timed: dbTimed, sig });
+    setPhotos((prev) => [row, ...prev]);
+    warmNsfwWhenIdle();
+    return true;
+  }
+
   async function sendWish() {
     const message = wish.trim().slice(0, 280);
     if (!message || !event) return;
@@ -485,7 +495,8 @@ export default function EventPage() {
     for (const original of files) {
       setProgress(null);
       try {
-        if (isVideoFile(original)) await uploadClip(original, who, kids, ch, onPutProgress);
+        if (isBoomerangFile(original)) await sendBoomerang(original, who, kids, ch, onPutProgress);
+        else if (isVideoFile(original)) await uploadClip(original, who, kids, ch, onPutProgress);
         else await uploadOne(original, who, kids, ch, onPutProgress);
       } catch (e) {
         console.error(e);
@@ -518,7 +529,8 @@ export default function EventPage() {
           // Photos picked before the guest could be created have no owner yet.
           const who = item.who || await ensureContributor();
           if (!who) break; // still can't reach HALO; try again later
-          if (isVideoFile(item.file)) await uploadClip(item.file, who, item.kids, item.ch, onPutProgress);
+          if (isBoomerangFile(item.file)) await sendBoomerang(item.file, who, item.kids, item.ch, onPutProgress);
+          else if (isVideoFile(item.file)) await uploadClip(item.file, who, item.kids, item.ch, onPutProgress);
           else await uploadOne(item.file, who, item.kids, item.ch, onPutProgress);
           setWaiting((w) => w.filter((x) => x.id !== item.id));
         } catch { break; } // still offline; try again later
@@ -672,7 +684,7 @@ export default function EventPage() {
                 the buttons, what just happened, then the extras. */}
             {onScreen && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,61,129,.12)", border: `1px solid ${C.pink}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14, animation: "haloPulse 1.2s ease-in-out infinite" }}>
-                {(() => { const p = photos.find((x) => x.id === onScreen); return p ? <img src={p.edited_url || p.url} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", border: `2px solid ${C.pink}` }} /> : null; })()}
+                {(() => { const p = photos.find((x) => x.id === onScreen); return p ? <MediaThumb photo={p} style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", border: `2px solid ${C.pink}` }} /> : null; })()}
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 15 }}>{t("up.onScreenNow")}</div>
                   <div style={{ fontSize: 12.5, color: C.second }}>{t("up.onScreenNowSub")}</div>
@@ -718,11 +730,13 @@ export default function EventPage() {
                 <button type="button" onClick={() => videoRef.current?.click()} style={S.libBtn}>
                   <VideoIcon size={18} /> {t("up.recordVideo")}
                 </button>
+                {event.boomerang_enabled && <BoomerangButton style={S.libBtn} onReady={(f) => addFiles([f])} onError={setNotice} />}
                 <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
                   <UploadIcon size={18} /> {t("up.fromLibrary")}
                 </button>
               </div>
               <div style={{ fontSize: 11.5, color: C.second, marginTop: 8 }}>{t("up.videoHint").replace("{s}", MAX_CLIP_SECONDS)}</div>
+              {event.boomerang_enabled && <div style={{ fontSize: 11.5, color: C.second, marginTop: 4 }}>{t("boom.hint")}</div>}
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               <input ref={videoRef} type="file" accept="video/*" capture="environment" hidden
@@ -774,7 +788,7 @@ export default function EventPage() {
                   <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
                     {photos.slice(0, 3).map((p) => (
                       <div key={p.id} style={{ position: "relative", width: 72, height: 72, borderRadius: 12, overflow: "hidden", border: `2px solid ${p.status === "pending" ? C.second : C.gold}`, background: C.panel }}>
-                        <img src={p.edited_url || p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <MediaThumb photo={p} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                         <span style={{ position: "absolute", right: 4, bottom: 4, width: 18, height: 18, borderRadius: "50%", background: p.status === "pending" ? C.second : C.gold, color: C.ink, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800 }}>{p.status === "pending" ? "…" : "✓"}</span>
                       </div>
                     ))}

@@ -12,7 +12,8 @@ const FPS = 30;
 const INTRO = 3.2, OUTRO = 3.6, PER = 2.7, FADE = 0.7;
 
 export function pickHighlights(photos, counts = {}, max = 20) {
-  const pool = photos.filter((p) => p.status !== "pending" && p.status !== "hidden" && !p.video_url && (p.kept !== false));
+  const pool = photos.filter((p) => p.status !== "pending" && p.status !== "hidden" && !p.video_url && (p.kept !== false)
+    && (!p.kind || p.kind === "photo")); // boomerang sprites / messages are not stills
   const ranked = pool.slice().sort((a, b) =>
     ((counts[b.id] || 0) - (counts[a.id] || 0)) || ((b.quality || 0) - (a.quality || 0)));
   const chosen = ranked.slice(0, max);
