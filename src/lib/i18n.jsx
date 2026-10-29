@@ -341,6 +341,7 @@ const STRINGS = {
   "tv.tip": { en: "Tip: keep the laptop plugged in and don’t let it go to sleep. The screen stays live all night.", es: "Consejo: deja la laptop enchufada y no dejes que se suspenda. La pantalla se queda en vivo toda la noche." },
   // No laptop? Phone-to-TV paths. Laptop stays the recommended route; these
   // are the fallback most hosts actually have in their pocket.
+  "qr.guestView": { en: "Open guest page to take photos", es: "Abrir la página de invitados para tomar fotos" },
   "qr.showBig": { en: "Show QR full screen", es: "Ver QR en pantalla completa" },
   "qr.scanTitle": { en: "Scan to add your photos", es: "Escanea para subir tus fotos" },
   "qr.tapClose": { en: "Tap anywhere to close", es: "Toca en cualquier parte para cerrar" },

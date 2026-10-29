@@ -864,6 +864,11 @@ export function EventDetail({ event, api, back }) {
               <ExpandIcon /> {t("qr.showBig")}
             </button>
           )}
+          <a href={`/e/${event.code}`} target="_blank" rel="noreferrer" className="btn-soft"
+            style={{ marginTop: 8, width: "100%", minHeight: 44, padding: "9px 12px", fontSize: 14, textDecoration: "none", boxSizing: "border-box" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
+            {t("qr.guestView")}
+          </a>
           <div className="hqb-tools">
             {qr && (
               <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
