@@ -244,6 +244,7 @@ const STRINGS = {
   "event.welcomeNote": { en: "No app · No account · Yours to download for 60 days", es: "Sin app · Sin cuenta · Tuyas para descargar por 60 días" },
   "tab.add": { en: "Add", es: "Agregar" },
   "tab.gallery": { en: "Gallery", es: "Galería" },
+  "tab.manage": { en: "Manage", es: "Administrar" },
   "tab.mine": { en: "Mine", es: "Mías" },
   "up.tapGallery": { en: "See everyone’s photos in", es: "Mira las fotos de todos en" },
   "up.allYours": { en: "All your photos", es: "Todas tus fotos" },

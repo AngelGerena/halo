@@ -13,6 +13,8 @@ import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Ico
 import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { preloadNsfw } from "../lib/nsfw.js";
+import { useAuth } from "../lib/auth.jsx";
+import { makeApi } from "../lib/authedFetch.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -21,6 +23,20 @@ export default function EventPage() {
   const navigate = useNavigate();
   const { t, ev, lang } = useI18n();
   const [event, setEvent] = useState(null);
+  // Is the person on this page the event's host (owner or co-host)? Then the
+  // tab bar gets a Manage tab that goes straight back to this event's tools.
+  const { user, session } = useAuth();
+  const [isHost, setIsHost] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setIsHost(false);
+    if (!user || !event) return;
+    if (event.owner_id && event.owner_id === user.id) { setIsHost(true); return; }
+    makeApi(session).fn("cohost-events", {})
+      .then((r) => { if (alive && (r.events || []).some((e) => e.id === event.id)) setIsHost(true); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user, session, event]);
   // Per-event look: restyle via CSS variables while this page is mounted.
   useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
   const [loading, setLoading] = useState(true);
@@ -761,18 +777,24 @@ export default function EventPage() {
         <TabBtn active={tab === "add"} onClick={() => setTab("add")} icon="&#43;" label={t("tab.add")} />
         <TabBtn active={tab === "gallery"} onClick={() => setTab("gallery")} icon="&#9638;" label={t("tab.gallery")} />
         <TabBtn active={tab === "mine"} onClick={() => setTab("mine")} icon="&#9733;" label={t("tab.mine")} />
+        {isHost && (
+          <TabBtn active={false} onClick={() => navigate(`/dashboard?event=${encodeURIComponent(event.code)}`)} label={t("tab.manage")}
+            iconNode={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>} />
+        )}
       </nav>
     </Dark>
   );
 }
 
 /* ---------- small presentational pieces ---------- */
-function TabBtn({ active, onClick, icon, label }) {
+function TabBtn({ active, onClick, icon, iconNode, label }) {
   return (
     <button onClick={onClick} aria-current={active ? "page" : undefined}
       style={{ flex: 1, textAlign: "center", padding: "11px 0", background: "transparent",
         color: active ? C.gold : C.second, borderTop: active ? `2px solid ${C.gold}` : "2px solid transparent", marginTop: -1 }}>
-      <div style={{ fontSize: 17 }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon + "︎" }} />
+      {iconNode
+        ? <div style={{ height: 22, display: "flex", justifyContent: "center", alignItems: "center" }} aria-hidden="true">{iconNode}</div>
+        : <div style={{ fontSize: 17 }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon + "︎" }} />}
       <div style={{ fontSize: 11, letterSpacing: ".04em", marginTop: 2 }}>{label}</div>
     </button>
   );
