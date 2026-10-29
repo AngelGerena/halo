@@ -752,7 +752,7 @@ export function EventDetail({ event, api, back }) {
       })()}
 
       <div id="halo-qr-box" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", alignSelf: "start" }}>
           {coverPath && (
             <div style={{ width: 160, maxWidth: "100%", aspectRatio: "4 / 5", margin: "0 auto 12px", borderRadius: 12, overflow: "hidden", background: "#111", border: "1px solid rgba(255,255,255,.12)" }}>
               <img src={publicUrl(coverPath)} alt="" style={coverStyle(coverFx, coverFy, coverZoom)} />
