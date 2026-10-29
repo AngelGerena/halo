@@ -1,13 +1,18 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { AuthShell, AuthField, AuthButton, AuthError, authErrorText } from "../components/AuthUI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { safeNext } from "../lib/auth.jsx";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const [params] = useSearchParams();
+  // Where to go after signing in (set by RequireAuth). Validated so it can only
+  // ever be a path on this site, never an outside URL.
+  const next = safeNext(params.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,8 +32,8 @@ export default function LoginPage() {
         password,
       });
       if (error) throw error;
-      // The client dashboard is built by another agent; just hand off to it.
-      navigate("/dashboard");
+      // Back to where they were headed (e.g. /dashboard?event=CODE), else the dashboard.
+      navigate(next, { replace: true });
     } catch (e2) {
       setErr(e2?.message || "auth.err.login");
       setBusy(false);

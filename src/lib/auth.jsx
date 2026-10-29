@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "./supabase.js";
 import { Spinner } from "../components/UI.jsx";
 
@@ -61,10 +61,22 @@ export function useAuth() {
   return ctx;
 }
 
+// Only allow a same-origin path as a post-login destination: it must start with
+// a single "/" (no "//host" or "/\\host" protocol-relative tricks, no "http:").
+export function safeNext(raw, fallback = "/dashboard") {
+  if (typeof raw !== "string" || !raw) return fallback;
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return fallback;
+  if (/[\u0000-\u001f\\]/.test(raw)) return fallback;
+  return raw;
+}
+
 // Route guard: render children only when signed in. While the session is still
-// loading, show a spinner; if resolved and signed out, redirect to /login.
+// loading, show a spinner; if resolved and signed out, redirect to /login and
+// remember where they were going (path + query, e.g. /dashboard?event=CODE from
+// a co-host invite or the morning-after email) so login can send them back.
 export function RequireAuth({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -72,6 +84,10 @@ export function RequireAuth({ children }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    const next = location.pathname + (location.search || "");
+    const to = next && next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login";
+    return <Navigate to={to} replace />;
+  }
   return children;
 }
