@@ -191,6 +191,7 @@ export function EventDetail({ event, api, back }) {
   const [sessionFilter, setSessionFilter] = useState(event.current_session || "all");
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [deleting, setDeleting] = useState(false);
@@ -279,7 +280,7 @@ export function EventDetail({ event, api, back }) {
   const today = () => new Date().toISOString().slice(0, 10);
 
   async function publish() {
-    if (!confirm(t("admin.publishConfirm"))) return;
+    if (!confirm(t("admin.publishConfirm2").replace("{n}", String(contributors.length)))) return;
     setPublishing(true); setPublishMsg("");
     try {
       const j = await api.fn("publish-event", { eventId: event.id, origin: window.location.origin });
@@ -740,67 +741,95 @@ export function EventDetail({ event, api, back }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {live ? t("pulse.live") : t("pulse.quiet")}
               <span style={{ fontWeight: 400, color: C.second }}>
-                {" · "}{recent} {t("pulse.recent")}{" · "}{contributors.length} {t("pulse.guests")}{" · "}{heartsTotal} {t("pulse.hearts")}{pending.length ? ` · ${pending.length} ${t("pulse.waiting")}` : ""}
+                {" · "}{recent} {t("pulse.recent")}{" · "}{contributors.length} {contributors.length === 1 ? t("pulse.guest") : t("pulse.guests")}{" · "}{heartsTotal} {t("pulse.hearts")}{pending.length ? ` · ${pending.length} ${t("pulse.waiting")}` : ""}
               </span>
             </div>
             <div style={{ marginLeft: "auto", fontSize: 12, color: C.second }}>
-              {ago == null ? t("pulse.nothingYet") : ago === 0 ? t("pulse.justNow") : `${t("pulse.last")} ${ago} ${ago === 1 ? t("pulse.minute") : t("pulse.minutes")}`}
+              {ago == null ? t("pulse.nothingYet") : ago === 0 ? t("pulse.justNow") : ago < 60 ? `${t("pulse.last")} ${ago} ${ago === 1 ? t("pulse.minute") : t("pulse.minutes")}` : ago < 1440 ? `${t("pulse.last")} ${Math.round(ago / 60)} ${Math.round(ago / 60) === 1 ? t("pulse.hour") : t("pulse.hours")}` : `${t("pulse.last")} ${Math.round(ago / 1440)} ${Math.round(ago / 1440) === 1 ? t("pulse.day") : t("pulse.days")}`}
             </div>
             <style>{`@keyframes pulseDot { 0%,100% { transform: scale(1) } 50% { transform: scale(1.35) } }`}</style>
           </div>
         );
       })()}
 
-      <div id="halo-qr-box" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
-        <div style={{ textAlign: "center", alignSelf: "start" }}>
-          {coverPath && (
-            <div style={{ width: 160, maxWidth: "100%", aspectRatio: "4 / 5", margin: "0 auto 12px", borderRadius: 12, overflow: "hidden", background: "#111", border: "1px solid rgba(255,255,255,.12)" }}>
-              <img src={publicUrl(coverPath)} alt="" style={coverStyle(coverFx, coverFy, coverZoom)} />
-            </div>
-          )}
+      <div id="halo-qr-box" className="hqb" style={{ background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16 }}>
+        <style>{`
+          .hqb { display: grid; grid-template-columns: 220px 1fr; grid-template-areas: "cover head" "cover rest" "qr rest"; grid-template-rows: auto auto 1fr; column-gap: 24px; row-gap: 14px; margin-top: 16px; padding: 22px; }
+          .hqb-cover { grid-area: cover; width: 100%; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; background: #111; border: 1px solid rgba(255,255,255,.12); align-self: start; }
+          .hqb-head { grid-area: head; min-width: 0; }
+          .hqb-qr { grid-area: qr; align-self: start; text-align: center; }
+          .hqb-rest { grid-area: rest; min-width: 0; }
+          .hqb-qrimg { width: 100%; max-width: 220px; aspect-ratio: 1; border-radius: 10px; display: block; margin: 0 auto; }
+          .hqb-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+          .hqb-tool { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 4px; border-radius: 10px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.06); color: ${C.onInk}; border: 1px solid ${C.line2}; cursor: pointer; text-decoration: none; white-space: normal; text-align: center; line-height: 1.15; }
+          .hqb-stats { display: flex; gap: 10px; }
+          .hqb-stats > div { min-width: 0; }
+          .hqb-short { display: none; }
+          @media (max-width: 640px) {
+            .hqb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "cover" "head" "qr" "rest"; grid-template-rows: none; padding: 16px; row-gap: 16px; }
+            .hqb-cover { aspect-ratio: 1.95 / 1; }
+            .hqb-head h2 { font-size: 28px !important; }
+            .hqb-qrimg { max-width: 280px; }
+            .hqb-qr { max-width: 340px; width: 100%; justify-self: center; }
+            .hqb-stats { gap: 8px; }
+            .hqb-stats > div { padding: 12px 10px !important; }
+            .hqb-stats > div > div:last-child { font-size: 11px !important; letter-spacing: .5px !important; }
+            .hqb-long { display: none; } .hqb-short { display: inline; }
+          }
+        `}</style>
+        {coverPath && (
+          <div className="hqb-cover">
+            <img src={publicUrl(coverPath)} alt="" style={coverStyle(coverFx, coverFy, coverZoom)} />
+          </div>
+        )}
+        <div className="hqb-head">
+          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
+          <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
+          <p style={{ color: C.second, margin: 0 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+        </div>
+        <div className="hqb-qr">
           {qr && (
-            <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", margin: "0 auto" }}>
-              <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10, maxWidth: "100%", display: "block" }} />
+            <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", width: "100%" }}>
+              <img src={qr} alt="Event QR code" className="hqb-qrimg" />
             </button>
           )}
           {qr && (
-            <button type="button" onClick={() => setQrFull("join")} style={{ marginTop: 8, width: "100%", background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button type="button" onClick={() => setQrFull("join")} style={{ marginTop: 10, width: "100%", minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <ExpandIcon /> {t("qr.showBig")}
             </button>
           )}
-          <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+          <div className="hqb-tools">
             {qr && (
-              <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} style={{ textDecoration: "none" }}>
-                <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
-              </a>
+              <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
             )}
-            <button onClick={async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); }}
-              title={t("admin.tableCard.help")} style={{ background: C.gold, color: C.ink, border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}><PrintIcon /> {t("admin.tableCard")}</button>
-            <button onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); alert(t("admin.linkCopied") + "\n" + eventUrl); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.copyLink")}</button>
+            <button className="hqb-tool" onClick={async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); }}
+              title={t("admin.tableCard.help")}>{t("admin.tableCardShort")}</button>
+            <button className="hqb-tool" onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); }}>{linkCopied ? t("admin.copied") : t("admin.copyLink")}</button>
           </div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
-          <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
-          <p style={{ color: C.second, margin: "0 0 14px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div className="hqb-rest">
+          <div className="hqb-stats">
             <Stat label={t("admin.photos")} value={photos.length} />
             <Stat label={t("admin.kept")} value={kept.length} gold />
-            <Stat label={t("admin.contributors")} value={contributors.length} />
+            <Stat label={<><span className="hqb-long">{t("admin.contributors")}</span><span className="hqb-short">{t("admin.guestsShort")}</span></>} value={contributors.length} />
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-            <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none" }}>
-              <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.launchSlideshow")}</button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 14 }}>
+            <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none", display: "block" }}>
+              <button style={{ width: "100%", minHeight: 44, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.launchSlideshow")}</button>
             </a>
-            <a href={eventUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-              <button style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("admin.viewGallery")}</button>
+            <a href={eventUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
+              <button style={{ width: "100%", minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.viewGallery")}</button>
             </a>
-            <button onClick={publish} disabled={publishing} style={{ background: C.gold, color: C.ink, padding: "10px 16px", borderRadius: 10, fontSize: 13, opacity: publishing ? 0.6 : 1 }}>
+          </div>
+          <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0", lineHeight: 1.45 }}>{t("admin.actionsHelp2")}</p>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("admin.afterEvent")}</div>
+            <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("admin.afterEventHelp")}</p>
+            <button onClick={publish} disabled={publishing} style={{ minHeight: 40, background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, opacity: publishing ? 0.6 : 1 }}>
               {publishing ? t("admin.publishing") : event.published_at ? t("admin.resendEmails") : t("admin.publishNotify")}
             </button>
-            {publishMsg && <span style={{ fontSize: 12, color: C.second }}>{publishMsg}</span>}
+            {publishMsg && <div style={{ fontSize: 12, color: C.second, marginTop: 8 }}>{publishMsg}</div>}
           </div>
-          <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0", lineHeight: 1.45 }}>{t("admin.actionsHelp")}</p>
         </div>
       </div>
 
