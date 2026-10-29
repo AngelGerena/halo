@@ -12,6 +12,7 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
+import { useLiveMosaic, MosaicCard, MosaicIcon } from "../components/MosaicWall.jsx";
 import { isMessage, notMessage } from "../lib/videoMessage.js";
 import VideoMessageCard from "../components/VideoMessageCard.jsx";
 import { BoomerangFrame } from "../components/BoomerangPlayer.jsx";
@@ -275,6 +276,8 @@ export default function SlideshowPage() {
   // reliably gets people shooting more. Needs at least two named guests.
   const BOARD_EVERY = 12, BOARD_HOLD = 9000;
   const [board, setBoard] = useState(null); // [{ name, n }]
+  // Photo mosaic (Manage > Extras). Does nothing when the event's switch is off.
+  const mosaic = useLiveMosaic(event, photos);
 
   useEffect(() => {
     advancesRef.current += 1;
@@ -319,13 +322,13 @@ export default function SlideshowPage() {
       const tmr = setTimeout(() => setWishCard(null), WISH_HOLD);
       return () => clearTimeout(tmr);
     }
-    if (paused || !hasTwo) return;
+    if (paused || !hasTwo || mosaic.open) return;
     // Clips play once (up to WALL_SECONDS), then the wall moves on.
     const item = photos[idx];
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, hasTwo, spot, wishCard, board, msgCard]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idx, paused, hasTwo, spot, wishCard, board, mosaic.open, msgCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Not keyed on photos.length: new uploads arriving must not restart the
   // current slide's timer, or a busy room would freeze the wall on one photo.
 
@@ -689,6 +692,7 @@ export default function SlideshowPage() {
         </div>
       )}
 
+      {mosaic.open && <MosaicCard event={event} photos={photos} counts={counts} onClose={mosaic.close} />}
       {msgCard && <VideoMessageCard key={"m" + msgCard.id} msg={msgCard} name={msgCard.contributor_id ? names[msgCard.contributor_id] : null} category={event && event.category} onDone={() => { setMsgCard(null); if (!paused && photos.length > 1) go(1); }} />}
 
       {/* Moment of the Service ribbon */}
@@ -698,7 +702,7 @@ export default function SlideshowPage() {
         </div>
       )}
 
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: showChrome ? 1 : 0, transition: "opacity .6s ease" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: showChrome ? 1 : 0, transition: "opacity .6s ease", zIndex: mosaic.open ? 7 : undefined }}>
         <div style={{ position: "absolute", top: "4vh", left: "4vw", display: "flex", alignItems: "center", gap: 14 }}>
           <img src="/halo-logo.png" alt="HALO" style={{ height: "3vw", width: "auto", display: "block" }} />
           <div>
@@ -722,6 +726,7 @@ export default function SlideshowPage() {
 {musicSrc && <Ctrl onClick={toggleMusic}>{musicOn ? t("live.musicOff") : t("live.musicOn")}</Ctrl>}
             <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? t("live.play") : t("live.pause")}</Ctrl>
             {canFull && <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>}
+            {mosaic.on && <Ctrl onClick={(e) => { e.stopPropagation(); mosaic.toggle(); }}><span id="mosaic-btn" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><MosaicIcon size={16} />{t("mosaic.btn")}</span></Ctrl>}
           </div>
         </div>
 
