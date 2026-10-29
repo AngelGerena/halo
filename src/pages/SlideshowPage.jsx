@@ -12,6 +12,7 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
+import { SponsorWallBadge } from "../components/Sponsor.jsx";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -579,6 +580,8 @@ export default function SlideshowPage() {
           </div>
         ) : null; })()}
       </div>
+
+      <SponsorWallBadge event={event} hidden={showChrome} />
 
       {/* Always-on room stats: photos and guests so far. Makes the wall feel
           alive and nudges the people who haven't scanned yet. */}

@@ -34,6 +34,7 @@ import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 import FrameSettings from "./FrameSettings.jsx";
 import EventExtras from "./EventExtras.jsx";
+import LeadsSection from "./LeadsSection.jsx";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -413,8 +414,10 @@ export function EventDetail({ event, api, back }) {
     })();
   }, []);
 
+  const [leadMode, setLeadMode] = useState(event.lead_capture || "off"); // Leads section follows the Extras switch
   async function updateEvent(patch) {
     const j = await api.fn("update-event", { eventId: event.id, patch });
+    if (patch && "lead_capture" in patch) setLeadMode(patch.lead_capture);
     return j.event;
   }
 
@@ -1031,6 +1034,8 @@ export function EventDetail({ event, api, back }) {
           )
         )}
       </div>
+
+      <LeadsSection event={event} api={api} mode={leadMode} />
 
       {/* ---- GUESTBOOK MESSAGES ---- */}
       <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
