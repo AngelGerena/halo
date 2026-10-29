@@ -7,6 +7,7 @@ import { ReactionBuddy, LIVE_REACTION_CSS } from "../components/LiveReactions.js
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
 import QRCode from "qrcode";
+import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.jsx";
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 
@@ -37,6 +38,7 @@ export default function SlideshowPage() {
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showChrome, setShowChrome] = useState(true);
+  const [tvOpen, setTvOpen] = useState(false);
   // One-time "tap to go fullscreen" prompt. Browsers only allow fullscreen
   // from a user gesture, so we can't auto-enter it — but a host setting up a
   // TV shouldn't have to hunt for a tiny button that auto-hides. The first tap
@@ -339,6 +341,7 @@ export default function SlideshowPage() {
     setShowChrome(true);
     clearTimeout(chromeTimer.current);
     chromeTimer.current = setTimeout(() => setShowChrome(false), 3500);
+    // (the TV sheet keeps the top actions visible on its own via tvOpen)
   }
   useEffect(() => { wake(); return () => clearTimeout(chromeTimer.current); }, []);
 
@@ -392,7 +395,11 @@ export default function SlideshowPage() {
   if (photos.length === 0) return (
     <Stage onMouseMove={wake} onClick={wake} onTouchStart={wake}>
       {tapPrompt}
-      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap} />
+      <TopActions show={showChrome || needsTap || tvOpen}>
+        <ShowOnTVButton label={t("tvs.btn")} onClick={() => setTvOpen(true)} />
+        <ExitButton label={t("live.exit")} onClick={exitWall} />
+      </TopActions>
+      {tvOpen && <ShowOnTVSheet code={code} onClose={() => { setTvOpen(false); wake(); }} />}
       <Centered>
        <div>
         <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 6 }}>{ev(event, "name")}</div>
@@ -427,7 +434,11 @@ export default function SlideshowPage() {
   return (
     <Stage onMouseMove={wake} onClick={wake} onTouchStart={wake}>
       {tapPrompt}
-      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap} />
+      <TopActions show={showChrome || needsTap || tvOpen}>
+        <ShowOnTVButton label={t("tvs.btn")} onClick={() => setTvOpen(true)} />
+        <ExitButton label={t("live.exit")} onClick={exitWall} />
+      </TopActions>
+      {tvOpen && <ShowOnTVSheet code={code} onClose={() => { setTvOpen(false); wake(); }} />}
 
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
@@ -660,16 +671,21 @@ function Centered({ children }) {
   return <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", color: C.text, fontSize: "1.6vw" }}>{children}</div>;
 }
 
-// Always-reachable way out of the live wall: top-right, thumb-sized on phones,
-// fades with the rest of the controls but comes back on any tap.
-function ExitButton({ label, onClick, show }) {
+// Top-right actions on the live wall (Show on TV, Exit): thumb-sized on
+// phones, fade with the rest of the controls, come back on any tap.
+function TopActions({ show, children }) {
   return (
-    <button onClick={onClick} aria-label={label}
-      style={{ position: "absolute", zIndex: 30, top: "calc(max(2.4vh, 12px) + env(safe-area-inset-top, 0px))", right: "calc(max(2vw, 12px) + env(safe-area-inset-right, 0px))",
-        display: "flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 max(1.2vw, 16px) 0 max(1vw, 12px)", borderRadius: 999,
-        background: "rgba(0,0,0,.55)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", fontSize: "max(.95vw, 14px)", fontWeight: 700,
-        backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", cursor: "pointer",
-        opacity: show ? 1 : 0, pointerEvents: show ? "auto" : "none", transition: "opacity .6s ease" }}>
+    <div style={{ position: "absolute", zIndex: 30, top: "calc(max(2.4vh, 12px) + env(safe-area-inset-top, 0px))", right: "calc(max(2vw, 12px) + env(safe-area-inset-right, 0px))",
+      display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "calc(100vw - 24px)",
+      opacity: show ? 1 : 0, pointerEvents: show ? "auto" : "none", transition: "opacity .6s ease" }}>
+      {children}
+    </div>
+  );
+}
+
+function ExitButton({ label, onClick }) {
+  return (
+    <button onClick={(e) => { e.stopPropagation(); onClick(e); }} aria-label={label} style={pillBtn}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       {label}
     </button>
