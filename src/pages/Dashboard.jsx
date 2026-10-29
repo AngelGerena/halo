@@ -152,7 +152,7 @@ function Poster({ e, info, onOpen }) {
   const url = `${window.location.origin}/e/${e.code}`;
   const tile = dateTile(e, lang);
   const cover = info?.cover || fallbackCover(e.category);
-  const pos = e.cover_path && e.cover_focus_x != null ? `${e.cover_focus_x}% ${e.cover_focus_y ?? 40}%` : "center 35%";
+  const pos = e.cover_path && e.cover_focus_x != null ? `${Math.round(e.cover_focus_x * 100)}% ${Math.round((e.cover_focus_y ?? 0.4) * 100)}%` : "center 35%";
   const live = !e.published_at;
   async function copy() {
     try { await navigator.clipboard.writeText(url); } catch {

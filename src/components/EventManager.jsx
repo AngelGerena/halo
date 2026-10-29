@@ -31,6 +31,7 @@ import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS, getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
+import CoverFramer from "./CoverFramer.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
@@ -218,6 +219,7 @@ export function EventDetail({ event, api, back }) {
   // Smart framing focal point (0..1). Auto-detected at upload; host can nudge.
   const [coverFx, setCoverFx] = useState(Number.isFinite(event.cover_focus_x) ? event.cover_focus_x : 0.5);
   const [coverFy, setCoverFy] = useState(Number.isFinite(event.cover_focus_y) ? event.cover_focus_y : 0.5);
+  const [coverZoom, setCoverZoom] = useState(Number.isFinite(Number(event.cover_zoom)) && event.cover_zoom ? Number(event.cover_zoom) : 1);
   const [focusBusy, setFocusBusy] = useState(false);
   // Smart framing, in the host's browser (MediaPipe, lazy-loaded):
   //   1) faces  2) people (heads at the top of the boxes)  3) upper third.
@@ -233,7 +235,7 @@ export function EventDetail({ event, api, back }) {
         const f = await findFaceFocus(file);
         if (f) { fx = f.x; fy = f.y; }
       }
-      setCoverFx(fx); setCoverFy(fy);
+      setCoverFx(fx); setCoverFy(fy); setCoverZoom(1);
       await updateEvent({ cover_focus_x: fx, cover_focus_y: fy });
     } catch (e) { console.warn("cover framing", e); }
     finally { setFocusBusy(false); }
@@ -381,6 +383,9 @@ export function EventDetail({ event, api, back }) {
         cover_path: coverPath || null,
         cover_focus_x: coverPath ? coverFx : null,
         cover_focus_y: coverPath ? coverFy : null,
+        // Only send zoom once it's used (or already stored), so saving still
+        // works on a database that hasn't added the cover_zoom column yet.
+        ...((coverZoom !== 1 || event.cover_zoom != null) ? { cover_zoom: coverPath ? coverZoom : null } : {}),
         music_url: musicUrl || null,
         music_rights_ack: !!musicRightsOk,
         music_rights_ack_at: musicRightsOk ? new Date().toISOString() : null,
@@ -999,19 +1004,19 @@ export function EventDetail({ event, api, back }) {
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.cover.help")}</p>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ width: 300, maxWidth: "100%", flexShrink: 0 }}>
-                <div style={{ width: "100%", aspectRatio: "1.9 / 1", borderRadius: 14, overflow: "hidden", border: `1px solid ${C.line2}`, background: C.panel, display: "grid", placeItems: "center" }}>
-                  {coverPath ? <img src={publicUrl(coverPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${Math.round(coverFx * 100)}% ${Math.round(coverFy * 100)}%` }} />
-                    : <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>}
-                </div>
-                {coverPath && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ fontSize: 11, color: C.second, marginBottom: 4 }}>{focusBusy ? t("admin.cover.framingBusy") : t("admin.cover.framing")}</div>
-                    <input type="range" min="0" max="100" value={Math.round(coverFy * 100)} onChange={(e) => setCoverFy(Number(e.target.value) / 100)} style={{ width: "100%", accentColor: C.gold }} aria-label={t("admin.cover.framing")} />
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: C.second }}>
-                      <span>{t("admin.cover.framingTop")}</span>
-                      <button onClick={() => autoFocus(coverPath, coverFile)} disabled={focusBusy} style={{ background: "transparent", color: C.gold, border: "none", padding: 0, fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>{t("admin.cover.framingAuto")}</button>
-                      <span>{t("admin.cover.framingBottom")}</span>
+                {coverPath ? (
+                  <>
+                    <CoverFramer src={publicUrl(coverPath)} fx={coverFx} fy={coverFy} zoom={coverZoom} gold={C.gold}
+                      labels={{ drag: t("admin.cover.drag"), dragShort: t("admin.cover.dragShort"), zoom: t("admin.cover.zoom") }}
+                      onChange={({ fx, fy, zoom }) => { setCoverFx(fx); setCoverFy(fy); setCoverZoom(zoom); }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 6 }}>
+                      <span style={{ fontSize: 11, color: C.second, lineHeight: 1.4 }}>{focusBusy ? t("admin.cover.framingBusy") : t("admin.cover.framingHow")}</span>
+                      <button onClick={() => autoFocus(coverPath, coverFile)} disabled={focusBusy} style={{ flexShrink: 0, background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>{t("admin.cover.framingAuto")}</button>
                     </div>
+                  </>
+                ) : (
+                  <div style={{ width: "100%", aspectRatio: "1.95 / 1", borderRadius: 14, border: `1px solid ${C.line2}`, background: C.panel, display: "grid", placeItems: "center" }}>
+                    <span style={{ color: C.second, fontSize: 11 }}>{t("admin.cover.none")}</span>
                   </div>
                 )}
               </div>

@@ -13,6 +13,7 @@ import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Ico
 import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { preloadNsfw } from "../lib/nsfw.js";
+import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
 
@@ -451,7 +452,7 @@ export default function EventPage() {
           <div style={{ textAlign: "center", marginBottom: 22 }}>
             {coverUrl ? (
               <div style={S.coverWrap}>
-                <img src={coverUrl} alt="" style={{ ...S.coverImg, objectPosition: coverPos }} />
+                <img src={coverUrl} alt="" style={{ ...S.coverImg, ...coverStyle(event.cover_focus_x, event.cover_focus_y, event.cover_zoom) }} />
                 <div style={S.coverScrim} />
               </div>
             ) : null /* no cover yet: the host sets one from the dashboard; guests shouldn't see an "add" prompt they can't act on */}
