@@ -35,11 +35,14 @@ import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 import FrameSettings from "./FrameSettings.jsx";
 import EventExtras from "./EventExtras.jsx";
 import LeadsSection from "./LeadsSection.jsx";
+import VideoMessages from "./VideoMessages.jsx";
+import { notMessage } from "../lib/videoMessage.js";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
+import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
@@ -389,7 +392,7 @@ export function EventDetail({ event, api, back }) {
     (rx || []).forEach((r) => { cmap[r.photo_id] = (cmap[r.photo_id] || 0) + 1; });
     setCounts(cmap);
     setContributors(co || []);
-    setPhotos((ph || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || t("admin.unknownGuest") })));
+    setPhotos((ph || []).filter(notMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null, ownerName: names[p.contributor_id] || t("admin.unknownGuest") })));
     const latest = [...(ph || []).map((p) => p.created_at), ...(rx || []).map((r) => r.created_at)].filter(Boolean).sort().pop();
     if (latest) setLastChange(new Date(latest));
     setLoading(false);
@@ -1065,6 +1068,8 @@ export function EventDetail({ event, api, back }) {
         )}
       </details>
 
+      {event.video_guestbook_enabled && <VideoMessages event={event} api={api} contributors={contributors} canDelete={!isCohost} />}
+
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has
           to get a browser URL onto a TV. Make that a first-class, plain-language
@@ -1316,7 +1321,7 @@ export function EventDetail({ event, api, back }) {
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.moment")}</span>
           {featured ? (
             <>
-              <img src={featured.edited_url || featured.url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" }} />
+              <MediaThumb photo={featured} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" }} />
               <span style={{ fontSize: 12, color: C.second }}>{featured.ownerName} · {counts[featured.id] || 0} {"♥"}</span>
               <button onClick={clearMoment} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clearMoment")}</button>
             </>
@@ -1344,7 +1349,7 @@ export function EventDetail({ event, api, back }) {
               <div key={p.id} style={{ background: C.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.gold}` }}>
                 <div style={{ position: "relative" }}>
                   <a href={p.video_url || p.edited_url || p.url} target="_blank" rel="noreferrer" title={t("admin.viewFull")}>
-                    <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+                    <MediaThumb photo={p} loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
                   </a>
                   {p.video_url && (
                       <span style={{ position: "absolute", bottom: 8, left: 8, display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,.7)", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 999, letterSpacing: .5, pointerEvents: "none" }}>
@@ -1439,7 +1444,8 @@ export function EventDetail({ event, api, back }) {
                 <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
                   style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(255,255,255,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
-                    <img src={version === "edited" && p.edited_url ? p.edited_url : p.url} alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                    <MediaThumb photo={p} src={version === "edited" && p.edited_url ? p.edited_url : p.url} loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                    {p.kind === "boomerang" && <LoopBadge label={t("boom.badge")} style={{ left: "auto", right: 8 }} />}
                     {p.video_url && (
                       <span style={{ position: "absolute", bottom: 8, left: 8, display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,.7)", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 999, letterSpacing: .5, pointerEvents: "none" }}>
                         <VideoIcon size={12} /> {t("grid.video")}{p.duration ? ` 0:${String(Math.round(p.duration)).padStart(2, "0")}` : ""}
@@ -1449,7 +1455,7 @@ export function EventDetail({ event, api, back }) {
                     {version === "edited" && p.edited_url && (
                       <span style={{ position: "absolute", top: 8, left: 8, background: C.ink, color: C.gold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>{t("admin.enhancedBadge")}</span>
                     )}
-                    {version === "edited" && !p.edited_url && (
+                    {version === "edited" && !p.edited_url && p.kind !== "boomerang" && (
                       <span style={{ position: "absolute", top: 8, left: 8, background: "rgba(10,4,16,.7)", color: C.onInk, fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>{t("admin.enhancing")}</span>
                     )}
                     {statusLabel ? (
@@ -1486,7 +1492,7 @@ export function EventDetail({ event, api, back }) {
                         ) : (
                           <button onClick={() => moderate([p.id], "approved")} disabled={moderating} title={t("admin.approve")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: moderating ? 0.6 : 1 }}>{t("admin.approve")}</button>
                         )}
-                        <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : t("admin.cropsBtn")}</button>
+                        {p.kind !== "boomerang" && <button onClick={() => makeCrops(p)} disabled={cropping.has(p.id)} title={t("admin.socialCrops")} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: cropping.has(p.id) ? 0.6 : 1 }}>{cropping.has(p.id) ? t("admin.cropping") : t("admin.cropsBtn")}</button>}
                         {!isCohost && <button onClick={() => deleteOne(p.id)} disabled={deleting} title={t("admin.deleteHelp")} aria-label={t("admin.deleteHelp")} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 10px", borderRadius: 8, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.delete")}</button>}
                       </div>
                     )}
