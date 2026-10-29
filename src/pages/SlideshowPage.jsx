@@ -41,7 +41,8 @@ export default function SlideshowPage() {
   // from a user gesture, so we can't auto-enter it — but a host setting up a
   // TV shouldn't have to hunt for a tiny button that auto-hides. The first tap
   // anywhere requests fullscreen and dismisses this.
-  const [needsTap, setNeedsTap] = useState(() => !document.fullscreenElement);
+  const canFull = typeof document !== "undefined" && !!document.fullscreenEnabled;
+  const [needsTap, setNeedsTap] = useState(() => canFull && !document.fullscreenElement);
   const [counts, setCounts] = useState({});
   const [liked, setLiked] = useState(() => new Set());
   const seen = useRef(new Set());
@@ -345,6 +346,22 @@ export default function SlideshowPage() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
     else document.exitFullscreen?.();
   }
+  // Leave the live wall. Drops out of fullscreen first, then goes back to
+  // where the host came from. The wall usually opens in its own tab, so try
+  // closing that tab, and fall back to the dashboard if the browser says no.
+  async function exitWall(e) {
+    e?.stopPropagation?.();
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+    if (window.history.length > 1) { window.history.back(); return; }
+    try { window.close(); } catch {}
+    setTimeout(() => { window.location.assign("/dashboard"); }, 250);
+  }
+  // Escape (when not in fullscreen, where the browser uses it) also leaves.
+  useEffect(() => {
+    const onEsc = (e) => { if (e.key === "Escape" && !document.fullscreenElement) exitWall(); };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, []);
   // If fullscreen is entered any other way (F key, the Fullscreen button, the
   // browser's own control), retire the prompt too.
   useEffect(() => {
@@ -373,8 +390,9 @@ export default function SlideshowPage() {
   ) : null;
 
   if (photos.length === 0) return (
-    <Stage>
+    <Stage onClick={wake}>
       {tapPrompt}
+      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap || photos.length === 0} />
       <Centered>
        <div>
         <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 6 }}>{ev(event, "name")}</div>
@@ -407,8 +425,10 @@ export default function SlideshowPage() {
   const curLiked = liked.has(rxKey(cur.id, "heart"));
 
   return (
-    <Stage onMouseMove={wake} onClick={wake}>
+    <Stage onMouseMove={wake} onClick={wake} onTouchStart={wake}>
       {tapPrompt}
+      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap || photos.length === 0} />
+
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
         <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading still={!!prev.video_url} />
@@ -555,16 +575,16 @@ export default function SlideshowPage() {
             {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
           <div />
-          <div style={{ display: "flex", gap: 10, pointerEvents: "auto", alignItems: "center" }}>
-            <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: "#fff", border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.1vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
-              <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.white} strokeWidth="2" style={{ width: "1.1vw", height: "1.1vw" }}>
+          <div style={{ display: "flex", gap: 10, pointerEvents: "auto", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button onClick={likeCurrent} aria-label={t("react.heart")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(242,236,228,.12)", color: "#fff", border: `1px solid rgba(242,236,228,.3)`, padding: "max(.7vw, 9px) max(1.1vw, 13px)", borderRadius: 999, fontSize: "max(.9vw, 13px)", backdropFilter: "blur(6px)" }}>
+              <svg width="1.1vw" height="1.1vw" viewBox="0 0 24 24" fill={curLiked ? C.gold : "none"} stroke={curLiked ? C.gold : C.white} strokeWidth="2" style={{ width: "max(1.1vw, 16px)", height: "max(1.1vw, 16px)" }}>
                 <path d="M12 21s-7.5-4.6-10-9.2C.7 9 1.6 5.6 4.6 4.7 6.7 4 8.8 4.9 12 8c3.2-3.1 5.3-4 7.4-3.3 3 .9 3.9 4.3 2.6 7.1C19.5 16.4 12 21 12 21z" />
               </svg>
               {curCount > 0 && <span>{curCount}</span>}
             </button>
 {musicSrc && <Ctrl onClick={toggleMusic}>{musicOn ? t("live.musicOff") : t("live.musicOn")}</Ctrl>}
             <Ctrl onClick={() => setPaused((p) => !p)}>{paused ? t("live.play") : t("live.pause")}</Ctrl>
-            <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>
+            {canFull && <Ctrl onClick={toggleFull}>{t("live.fullscreen")}</Ctrl>}
           </div>
         </div>
 
@@ -640,9 +660,25 @@ function Centered({ children }) {
   return <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", color: C.text, fontSize: "1.6vw" }}>{children}</div>;
 }
 
+// Always-reachable way out of the live wall: top-right, thumb-sized on phones,
+// fades with the rest of the controls but comes back on any tap.
+function ExitButton({ label, onClick, show }) {
+  return (
+    <button onClick={onClick} aria-label={label}
+      style={{ position: "absolute", zIndex: 30, top: "calc(max(2.4vh, 12px) + env(safe-area-inset-top, 0px))", right: "calc(max(2vw, 12px) + env(safe-area-inset-right, 0px))",
+        display: "flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 max(1.2vw, 16px) 0 max(1vw, 12px)", borderRadius: 999,
+        background: "rgba(0,0,0,.55)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", fontSize: "max(.95vw, 14px)", fontWeight: 700,
+        backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", cursor: "pointer",
+        opacity: show ? 1 : 0, pointerEvents: show ? "auto" : "none", transition: "opacity .6s ease" }}>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      {label}
+    </button>
+  );
+}
+
 function Ctrl({ children, onClick }) {
   return (
-    <button onClick={onClick} style={{ background: "rgba(242,236,228,.12)", color: "#fff", border: `1px solid rgba(242,236,228,.3)`, padding: ".7vw 1.2vw", borderRadius: 999, fontSize: ".9vw", backdropFilter: "blur(6px)" }}>
+    <button onClick={onClick} style={{ background: "rgba(242,236,228,.12)", color: "#fff", border: `1px solid rgba(242,236,228,.3)`, padding: "max(.7vw, 9px) max(1.2vw, 14px)", borderRadius: 999, fontSize: "max(.9vw, 13px)", fontWeight: 600, backdropFilter: "blur(6px)" }}>
       {children}
     </button>
   );
