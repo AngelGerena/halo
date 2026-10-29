@@ -19,7 +19,7 @@ export default function GalleryPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: c } = await supabase.from("contributors").select("*").eq("id", contributorId).single();
+      const { data: c } = await supabase.from("contributors").select("id,event_id,name,created_at").eq("id", contributorId).single();
       setContributor(c || false);
       if (c) {
         const { data } = await supabase.from("photos").select("*")

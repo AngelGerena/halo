@@ -16,6 +16,7 @@ import { preloadNsfw } from "../lib/nsfw.js";
 import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
+import { newSecret, insertContributor } from "../lib/contributors.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -145,12 +146,10 @@ export default function EventPage() {
   const ANON_NAME = "Guest";
   async function ensureContributor() {
     if (contributor) return contributor;
-    const { data, error } = await supabase
-      .from("contributors")
-      .insert({ event_id: event.id, name: ANON_NAME, email: null })
-      .select().single();
+    const secret = newSecret();
+    const { data, error } = await insertContributor({ event_id: event.id, name: ANON_NAME, email: null, secret });
     if (error) { alert(t("event.startError")); return null; }
-    const c = { id: data.id, name: data.name, anon: true };
+    const c = { id: data.id, name: data.name, anon: true, secret };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
     setContributor(c);
     loadEveryone(event);
@@ -172,11 +171,11 @@ export default function EventPage() {
     try {
       const r = await fetch("/.netlify/functions/rename-contributor", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contributorId: contributor.id, name: name.trim(), email: email.trim() || null }),
+        body: JSON.stringify({ contributorId: contributor.id, secret: contributor.secret || null, name: name.trim(), email: email.trim() || null }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "save failed");
-      const c = { id: contributor.id, name: j.contributor.name, anon: false };
+      const c = { id: contributor.id, name: j.contributor.name, anon: false, secret: contributor.secret };
       localStorage.setItem(LS_KEY(code), JSON.stringify(c));
       setContributor(c);
       if (email.trim()) {
@@ -191,12 +190,10 @@ export default function EventPage() {
 
   async function startSession() {
     if (!name.trim()) return;
-    const { data, error } = await supabase
-      .from("contributors")
-      .insert({ event_id: event.id, name: name.trim(), email: email.trim() || null })
-      .select().single();
+    const secret = newSecret();
+    const { data, error } = await insertContributor({ event_id: event.id, name: name.trim(), email: email.trim() || null, secret });
     if (error) return alert(t("event.startError"));
-    const c = { id: data.id, name: data.name };
+    const c = { id: data.id, name: data.name, secret };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
     setContributor(c);
 
