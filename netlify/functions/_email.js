@@ -55,3 +55,71 @@ export async function sendEmail({ to, subject, html }) {
   }
   return res.json();
 }
+
+// Public base URL for links in emails. Always built server-side (never from a
+// request body) so nobody can make HALO mail point somewhere else.
+// Netlify sets process.env.URL to the site's primary address.
+export function siteBase() {
+  return String(process.env.URL || "https://halo.finessemedia.pro").replace(/\/+$/, "");
+}
+
+// Loose sanity check for a deliverable address (Resend does the real check).
+export function isEmail(s) {
+  return typeof s === "string" && s.length <= 254 && /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]{2,}$/.test(s.trim());
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Send many emails with Resend's batch API (up to 100 per call), pacing calls
+ * to stay under Resend's 2 requests/second limit.
+ *
+ * Requires HALO_FROM_EMAIL (no fallback to the Resend sandbox sender here).
+ * Uses permissive validation, so one bad address does not sink the batch.
+ *
+ * @param {Array<{to:string, subject:string, html:string}>} messages
+ * @param {{deadlineMs?:number}} opts  stop starting new calls after this time (epoch ms)
+ * @returns {Promise<{ok:boolean[], sent:number, failed:number, notAttempted:number}>}
+ *   ok[i] is true when message i was accepted by Resend.
+ */
+export async function sendEmailBatch(messages, { deadlineMs } = {}) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.HALO_FROM_EMAIL;
+  if (!key) throw new Error("RESEND_API_KEY not configured");
+  if (!from) throw new Error("HALO_FROM_EMAIL not configured");
+
+  const ok = new Array(messages.length).fill(false);
+  let sent = 0, failed = 0, notAttempted = 0;
+  for (let start = 0; start < messages.length; start += 100) {
+    const chunk = messages.slice(start, start + 100);
+    if (deadlineMs && Date.now() > deadlineMs) { notAttempted += chunk.length; continue; }
+    if (start > 0) await sleep(600); // <= 2 requests per second
+    try {
+      const res = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "x-batch-validation": "permissive",
+        },
+        body: JSON.stringify(chunk.map((m) => ({ from, to: m.to, subject: m.subject, html: m.html }))),
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        console.error(`Resend batch ${res.status}: ${t.slice(0, 300)}`);
+        failed += chunk.length;
+        continue;
+      }
+      const j = await res.json().catch(() => ({}));
+      const bad = new Set((Array.isArray(j.errors) ? j.errors : []).map((e) => e && e.index));
+      chunk.forEach((_, i) => {
+        if (bad.has(i)) failed++;
+        else { ok[start + i] = true; sent++; }
+      });
+    } catch (e) {
+      console.error("Resend batch error:", e.message);
+      failed += chunk.length;
+    }
+  }
+  return { ok, sent, failed, notAttempted };
+}

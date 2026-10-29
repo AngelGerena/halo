@@ -39,10 +39,11 @@ export default function SignUpPage() {
       // Fire a warm welcome + getting-started email (separate from Supabase's
       // own confirm link). Best-effort and non-blocking: if it fails, the
       // account is still created and the user still sees the success screen.
-      fetch("/.netlify/functions/welcome-account", {
+      // Only the new account's id is sent; the server looks up the address.
+      if (data?.user?.id) fetch("/.netlify/functions/welcome-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), name: fullName.trim(), needsConfirm }),
+        body: JSON.stringify({ userId: data.user.id }),
       }).catch(() => {});
     } catch (e2) {
       setErr(e2?.message || "auth.err.signup");

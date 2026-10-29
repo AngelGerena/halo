@@ -13,6 +13,34 @@
 // `Authorization: Bearer <jwt>` header (preferred) or a `token` field in the
 // JSON body. Both are supported here, header first.
 import { createClient } from "@supabase/supabase-js";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { clientIp, hitCount, addHit } from "./_ratelimit.js";
+
+// Admin passcode brute-force guard: 5 wrong passcodes per 10 minutes per IP
+// (per warm function instance), after which the passcode is not even checked.
+const PASS_BUCKET = "admin-passcode";
+const PASS_LIMIT = 5;
+const PASS_WINDOW_MS = 10 * 60 * 1000;
+
+const sha256 = (s) => createHash("sha256").update(String(s), "utf8").digest();
+
+/**
+ * Constant-time check of a passcode against ADMIN_PASSCODE, with a per-IP
+ * failure limit.
+ * @returns {"ok"|"bad"|"limited"|"unset"}
+ */
+export function checkPasscode(event, passcode) {
+  const expected = process.env.ADMIN_PASSCODE;
+  if (!expected) return "unset";
+  const ip = clientIp(event);
+  if (hitCount(PASS_BUCKET, ip, PASS_WINDOW_MS) >= PASS_LIMIT) return "limited";
+  const given = typeof passcode === "string" ? passcode : "";
+  // Hash both sides so the comparison is fixed-length and constant-time.
+  const match = given.length > 0 && timingSafeEqual(sha256(given), sha256(expected));
+  if (match) return "ok";
+  addHit(PASS_BUCKET, ip, PASS_WINDOW_MS);
+  return "bad";
+}
 
 // Service-role client — bypasses RLS. Used to verify the JWT and to read the
 // caller's profile / an event's owner_id regardless of row-level policies.
@@ -45,7 +73,8 @@ export async function authenticate(event) {
 
   // 1) Transitional admin override — the shared passcode still works so the
   //    current admin UI doesn't break mid-migration.
-  if (body.passcode && process.env.ADMIN_PASSCODE && body.passcode === process.env.ADMIN_PASSCODE) {
+  //    Constant-time compare + per-IP failure limit (see checkPasscode).
+  if (body.passcode && checkPasscode(event, body.passcode) === "ok") {
     return { ok: true, isAdmin: true, userId: null, viaPasscode: true };
   }
 
