@@ -260,12 +260,12 @@ export function EventDetail({ event, api, back }) {
   // "Do it" from the checklist: open settings, glide to the exact section and
   // make it glow so the host sees where to act. After saving, glide back.
   const readyReturn = useRef(false);
-  function flashTo(id) {
+  function flashTo(id, block = "center") {
     let tries = 0;
     const go = () => {
       const el = document.getElementById(id);
       if (!el) { if (tries++ < 20) setTimeout(go, 50); return; }
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.scrollIntoView({ behavior: "smooth", block });
       el.classList.remove("halo-flash"); void el.offsetWidth; el.classList.add("halo-flash");
       setTimeout(() => el.classList.remove("halo-flash"), 2400);
     };
@@ -652,7 +652,7 @@ export function EventDetail({ event, api, back }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
-        <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        <button onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
 
       {/* ---- YOU'RE READY CHECKLIST ----
@@ -1048,7 +1048,7 @@ export function EventDetail({ event, api, back }) {
       </div>
 
       {settingsOpen && (
-        <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 20 }}>
+        <div id="halo-settings" style={{ marginTop: 16, scrollMarginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 20 }}>
           <h3 className="serif" style={{ fontSize: 20, color: C.text, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
 
           <div id="set-cover" style={{ marginBottom: 18, borderBottom: `1px solid ${C.line}`, padding: "8px 8px 16px", marginLeft: -8, marginRight: -8 }}>
