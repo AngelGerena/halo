@@ -325,7 +325,7 @@ export function EventDetail({ event, api, back }) {
   async function loadAll() {
     const [{ data: ph }, { data: co }, { data: rx }] = await Promise.all([
       supabase.from("photos").select("*").eq("event_id", event.id).order("created_at", { ascending: false }),
-      supabase.from("contributors").select("*").eq("event_id", event.id),
+      supabase.from("contributors").select("id,event_id,name,created_at").eq("event_id", event.id),
       supabase.from("reactions").select("photo_id,created_at").eq("event_id", event.id),
     ]);
     const names = Object.fromEntries((co || []).map((c) => [c.id, c.name]));
