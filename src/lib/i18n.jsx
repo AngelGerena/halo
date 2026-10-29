@@ -245,7 +245,7 @@ const STRINGS = {
   "tab.add": { en: "Add", es: "Agregar" },
   "tab.gallery": { en: "Gallery", es: "Galería" },
   "tab.manage": { en: "Manage", es: "Administrar" },
-  "tab.mine": { en: "Mine", es: "Mías" },
+  "tab.mine": { en: "My photos", es: "Mis fotos" },
   "up.tapGallery": { en: "See everyone’s photos in", es: "Mira las fotos de todos en" },
   "up.allYours": { en: "All your photos", es: "Todas tus fotos" },
   "up.keptGallery": { en: "The best shots", es: "Las mejores fotos" },
@@ -463,6 +463,9 @@ const STRINGS = {
   "live.fullscreen": { en: "Fullscreen", es: "Pantalla completa" },
   // ---- V2 Phase 1: moderation gate + consent-first child safety ----
   // uploader consent (children in frame)
+  "up.kidsHelpShort": { en: "Tap first if so. The host checks those before they go on the big screen.", es: "Si es así, toca aquí primero. El anfitrión las revisa antes de que salgan en la pantalla." },
+  "up.kidsOn": { en: "Kids in my photos", es: "Hay niños en mis fotos" },
+  "up.kidsOnHelp": { en: "Your next photos wait for the host's OK. Tap again to turn off.", es: "Tus próximas fotos esperan el visto bueno del anfitrión. Toca otra vez para quitarlo." },
   "up.kidsToggle": { en: "Are there kids in your photos?", es: "\u00bfHay ni\u00f1os en tus fotos?" },
   "up.kidsHelp": { en: "Tap here if so, and the host will take a quick look before they go on the big screen.", es: "Si es as\u00ed, toca aqu\u00ed y el anfitri\u00f3n les dar\u00e1 un vistazo antes de que salgan en la pantalla grande." },
   "up.pendingReview": { en: "Pending review", es: "Pendiente de revisi\u00f3n" },

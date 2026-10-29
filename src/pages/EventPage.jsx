@@ -521,6 +521,8 @@ export default function EventPage() {
             keep the kids question available but out of the way. */}
         {tab === "add" && (
           <>
+            {/* Order: kids question (it must be answered BEFORE uploading),
+                the buttons, what just happened, then the extras. */}
             {onScreen && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,61,129,.12)", border: `1px solid ${C.pink}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14, animation: "haloPulse 1.2s ease-in-out infinite" }}>
                 {(() => { const p = photos.find((x) => x.id === onScreen); return p ? <img src={p.edited_url || p.url} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", border: `2px solid ${C.pink}` }} /> : null; })()}
@@ -532,7 +534,7 @@ export default function EventPage() {
               </div>
             )}
             {/* 1) How it works — three glanceable steps, no jargon */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(var(--tint, 255,255,255),.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
+            {photos.length === 0 && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, background: "rgba(var(--tint, 255,255,255),.03)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 12px", marginBottom: 14 }}>
               {[[CameraIcon, t("up.step1")], [UploadIcon, t("up.step2")], [ScreenIcon, t("up.step3")]].map(([Ic, label], i) => (
                 <React.Fragment key={i}>
                   {i > 0 && <span aria-hidden="true" style={{ color: C.second, fontSize: 14, flexShrink: 0 }}>&#8250;</span>}
@@ -542,7 +544,18 @@ export default function EventPage() {
                   </div>
                 </React.Fragment>
               ))}
-            </div>
+            </div>}
+
+            <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
+              style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
+                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(var(--tint, 255,255,255),.03)",
+                border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>}</span>
+              <span>
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{kidsInFrame ? t("up.kidsOn") : t("up.kidsToggle")}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: C.second, marginTop: 2 }}>{kidsInFrame ? t("up.kidsOnHelp") : t("up.kidsHelpShort")}</span>
+              </span>
+            </button>
 
             {/* 2) THE action — biggest thing on the screen. Camera-first: the
                 big button opens the phone camera directly (capture attr; on a
@@ -575,6 +588,67 @@ export default function EventPage() {
               <div role="alert" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,61,129,.1)", border: `1px solid rgba(255,61,129,.35)`, borderRadius: 12, padding: "10px 12px", fontSize: 13, color: C.text }}>
                 <span style={{ flex: 1 }}>{notice}</span>
                 <button type="button" onClick={() => setNotice("")} aria-label={t("up.dismiss")} style={{ background: "none", border: "none", color: C.second, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>{t("up.dismiss")}</button>
+              </div>
+            )}
+
+            {waiting.length > 0 && (
+              <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
+                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
+                  <div style={{ fontSize: 12, color: C.second }}>{t("up.waitingSub")}</div>
+                </div>
+                <button type="button" onClick={flushWaiting} style={{ flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{t("up.tryNow")}</button>
+              </div>
+            )}
+
+            {uploading > 0 && (
+              <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+                {t("up.uploading")} {uploading}&hellip;
+              </div>
+            )}
+
+            {/* 3) One warm line instead of two jargon stat tiles.
+                First visit nudges them to the button; after that, a friendly count + what to do next. */}
+            {photos.length > 0 && <div style={{ marginTop: 14, textAlign: "center", background: "rgba(255,184,107,.08)", border: `1px solid rgba(255,184,107,.25)`, borderRadius: 12, padding: "12px 14px" }}>
+              {photos.length === 0 ? (
+                <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{t("up.hintFirst")}</div>
+              ) : (
+                <>
+                  {/* Show the latest photo(s) they added so the loop is obvious:
+                      "that one is on the big screen now". Up to 3 thumbs, newest first. */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+                    {photos.slice(0, 3).map((p) => (
+                      <div key={p.id} style={{ position: "relative", width: 72, height: 72, borderRadius: 12, overflow: "hidden", border: `2px solid ${p.status === "pending" ? C.second : C.gold}`, background: C.panel }}>
+                        <img src={p.edited_url || p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <span style={{ position: "absolute", right: 4, bottom: 4, width: 18, height: 18, borderRadius: "50%", background: p.status === "pending" ? C.second : C.gold, color: C.ink, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800 }}>{p.status === "pending" ? "…" : "✓"}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
+                    {photos[0]?.status === "pending" ? t("up.latestHeld") : t("up.latestLive")}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>
+                    {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)} {t("up.hintAfter")}
+                  </div>
+                  <button onClick={() => setTab("gallery")} className="btn-ghost" style={{ marginTop: 10, padding: "8px 16px", fontSize: 13 }}>{t("up.seeGallery")} &#8594;&#xFE0E;</button>
+                </>
+              )}
+            </div>}
+
+            {/* 2b) Who should we thank? Only once they've added something and
+                haven't told us their name yet. Name is what the host sees under
+                each photo and what the gallery link is addressed to. */}
+            {contributor.anon && photos.length > 0 && (
+              <div style={{ marginTop: 14, background: C.panel, border: `1px solid ${C.gold}`, borderRadius: 16, padding: "14px 16px" }}>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>{t("up.whoTitle")}</div>
+                <div style={{ fontSize: 12.5, color: C.second, marginTop: 3, marginBottom: 12 }}>{t("up.whoSub")}</div>
+                <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")} autoComplete="name"
+                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 10 }} />
+                <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("up.whoEmail")} autoComplete="email"
+                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 12 }} />
+                <button className="btn-gold btn-full" onClick={saveName} disabled={nameSaving || !name.trim()} style={{ opacity: nameSaving || !name.trim() ? 0.6 : 1 }}>{nameSaving ? t("up.whoSaving") : t("up.whoSave")}</button>
               </div>
             )}
 
@@ -647,80 +721,6 @@ export default function EventPage() {
               )}
             </div>
 
-            {waiting.length > 0 && (
-              <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
-                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
-                  <div style={{ fontSize: 12, color: C.second }}>{t("up.waitingSub")}</div>
-                </div>
-                <button type="button" onClick={flushWaiting} style={{ flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{t("up.tryNow")}</button>
-              </div>
-            )}
-
-            {uploading > 0 && (
-              <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
-                {t("up.uploading")} {uploading}&hellip;
-              </div>
-            )}
-
-            {/* 3) One warm line instead of two jargon stat tiles.
-                First visit nudges them to the button; after that, a friendly count + what to do next. */}
-            <div style={{ marginTop: 14, textAlign: "center", background: "rgba(255,184,107,.08)", border: `1px solid rgba(255,184,107,.25)`, borderRadius: 12, padding: "12px 14px" }}>
-              {photos.length === 0 ? (
-                <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{t("up.hintFirst")}</div>
-              ) : (
-                <>
-                  {/* Show the latest photo(s) they added so the loop is obvious:
-                      "that one is on the big screen now". Up to 3 thumbs, newest first. */}
-                  <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
-                    {photos.slice(0, 3).map((p) => (
-                      <div key={p.id} style={{ position: "relative", width: 72, height: 72, borderRadius: 12, overflow: "hidden", border: `2px solid ${p.status === "pending" ? C.second : C.gold}`, background: C.panel }}>
-                        <img src={p.edited_url || p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                        <span style={{ position: "absolute", right: 4, bottom: 4, width: 18, height: 18, borderRadius: "50%", background: p.status === "pending" ? C.second : C.gold, color: C.ink, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800 }}>{p.status === "pending" ? "…" : "✓"}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
-                    {photos[0]?.status === "pending" ? t("up.latestHeld") : t("up.latestLive")}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>
-                    {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)} {t("up.hintAfter")}
-                  </div>
-                  <button onClick={() => setTab("gallery")} className="btn-ghost" style={{ marginTop: 10, padding: "8px 16px", fontSize: 13 }}>{t("up.seeGallery")} &#8594;&#xFE0E;</button>
-                </>
-              )}
-            </div>
-
-            {/* 4) Kids question — still here for hosts who want it, but below the
-                action and phrased as a simple question rather than a warning. */}
-            {/* 2b) Who should we thank? Only once they've added something and
-                haven't told us their name yet. Name is what the host sees under
-                each photo and what the gallery link is addressed to. */}
-            {contributor.anon && photos.length > 0 && (
-              <div style={{ marginTop: 14, background: C.panel, border: `1px solid ${C.gold}`, borderRadius: 16, padding: "14px 16px" }}>
-                <div style={{ fontWeight: 800, fontSize: 16 }}>{t("up.whoTitle")}</div>
-                <div style={{ fontSize: 12.5, color: C.second, marginTop: 3, marginBottom: 12 }}>{t("up.whoSub")}</div>
-                <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("event.namePlaceholder")} autoComplete="name"
-                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 10 }} />
-                <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("up.whoEmail")} autoComplete="email"
-                  onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 12 }} />
-                <button className="btn-gold btn-full" onClick={saveName} disabled={nameSaving || !name.trim()} style={{ opacity: nameSaving || !name.trim() ? 0.6 : 1 }}>{nameSaving ? t("up.whoSaving") : t("up.whoSave")}</button>
-              </div>
-            )}
-
-            <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
-              style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
-                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(var(--tint, 255,255,255),.03)",
-                border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "11px 13px", marginTop: 14 }}>
-              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame ? "✓" : ""}</span>
-              <span>
-                <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{t("up.kidsToggle")}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: C.second, marginTop: 2 }}>{t("up.kidsHelp")}</span>
-              </span>
-            </button>
-
             {event.connect_url && (
               <a href={event.connect_url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
                 <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: "15px 17px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -774,9 +774,12 @@ export default function EventPage() {
 
       {/* ---- bottom command bar ---- */}
       <nav style={S.tabbar} aria-label="HALO">
-        <TabBtn active={tab === "add"} onClick={() => setTab("add")} icon="&#43;" label={t("tab.add")} />
-        <TabBtn active={tab === "gallery"} onClick={() => setTab("gallery")} icon="&#9638;" label={t("tab.gallery")} />
-        <TabBtn active={tab === "mine"} onClick={() => setTab("mine")} icon="&#9733;" label={t("tab.mine")} />
+        <TabBtn active={tab === "add"} onClick={() => setTab("add")} label={t("tab.add")}
+          iconNode={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>} />
+        <TabBtn active={tab === "gallery"} onClick={() => setTab("gallery")} label={t("tab.gallery")}
+          iconNode={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></svg>} />
+        <TabBtn active={tab === "mine"} onClick={() => setTab("mine")} label={t("tab.mine")}
+          iconNode={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5" /></svg>} />
         {isHost && (
           <TabBtn active={false} onClick={() => navigate(`/dashboard?event=${encodeURIComponent(event.code)}`)} label={t("tab.manage")}
             iconNode={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>} />
