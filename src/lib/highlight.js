@@ -1,3 +1,4 @@
+import { corsUrl } from "./corsUrl.js";
 // HALO — highlight video, made right in the host's browser.
 //
 // Picks the best-loved photos (hearts + likes first, then HALO's quality
@@ -32,7 +33,7 @@ function loadImage(url) {
     img.crossOrigin = "anonymous"; // photos live on R2; CORS keeps the canvas recordable
     img.onload = () => res(img);
     img.onerror = () => res(null);
-    img.src = url;
+    img.src = corsUrl(url);
   });
 }
 

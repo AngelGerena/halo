@@ -37,9 +37,13 @@ export default function FrameSettings({ event, api, updateEvent, photos, onError
   useEffect(() => {
     if (!cfg) { setPreview(null); return; }
     let alive = true, url = null;
+    setPreview(null);
+    // If the event photo can't be drawn, fall back to the built-in sample so
+    // the host always sees the frame instead of "Preparing..." forever.
     renderFramed(sample, cfg)
+      .catch(() => (sample !== SAMPLE ? renderFramed(SAMPLE, cfg) : Promise.reject(new Error("preview"))))
       .then((b) => { if (!alive) return; url = URL.createObjectURL(b); setPreview(url); })
-      .catch(() => { if (alive) setPreview(null); });
+      .catch(() => { if (alive) setPreview("failed"); });
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [cfgKey, sample]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -98,8 +102,8 @@ export default function FrameSettings({ event, api, updateEvent, photos, onError
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", marginTop: 14 }}>
           <div style={{ width: 220, maxWidth: "100%", flexShrink: 0 }}>
             <div style={{ width: "100%", aspectRatio: "4 / 5", borderRadius: 10, overflow: "hidden", background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" }}>
-              {preview ? <img src={preview} alt={t("frame.previewAlt")} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                : <span style={{ fontSize: 11, color: C.second }}>{t("frame.preparing")}</span>}
+              {preview && preview !== "failed" ? <img src={preview} alt={t("frame.previewAlt")} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                : <span style={{ fontSize: 11, color: C.second, padding: 12, textAlign: "center" }}>{t(preview === "failed" ? "frame.previewFailed" : "frame.preparing")}</span>}
             </div>
           </div>
           <div style={{ flex: "1 1 220px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>

@@ -1,3 +1,4 @@
+import { corsUrl } from "../lib/corsUrl.js";
 // HALO — boomerang playback and capture UI.
 //
 // <BoomerangPlayer src frames fit fps playing /> draws one frame of the
@@ -40,7 +41,7 @@ function useSprite(src) {
       if (cors) im.crossOrigin = "anonymous";
       im.onload = () => { if (alive) setImg(im); };
       im.onerror = () => { if (cors && alive) load(false); };
-      im.src = src;
+      im.src = cors ? corsUrl(src) : src;
     };
     load(true);
     return () => { alive = false; };
