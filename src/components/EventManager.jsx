@@ -273,7 +273,17 @@ export function EventDetail({ event, api, back }) {
   // scanning instead of typing a URL. Plus a transient "copied" flag.
   const [tvQr, setTvQr] = useState("");
   const [tvCopied, setTvCopied] = useState(false);
-  const [qrFull, setQrFull] = useState(false); // full-screen QR so a laptop camera can scan from across the room
+  const [qrFull, setQrFull] = useState(false); // false | "join" | "tv": full-screen QR so guests (or a laptop camera) can scan easily
+  const [qrBig, setQrBig] = useState("");        // hi-res copy of whichever QR is full screen
+  useEffect(() => {
+    if (!qrFull) { setQrBig(""); return; }
+    const url = qrFull === "tv" ? liveUrl : eventUrl;
+    QRCode.toDataURL(url, { width: 1200, margin: 2, errorCorrectionLevel: "M", color: { dark: "#0a0410", light: "#ffffff" } }).then(setQrBig).catch(() => setQrBig(""));
+    // Keep the phone screen awake while guests scan it.
+    let lock = null;
+    try { navigator.wakeLock?.request("screen").then((l) => { lock = l; }).catch(() => {}); } catch {}
+    return () => { try { lock?.release(); } catch {} };
+  }, [qrFull]);
   useEffect(() => {
     if (!qrFull) return;
     const onKey = (e) => { if (e.key === "Escape") setQrFull(false); };
@@ -688,7 +698,16 @@ export function EventDetail({ event, api, back }) {
 
       <div id="halo-qr-box" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
-          {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10, maxWidth: "100%" }} />}
+          {qr && (
+            <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", margin: "0 auto" }}>
+              <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10, maxWidth: "100%", display: "block" }} />
+            </button>
+          )}
+          {qr && (
+            <button type="button" onClick={() => setQrFull("join")} style={{ marginTop: 8, width: "100%", background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <ExpandIcon /> {t("qr.showBig")}
+            </button>
+          )}
           <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
             {qr && (
               <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} style={{ textDecoration: "none" }}>
@@ -725,14 +744,20 @@ export function EventDetail({ event, api, back }) {
         </div>
       </div>
 
-      {qrFull && tvQr && (
+      {qrFull && (qrBig || (qrFull === "tv" ? tvQr : qr)) && (
         <div onClick={() => setQrFull(false)} role="dialog" aria-label={t("tv.qrFull")}
           style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#ffffff", display: "grid", placeItems: "center", cursor: "zoom-out" }}>
           <button onClick={() => setQrFull(false)} aria-label={t("tv.qrClose")}
             style={{ position: "absolute", top: 16, right: 16, background: "#f1f1f4", color: "#16294C", border: "none", borderRadius: 999, width: 44, height: 44, display: "grid", placeItems: "center" }}><CloseIcon /></button>
           <div style={{ textAlign: "center" }}>
-            <img src={tvQr} alt="Live screen QR code" style={{ width: "min(80vmin, 900px)", height: "min(80vmin, 900px)", display: "block", margin: "0 auto", imageRendering: "pixelated" }} />
-            <div style={{ color: "#16294C", fontSize: "clamp(14px, 2.2vmin, 22px)", fontWeight: 700, marginTop: "2vmin" }}>{t("tv.qrFullHint")}</div>
+            {qrFull === "join" && (
+              <div style={{ color: "#0a0410", fontSize: "clamp(20px, 4.4vmin, 44px)", fontWeight: 800, lineHeight: 1.15, padding: "0 16px 2.4vmin" }}>{t("qr.scanTitle")}</div>
+            )}
+            <img src={qrBig || (qrFull === "tv" ? tvQr : qr)} alt="QR code" style={{ width: "min(92vw, 78vh, 1000px)", height: "min(92vw, 78vh, 1000px)", display: "block", margin: "0 auto", imageRendering: "pixelated" }} />
+            <div style={{ color: "#16294C", fontSize: "clamp(14px, 2.6vmin, 24px)", fontWeight: 700, marginTop: "2vmin", padding: "0 16px" }}>
+              {qrFull === "join" ? ev(event, "name") : t("tv.qrFullHint")}
+            </div>
+            {qrFull === "join" && <div style={{ color: "#5b6070", fontSize: "clamp(12px, 2vmin, 18px)", marginTop: 6 }}>{t("qr.tapClose")}</div>}
           </div>
         </div>
       )}
@@ -921,7 +946,7 @@ export function EventDetail({ event, api, back }) {
             <div style={{ textAlign: "center" }}>
               <img src={tvQr} alt="Live screen QR code" style={{ width: 132, height: 132, borderRadius: 10, display: "block" }} />
               <div style={{ fontSize: 10.5, color: C.second, marginTop: 6, letterSpacing: .5, textTransform: "uppercase" }}>{t("tv.open")}</div>
-              <button onClick={() => setQrFull(true)} style={{ marginTop: 8, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <button onClick={() => setQrFull("tv")} style={{ marginTop: 8, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <ExpandIcon /> {t("tv.qrFull")}
               </button>
             </div>
