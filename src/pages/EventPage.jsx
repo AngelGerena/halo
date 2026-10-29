@@ -17,6 +17,7 @@ import { formatEventDate } from "../lib/eventDate.js";
 import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
+import { newSecret, insertContributor } from "../lib/contributors.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -221,14 +222,12 @@ export default function EventPage() {
     return creatingRef.current;
   }
   async function createAnonContributor() {
-    const { data, error } = await supabase
-      .from("contributors")
-      .insert({ event_id: event.id, name: ANON_NAME, email: null })
-      .select().single();
+    const secret = newSecret();
+    const { data, error } = await insertContributor({ event_id: event.id, name: ANON_NAME, email: null, secret });
     if (error) throw error;
     // A slow earlier attempt may have landed after a retry already won.
     if (contributorRef.current) return contributorRef.current;
-    const c = { id: data.id, name: data.name, anon: true };
+    const c = { id: data.id, name: data.name, anon: true, secret };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
     contributorRef.current = c;
     setContributor(c);
@@ -260,17 +259,17 @@ export default function EventPage() {
     try {
       const r = await fetch("/.netlify/functions/rename-contributor", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contributorId: contributor.id, name: name.trim(), email: email.trim() || null }),
+        body: JSON.stringify({ contributorId: contributor.id, secret: contributor.secret || null, name: name.trim(), email: email.trim() || null }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "save failed");
-      const c = { id: contributor.id, name: j.contributor.name, anon: false };
+      const c = { id: contributor.id, name: j.contributor.name, anon: false, secret: contributor.secret };
       localStorage.setItem(LS_KEY(code), JSON.stringify(c));
       setContributor(c);
       if (email.trim()) {
         fetch("/.netlify/functions/notify-welcome", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), name: c.name, eventName: event.name, galleryUrl: `${window.location.origin}/g/${c.id}` }),
+          body: JSON.stringify({ contributorId: c.id }),
         }).catch(() => {});
       }
     } catch (e) { alert(t("event.startError")); }
@@ -279,12 +278,10 @@ export default function EventPage() {
 
   async function startSession() {
     if (!name.trim()) return;
-    const { data, error } = await supabase
-      .from("contributors")
-      .insert({ event_id: event.id, name: name.trim(), email: email.trim() || null })
-      .select().single();
+    const secret = newSecret();
+    const { data, error } = await insertContributor({ event_id: event.id, name: name.trim(), email: email.trim() || null, secret });
     if (error) return alert(t("event.startError"));
-    const c = { id: data.id, name: data.name };
+    const c = { id: data.id, name: data.name, secret };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
     setContributor(c);
 
@@ -292,10 +289,7 @@ export default function EventPage() {
     if (email.trim()) {
       fetch("/.netlify/functions/notify-welcome", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(), name: data.name, eventName: event.name,
-          galleryUrl: `${window.location.origin}/g/${data.id}`,
-        }),
+        body: JSON.stringify({ contributorId: data.id }),
       }).catch(() => {});
     }
   }
@@ -346,7 +340,7 @@ export default function EventPage() {
     // Upload straight to R2 via a short-lived presigned URL (secret stays server-side).
     const path = await withRetry(async () => {
       const [signed] = await signPhotoUploads({
-        eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg",
+        eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg", size: f.size,
       });
       await putToR2(signed.uploadUrl, f, f.type || "image/jpeg", onProgress);
       return signed.path;
@@ -409,12 +403,12 @@ export default function EventPage() {
     }
     const status = (needsReview || flagged) ? "pending" : "approved";
     const posterPath = await withRetry(async () => {
-      const [s1] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: "image/jpeg" });
+      const [s1] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: "image/jpeg", size: poster.size });
       await putToR2(s1.uploadUrl, poster, s1.contentType);
       return s1.path;
     });
     const videoPath = await withRetry(async () => {
-      const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4" });
+      const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4", size: file.size });
       await putToR2(s2.uploadUrl, file, s2.contentType, onProgress);
       return s2.path;
     }, 5);

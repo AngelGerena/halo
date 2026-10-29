@@ -21,11 +21,11 @@ export function fetchWithTimeout(url, opts = {}, ms = SIGN_TIMEOUT_MS) {
 
 // Guest photo uploads. Asks for `count` signed URLs at once (one round-trip for a burst),
 // returns [{ uploadUrl, path }]. Upload each with putToR2().
-export async function signPhotoUploads({ eventId, contributorId, count = 1, contentType = "image/jpeg" }) {
+export async function signPhotoUploads({ eventId, contributorId, count = 1, contentType = "image/jpeg", size }) {
   const r = await fetchWithTimeout("/.netlify/functions/sign-upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ eventId, contributorId, count, contentType }),
+    body: JSON.stringify({ eventId, contributorId, count, contentType, size }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || "Could not prepare upload");

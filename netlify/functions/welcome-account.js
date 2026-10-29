@@ -9,17 +9,55 @@
 // Called from the signup page right after the account is created. Best-effort:
 // if it fails, the account is still made and the user still gets Supabase's own
 // confirmation link, so we never block signup on this.
-import { haloEmail, sendEmail } from "./_email.js";
+//
+// Locked down: the caller sends ONLY { userId } (the id Supabase returned from
+// signUp). The recipient address and name come from Supabase Auth on the
+// server, the account must have been created in the last 30 minutes, and each
+// account is welcomed at most once (app_metadata.halo_welcomed). So this can
+// never be used to send HALO mail to an arbitrary address.
+import { createClient } from "@supabase/supabase-js";
+import { haloEmail, sendEmail, siteBase, isEmail } from "./_email.js";
+import { clientIp, overLimit, tooMany } from "./_ratelimit.js";
 
-const SITE = "https://halo.finessemedia.pro";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FRESH_MS = 30 * 60 * 1000;
+const quiet = (extra = {}) => ({ statusCode: 200, body: JSON.stringify({ ok: false, ...extra }) });
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
 
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { email, name, needsConfirm } = b;
-  if (!email) return { statusCode: 400, body: JSON.stringify({ error: "email required" }) };
+  const userId = typeof b.userId === "string" ? b.userId.trim() : "";
+  if (!UUID.test(userId)) return { statusCode: 400, body: JSON.stringify({ error: "userId required" }) };
+
+  if (overLimit("welcome-account", clientIp(event), 5, 10 * 60 * 1000)) return tooMany();
+
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  let user = null;
+  try {
+    const { data: got, error: uErr } = await supabase.auth.admin.getUserById(userId);
+    if (!uErr && got) user = got.user;
+  } catch { user = null; }
+  // Unknown id (including the decoy id Supabase returns for an email that is
+  // already registered): answer quietly, send nothing.
+  if (!user) return quiet({ skipped: "unknown" });
+
+  const created = Date.parse(user.created_at || "");
+  if (!created || Date.now() - created > FRESH_MS) return quiet({ skipped: "not new" });
+  if (user.app_metadata && user.app_metadata.halo_welcomed) return quiet({ skipped: "already welcomed" });
+
+  const email = String(user.email || "").trim();
+  if (!isEmail(email)) return quiet({ skipped: "no email" });
+  const name = String((user.user_metadata && user.user_metadata.full_name) || "").slice(0, 80);
+  const needsConfirm = !(user.email_confirmed_at || user.confirmed_at);
+
+  // Mark first so two quick calls can't both send.
+  try {
+    await supabase.auth.admin.updateUserById(user.id, {
+      app_metadata: { ...(user.app_metadata || {}), halo_welcomed: true },
+    });
+  } catch (e) { console.error("welcome-account mark warning:", e.message); }
 
   const firstName = name ? escapeHtml(String(name).split(" ")[0]) : "there";
 
@@ -70,7 +108,7 @@ export async function handler(event) {
     subhead: "Your account is ready — here's how to get started",
     body,
     ctaText: "Go to my dashboard",
-    ctaUrl: `${SITE}/login`,
+    ctaUrl: `${siteBase()}/login`,
     footerNote: "HALO by Finesse Media · Reply any time — a real person reads these",
   });
 
