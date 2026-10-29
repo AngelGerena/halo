@@ -223,7 +223,7 @@ export function EventDetail({ event, api, back }) {
   // Moderation. These existed only on the create form before, so a host had
   // no way to see or change them after the fact: "protect children" silently
   // defaulted ON for every event. Surfaced here so what you see is what's set.
-  const [look, setLook] = useState(event.look || "midnight");
+  const [look, setLook] = useState(event.look || ""); // "" = match the site theme
   const [chOn, setChOn] = useState(!(Array.isArray(event.challenges) && event.challenges.length === 0));
   const [chText, setChText] = useState(() => (challengesFor(event).length ? challengesFor(event) : DEFAULT_CHALLENGES).map((c) => challengeText(c, lang)).join("\n"));
   const [requireReview, setRequireReview] = useState(event.moderation_mode === "review");
@@ -567,7 +567,8 @@ export function EventDetail({ event, api, back }) {
     const { makeHighlight } = await import("../lib/highlight.js");
     const chosen = hlSelected;
     if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
-    const look = getLook(event.look || "midnight");
+    let siteKey = "midnight"; try { siteKey = localStorage.getItem("halo_theme") || "midnight"; } catch { /* default */ }
+    const look = getLook(event.look || siteKey); // highlight video uses the same colors guests see
     const music = event.music_url === "none" ? null
       : event.music_url ? ((event.music_url.startsWith("/") || event.music_url.startsWith("http")) ? event.music_url : publicUrl(event.music_url))
       : (HL_MUSIC[event.category] || "/music/cinematic.mp3");
@@ -1195,6 +1196,14 @@ export function EventDetail({ event, api, back }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.look")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.look.help")}</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
+              <button type="button" onClick={() => setLook("")} aria-pressed={!look}
+                style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: C.panel, color: C.text, border: `2px solid ${!look ? C.gold : "rgba(255,255,255,.14)"}`, borderRadius: 12, padding: "9px 10px", cursor: "pointer", boxShadow: !look ? `0 0 0 3px ${C.gold}33` : "none" }}>
+                <span style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
+                  <span style={{ width: 14, height: 14, borderRadius: "50%", background: "var(--gold)" }} />
+                  <span style={{ width: 14, height: 14, borderRadius: "50%", background: "var(--pink, var(--gold-light))" }} />
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15 }}>{t("admin.look.site")}</span>
+              </button>
               {LOOKS.map((l) => {
                 const on = look === l.key;
                 return (

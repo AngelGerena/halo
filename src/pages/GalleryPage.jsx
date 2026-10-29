@@ -7,6 +7,8 @@ import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { frameFor } from "../lib/frames.js";
+import { applyLook, clearLook } from "../lib/looks.js";
+import { useSiteThemeKey } from "../lib/siteTheme.js";
 
 export default function GalleryPage() {
   const { contributorId } = useParams();
@@ -14,6 +16,8 @@ export default function GalleryPage() {
   const { t } = useI18n();
   const [contributor, setContributor] = useState(null);
   const [event, setEvent] = useState(null);
+  const siteLook = useSiteThemeKey();
+  useEffect(() => { applyLook((event && event.look) || siteLook); return () => clearLook(); }, [event && event.look, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({});

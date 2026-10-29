@@ -6,6 +6,7 @@ import { fetchReactions, like, getDeviceId, rxKey } from "../lib/reactions.js";
 import { ReactionBuddy, LIVE_REACTION_CSS } from "../components/LiveReactions.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
+import { useSiteThemeKey } from "../lib/siteTheme.js";
 import QRCode from "qrcode";
 import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.jsx";
 import { WALL_SECONDS } from "../lib/clip.js";
@@ -32,7 +33,9 @@ export default function SlideshowPage() {
   const { code } = useParams();
   const [event, setEvent] = useState(null);
   // Per-event look: restyle via CSS variables while this page is mounted.
-  useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
+  // The event's own look, or the site's theme when the host hasn't picked one.
+  const siteLook = useSiteThemeKey();
+  useEffect(() => { if (event) applyLook(event.look || siteLook); return () => clearLook(); }, [event && event.look, !!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [photos, setPhotos] = useState([]);
   const hasTwo = photos.length >= 2;
   const [idx, setIdx] = useState(0);

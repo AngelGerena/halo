@@ -9,6 +9,7 @@ import { Footer, LangToggle } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { applyLook, clearLook } from "../lib/looks.js";
+import { useSiteThemeKey } from "../lib/siteTheme.js";
 import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Icons.jsx";
 import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
@@ -61,7 +62,9 @@ export default function EventPage() {
     return () => { alive = false; };
   }, [user, session, event]);
   // Per-event look: restyle via CSS variables while this page is mounted.
-  useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
+  // The event's own look, or the site's theme when the host hasn't picked one.
+  const siteLook = useSiteThemeKey();
+  useEffect(() => { if (event) applyLook(event.look || siteLook); return () => clearLook(); }, [event && event.look, !!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false); // network trouble (not "no such event")
   const [loadTry, setLoadTry] = useState(0);            // bump to load again (Try again button)
