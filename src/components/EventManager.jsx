@@ -949,7 +949,9 @@ export function EventDetail({ event, api, back }) {
           </ol>
           {tvQr && (
             <div style={{ textAlign: "center" }}>
-              <img src={tvQr} alt="Live screen QR code" style={{ width: 132, height: 132, borderRadius: 10, display: "block" }} />
+              <button type="button" onClick={() => setQrFull("tv")} aria-label={t("tv.qrFull")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block" }}>
+                <img src={tvQr} alt="Live screen QR code" style={{ width: 132, height: 132, borderRadius: 10, display: "block" }} />
+              </button>
               <div style={{ fontSize: 10.5, color: C.second, marginTop: 6, letterSpacing: .5, textTransform: "uppercase" }}>{t("tv.open")}</div>
               <button onClick={() => setQrFull("tv")} style={{ marginTop: 8, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <ExpandIcon /> {t("tv.qrFull")}
