@@ -201,8 +201,17 @@ function DashboardInner() {
   const info = useEventInfo(events);
 
   async function loadEvents() {
-    // RLS scopes this to the signed-in client's own events.
-    const { data: own } = await supabase.from("events").select("*").order("created_at", { ascending: false });
+    // RLS also lets anyone read every ACTIVE event (guest pages need that), so
+    // filter to this person's own events here. Admins (profiles.is_admin)
+    // still see everything.
+    let isAdmin = false;
+    try {
+      const { data: prof } = await supabase.from("profiles").select("is_admin").eq("id", user?.id).maybeSingle();
+      isAdmin = !!prof?.is_admin;
+    } catch {}
+    let q = supabase.from("events").select("*").order("created_at", { ascending: false });
+    if (!isAdmin) q = q.eq("owner_id", user?.id);
+    const { data: own } = user?.id ? await q : { data: [] };
     // Plus events this person co-hosts (invited by email by the owner).
     let co = [];
     try { co = (await api.fn("cohost-events", {})).events || []; } catch {}
