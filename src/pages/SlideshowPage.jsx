@@ -12,6 +12,7 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
+import { SponsorWallBadge } from "../components/Sponsor.jsx";
 import { useLiveMosaic, MosaicCard, MosaicIcon } from "../components/MosaicWall.jsx";
 import { isMessage, notMessage } from "../lib/videoMessage.js";
 import VideoMessageCard from "../components/VideoMessageCard.jsx";
@@ -607,6 +608,8 @@ export default function SlideshowPage() {
           </div>
         ) : null; })()}
       </div>
+
+      <SponsorWallBadge event={event} hidden={showChrome} />
 
       {/* Always-on room stats: photos and guests so far. Makes the wall feel
           alive and nudges the people who haven't scanned yet. */}

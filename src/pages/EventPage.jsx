@@ -21,6 +21,9 @@ import { makeApi } from "../lib/authedFetch.js";
 import { useFilterGate } from "../components/FilterPicker.jsx";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 import { frameFor } from "../lib/frames.js";
+import LeadFields from "../components/LeadFields.jsx";
+import { SponsorLine } from "../components/Sponsor.jsx";
+import { leadExtras } from "../lib/leads.js";
 import VideoMessage from "../components/VideoMessage.jsx";
 import { notMessage } from "../lib/videoMessage.js";
 import { isBoomerangFile, uploadBoomerang } from "../lib/boomerang.js";
@@ -76,6 +79,9 @@ export default function EventPage() {
   const [contributor, setContributor] = useState(null); // {id, name}
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [leadPhone, setLeadPhone] = useState(""); // lead capture (off by default)
+  const [leadOk, setLeadOk] = useState(false);
+  const [leadErr, setLeadErr] = useState("");
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(0);
   const [tab, setTab] = useState("add");           // add | gallery | mine
@@ -264,11 +270,14 @@ export default function EventPage() {
   const [nameSaving, setNameSaving] = useState(false);
   async function saveName() {
     if (!name.trim() || !contributor) return;
+    const lead = leadExtras(event, { email, phone: leadPhone, consent: leadOk });
+    setLeadErr(lead.error ? t(lead.error) : "");
+    if (lead.error) return;
     setNameSaving(true);
     try {
       const r = await fetch("/.netlify/functions/rename-contributor", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contributorId: contributor.id, secret: contributor.secret || null, name: name.trim(), email: email.trim() || null }),
+        body: JSON.stringify({ contributorId: contributor.id, secret: contributor.secret || null, name: name.trim(), email: email.trim() || null, ...lead.body }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "save failed");
@@ -648,6 +657,7 @@ export default function EventPage() {
           )}
           {(starting || waiting.length > 0) && <KeepOpen text={t("up.keepOpen")} />}
           <p style={S.note}>{t("event.welcomeNote")}</p>
+          <SponsorLine event={event} />
         </div>
       </Dark>
     );
@@ -680,6 +690,7 @@ export default function EventPage() {
           </div>
           <div style={{ marginLeft: "auto", flex: "0 0 auto" }}><LangToggle /></div>
         </div>
+        <SponsorLine event={event} compact />
 
         {/* ---- ADD tab ----
             Built for a guest who has never seen HALO: lead with the one action
@@ -822,6 +833,7 @@ export default function EventPage() {
                   onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 10 }} />
                 <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("up.whoEmail")} autoComplete="email"
                   onKeyDown={(e) => e.key === "Enter" && saveName()} style={{ marginBottom: 12 }} />
+                <LeadFields event={event} phone={leadPhone} setPhone={(v) => { setLeadPhone(v); setLeadErr(""); }} consent={leadOk} setConsent={setLeadOk} error={leadErr} onEnter={saveName} />
                 <button className="btn-gold btn-full" onClick={saveName} disabled={nameSaving || !name.trim()} style={{ opacity: nameSaving || !name.trim() ? 0.6 : 1 }}>{nameSaving ? t("up.whoSaving") : t("up.whoSave")}</button>
               </div>
             )}
