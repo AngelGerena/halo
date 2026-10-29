@@ -427,6 +427,7 @@ const STRINGS = {
   "live.paused": { en: "paused", es: "pausado" },
   "live.pause": { en: "Pause", es: "Pausar" },
   "live.play": { en: "Play", es: "Reproducir" },
+  "live.exit": { en: "Exit", es: "Salir" },
   "live.fullscreen": { en: "Fullscreen", es: "Pantalla completa" },
   // ---- V2 Phase 1: moderation gate + consent-first child safety ----
   // uploader consent (children in frame)
