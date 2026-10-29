@@ -12,13 +12,33 @@ import { applyLook, clearLook } from "../lib/looks.js";
 import { CameraIcon, UploadIcon, ScreenIcon, VideoIcon } from "../components/Icons.jsx";
 import { probeClip, isVideoFile, MAX_CLIP_SECONDS, MAX_CLIP_BYTES } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
-import { preloadNsfw } from "../lib/nsfw.js";
+import { preloadNsfw, classifyQuick, nsfwStarted } from "../lib/nsfw.js";
+import { formatEventDate } from "../lib/eventDate.js";
 import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
 import { newSecret, insertContributor } from "../lib/contributors.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
+
+// Give a Supabase request a deadline. A stalled request on weak signal would
+// otherwise never settle, so retries never run and the upload queue freezes.
+// `build(signal)` returns the query builder; the signal really aborts it.
+const DB_TIMEOUT_MS = 20000;
+function dbTimed(build, ms = DB_TIMEOUT_MS) {
+  const ac = new AbortController();
+  let q = build(ac.signal);
+  let timer;
+  const timeout = new Promise((_, rej) => {
+    timer = setTimeout(() => {
+      ac.abort();
+      rej(Object.assign(new Error("Request timed out"), { timeout: true }));
+    }, ms);
+  });
+  return Promise.race([Promise.resolve(q), timeout]).finally(() => clearTimeout(timer));
+}
+// Attach the abort signal when this supabase-js build supports it.
+const sig = (q, signal) => (q && typeof q.abortSignal === "function" ? q.abortSignal(signal) : q);
 
 export default function EventPage() {
   const { code } = useParams();
@@ -42,6 +62,8 @@ export default function EventPage() {
   // Per-event look: restyle via CSS variables while this page is mounted.
   useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false); // network trouble (not "no such event")
+  const [loadTry, setLoadTry] = useState(0);            // bump to load again (Try again button)
   const [contributor, setContributor] = useState(null); // {id, name}
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,27 +83,65 @@ export default function EventPage() {
   const [wishState, setWishState] = useState("idle"); // idle | sending | sent | error
   const burstRef = useRef([]); // {phash, quality} of kept photos this session (best-of-burst)
 
-  // load event by code
+  // load event by code. A weak signal is not "event not found": retry a few
+  // times, and only call it missing when the database really has no such row.
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const { data, error } = await supabase.from("events").select("*").eq("code", code).single();
-      if (error || !data) { setEvent(false); setLoading(false); return; }
+      setLoading(true); setLoadFailed(false);
+      let data = null, missing = false;
+      const pauses = [1500, 3500]; // 3 tries over roughly 5-6 s
+      for (let i = 0; i <= pauses.length; i++) {
+        try {
+          const res = await dbTimed((signal) => {
+            const q = sig(supabase.from("events").select("*").eq("code", code), signal);
+            if (typeof q.retry === "function") q.retry(false); // we pace our own retries below
+            return q.single();
+          }, 8000);
+          if (res.data) { data = res.data; break; }
+          // PGRST116 = .single() matched zero rows: the code really doesn't exist.
+          if (!res.error || res.error.code === "PGRST116") { missing = true; break; }
+        } catch { /* timed out; fall through to retry */ }
+        if (!alive) return;
+        if (i < pauses.length) await new Promise((r) => setTimeout(r, pauses[i]));
+      }
+      if (!alive) return;
+      if (!data) {
+        if (missing) setEvent(false); else setLoadFailed(true);
+        setLoading(false);
+        return;
+      }
       setEvent(data);
       const saved = localStorage.getItem(LS_KEY(code));
       if (saved) {
         const c = JSON.parse(saved);
+        returningRef.current = true;
         setContributor(c);
         loadPhotos(c.id);
         loadEveryone(data);
       }
       setLoading(false);
     })();
-  }, [code]);
+    return () => { alive = false; };
+  }, [code, loadTry]);
 
-  // Warm the in-browser explicit-content model in the background.
-  // Warm the model as soon as the event loads: with add-first there is no name
-  // screen to hide the load behind anymore.
-  useEffect(() => { if (event) preloadNsfw(); }, [event]);
+  // Warm the in-browser explicit-content model in the background, but never
+  // in front of a guest's first photo: TF.js + the model are several MB, and on
+  // weak venue signal that download would fight the upload. So we start it
+  // once an upload has finished (or, for a returning guest, once the page has
+  // settled) and only while nothing is uploading. Until it's ready, photos go
+  // up unchecked (same as when the model fails to load).
+  const uploadingRef = useRef(0);
+  function warmNsfwWhenIdle(delay = 0) {
+    if (nsfwStarted()) return;
+    const go = () => { if (uploadingRef.current === 0 && !nsfwStarted()) preloadNsfw(); };
+    setTimeout(() => {
+      if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") window.requestIdleCallback(go, { timeout: 4000 });
+      else setTimeout(go, 1500);
+    }, delay);
+  }
+  const returningRef = useRef(false);
+  useEffect(() => { if (event && returningRef.current) warmNsfwWhenIdle(4000); }, [event]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Everyone's photos (the whole event), for the Gallery tab. Only kept +
   // approved rows: anything held for the host (kids-flagged, review mode,
@@ -144,22 +204,50 @@ export default function EventPage() {
   // Add first, name after. The first upload silently creates the guest as
   // "Guest" (anon:true); once their photos are in we ask who to thank.
   const ANON_NAME = "Guest";
-  async function ensureContributor() {
-    if (contributor) return contributor;
+  // The ref always holds the live guest, so timers and retries (which run
+  // from older renders) never create a second "Guest" by mistake.
+  const contributorRef = useRef(null);
+  useEffect(() => { if (contributor) contributorRef.current = contributor; }, [contributor]);
+  const creatingRef = useRef(null);
+  // Create the anonymous guest, retrying with a deadline on each attempt
+  // (weak signal). Resolves to the guest, or null if it still can't reach us;
+  // callers keep the picked photos in the waiting queue in that case.
+  function ensureContributor() {
+    if (contributorRef.current) return Promise.resolve(contributorRef.current);
+    if (!creatingRef.current) {
+      creatingRef.current = withRetry(() => dbTimed(() => createAnonContributor()), 3)
+        .catch((e) => { console.error(e); return null; })
+        .finally(() => { creatingRef.current = null; });
+    }
+    return creatingRef.current;
+  }
+  async function createAnonContributor() {
     const secret = newSecret();
     const { data, error } = await insertContributor({ event_id: event.id, name: ANON_NAME, email: null, secret });
-    if (error) { alert(t("event.startError")); return null; }
+    if (error) throw error;
+    // A slow earlier attempt may have landed after a retry already won.
+    if (contributorRef.current) return contributorRef.current;
     const c = { id: data.id, name: data.name, anon: true, secret };
     localStorage.setItem(LS_KEY(code), JSON.stringify(c));
+    contributorRef.current = c;
     setContributor(c);
     loadEveryone(event);
     return c;
   }
+  const [starting, setStarting] = useState(false); // creating the guest before the first upload
   async function addFilesFirst(fileList) {
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f.type.startsWith("image/") || isVideoFile(f));
     if (!files.length) return;
+    setStarting(true);
     const c = await ensureContributor();
-    if (!c) return;
+    setStarting(false);
+    if (!c) {
+      // Couldn't reach HALO yet. Don't drop what they picked: queue it, and the
+      // waiting loop creates the guest and sends everything once signal is back.
+      const kids = kidsInFrame, ch = challenge;
+      setWaiting((w) => [...w, ...files.map((file) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file, who: null, kids, ch }))]);
+      return;
+    }
     setTab("add");
     // addFiles reads `contributor` from state; pass the fresh one explicitly.
     await addFiles(files, c);
@@ -225,7 +313,7 @@ export default function EventPage() {
   }
 
   // Score, upload and record one photo. Returns true when it's safely in.
-  async function uploadOne(original, who, kids, challengeId = null) {
+  async function uploadOne(original, who, kids, challengeId = null, onProgress = null) {
     // Shrink on the phone first: 5-10x smaller, so uploads finish on busy venue Wi-Fi.
     const f = await shrinkImage(original);
     const s = await scoreImage(f);
@@ -243,8 +331,9 @@ export default function EventPage() {
     const kept = !isBurstDup && s.quality >= (event.keep_threshold ?? 45);
 
     // In-browser explicit-content auto-flag (graceful: never blocks an upload).
+    // Capped at 2.5 s and skipped while the model isn't loaded yet.
     let flagged = false;
-    try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(f)).flagged; } catch {}
+    try { flagged = (await classifyQuick(f)).flagged; } catch {}
     const status = (needsReview || flagged) ? "pending" : "approved";
     const tags = kids ? ["kids"] : []; // reliable auto-tag from the consent flag
 
@@ -253,11 +342,11 @@ export default function EventPage() {
       const [signed] = await signPhotoUploads({
         eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg", size: f.size,
       });
-      await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
+      await putToR2(signed.uploadUrl, f, f.type || "image/jpeg", onProgress);
       return signed.path;
     });
     const row = await withRetry(async () => {
-      const { data, error } = await supabase.from("photos").insert({
+      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert({
         event_id: event.id,
         contributor_id: who.id,
         storage_path: path,
@@ -271,13 +360,14 @@ export default function EventPage() {
         auto_flagged: flagged,
         tags,
         ...(challengeId ? { challenge: challengeId } : {}),
-      }).select().single();
+      }).select(), signal).single());
       if (error) throw error;
       return data;
     });
     // Only remember it for burst matching once it's really in, so a retry
     // of the same photo is never mistaken for its own duplicate.
     if (kept && s.phash) burstRef.current.push({ phash: s.phash, quality: s.quality });
+    warmNsfwWhenIdle(); // first photo is safely in; now the model may download
     setPhotos((prev) => [{ ...row, url: publicUrl(path) }, ...prev]);
 
     // fire auto-edit in the background; patch the row when ready.
@@ -300,7 +390,7 @@ export default function EventPage() {
 
   // A short video clip: its still frame becomes storage_path (so every grid,
   // email and thumbnail just works) and the clip itself goes in video_path.
-  async function uploadClip(file, who, kids, challengeId = null) {
+  async function uploadClip(file, who, kids, challengeId = null, onProgress = null) {
     const info = await probeClip(file);
     if (file.size > MAX_CLIP_BYTES || info.duration > MAX_CLIP_SECONDS + 0.5) {
       const err = new Error("clip too long"); err.tooLong = true; throw err;
@@ -309,7 +399,7 @@ export default function EventPage() {
     const poster = new File([info.poster], "frame.jpg", { type: "image/jpeg" });
     let flagged = false;
     if (info.decoded) {
-      try { const { classifyFile } = await import("../lib/nsfw.js"); flagged = (await classifyFile(poster)).flagged; } catch {}
+      try { flagged = (await classifyQuick(poster)).flagged; } catch {}
     }
     const status = (needsReview || flagged) ? "pending" : "approved";
     const posterPath = await withRetry(async () => {
@@ -319,11 +409,11 @@ export default function EventPage() {
     });
     const videoPath = await withRetry(async () => {
       const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4", size: file.size });
-      await putToR2(s2.uploadUrl, file, s2.contentType);
+      await putToR2(s2.uploadUrl, file, s2.contentType, onProgress);
       return s2.path;
     }, 5);
     const row = await withRetry(async () => {
-      const { data, error } = await supabase.from("photos").insert({
+      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert({
         event_id: event.id,
         contributor_id: who.id,
         storage_path: posterPath,
@@ -337,11 +427,12 @@ export default function EventPage() {
         auto_flagged: flagged,
         tags: kids ? ["kids"] : [],
         ...(challengeId ? { challenge: challengeId } : {}),
-      }).select().single();
+      }).select(), signal).single());
       if (error) throw error;
       return data;
     });
     setPhotos((prev) => [{ ...row, url: publicUrl(posterPath), video_url: publicUrl(videoPath) }, ...prev]);
+    warmNsfwWhenIdle();
     return true;
   }
 
@@ -365,6 +456,11 @@ export default function EventPage() {
     } catch { setWishState("error"); }
   }
 
+  // Percent sent for the file going up right now (null = not known yet).
+  const [progress, setProgress] = useState(null);
+  const onPutProgress = (frac) => setProgress(Math.round(frac * 100));
+  useEffect(() => { uploadingRef.current = uploading; }, [uploading]);
+
   async function addFiles(fileList, who = contributor) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith("image/") || isVideoFile(f));
     if (!who) return addFilesFirst(files);
@@ -373,14 +469,16 @@ export default function EventPage() {
     const ch = challenge;
     setUploading((u) => u + files.length);
     for (const original of files) {
+      setProgress(null);
       try {
-        if (isVideoFile(original)) await uploadClip(original, who, kids, ch);
-        else await uploadOne(original, who, kids, ch);
+        if (isVideoFile(original)) await uploadClip(original, who, kids, ch, onPutProgress);
+        else await uploadOne(original, who, kids, ch, onPutProgress);
       } catch (e) {
         console.error(e);
         if (e && e.tooLong) { setNotice(t("up.clipTooLong").replace("{s}", MAX_CLIP_SECONDS)); continue; }
         setWaiting((w) => [...w, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: original, who, kids, ch }]);
       } finally {
+        setProgress(null);
         setUploading((u) => Math.max(0, u - 1));
       }
     }
@@ -394,34 +492,58 @@ export default function EventPage() {
   // Send anything still waiting. Runs on reconnect, every 20 s, or on tap.
   const flushingRef = useRef(false);
   const waitingRef = useRef(waiting); useEffect(() => { waitingRef.current = waiting; }, [waiting]);
+  const [flushing, setFlushing] = useState(false);
   async function flushWaiting() {
     if (flushingRef.current || !waitingRef.current.length || !event) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-    flushingRef.current = true;
+    flushingRef.current = true; setFlushing(true);
     try {
       for (const item of [...waitingRef.current]) {
+        setProgress(null);
         try {
-          if (isVideoFile(item.file)) await uploadClip(item.file, item.who, item.kids, item.ch);
-          else await uploadOne(item.file, item.who, item.kids, item.ch);
+          // Photos picked before the guest could be created have no owner yet.
+          const who = item.who || await ensureContributor();
+          if (!who) break; // still can't reach HALO; try again later
+          if (isVideoFile(item.file)) await uploadClip(item.file, who, item.kids, item.ch, onPutProgress);
+          else await uploadOne(item.file, who, item.kids, item.ch, onPutProgress);
           setWaiting((w) => w.filter((x) => x.id !== item.id));
         } catch { break; } // still offline; try again later
+        finally { setProgress(null); }
       }
       loadEveryone(event);
-    } finally { flushingRef.current = false; }
+    } finally { flushingRef.current = false; setFlushing(false); }
   }
   useEffect(() => {
     if (!waiting.length) return;
     const onOnline = () => flushWaiting();
     window.addEventListener("online", onOnline);
     const tmr = setInterval(flushWaiting, 20000);
-    // Warn before closing the page while photos are still on the phone only.
+    return () => { window.removeEventListener("online", onOnline); clearInterval(tmr); };
+  }, [waiting.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Warn before closing the page while anything is still on the phone only:
+  // photos going up right now, or waiting to retry.
+  const busy = uploading > 0 || waiting.length > 0 || starting || flushing;
+  useEffect(() => {
+    if (!busy) return;
     const onLeave = (e) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", onLeave);
-    return () => { window.removeEventListener("online", onOnline); clearInterval(tmr); window.removeEventListener("beforeunload", onLeave); };
-  }, [waiting.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [busy]);
 
   // ---- loading / not-found ----
   if (loading) return <Dark><div style={S.center}><Ring small /><p style={{ color: C.second, marginTop: 14 }}>{t("event.opening")}</p></div></Dark>;
+  if (loadFailed) return (
+    <Dark><div style={S.center}>
+      <div>
+        <div style={{ color: C.gold, display: "grid", placeItems: "center", marginBottom: 12 }} aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0" /><path d="M5.5 12a10 10 0 0 1 13 0" /><path d="M9 15.5a5 5 0 0 1 6 0" /><circle cx="12" cy="19" r="1" fill="currentColor" /><path d="M3 3l18 18" /></svg>
+        </div>
+        <h1 className="serif" style={{ fontSize: 28, margin: 0 }}>{t("event.offline.title")}</h1>
+        <p style={{ color: C.second, maxWidth: 320, margin: "10px auto 20px" }}>{t("event.offline.sub")}</p>
+        <button className="btn-gold" onClick={() => setLoadTry((n) => n + 1)}>{t("event.offline.retry")}</button>
+      </div>
+    </div></Dark>
+  );
   if (event === false) return (
     <Dark><div style={S.center}>
       <h1 className="serif" style={{ fontSize: 30, margin: 0 }}>{t("event.notFound.title")}</h1>
@@ -453,7 +575,7 @@ export default function EventPage() {
             <p className="eyebrow" style={{ marginTop: 18 }}>{t("event.invited")}</p>
             <h1 className="serif" style={{ fontSize: 40, fontStyle: "italic", fontWeight: 600, margin: "6px 0 0", lineHeight: 1.02 }}>{ev(event, "name")}</h1>
             {([ev(event, "host"), ev(event, "event_date")].filter(Boolean).length > 0) && (
-              <p style={{ color: C.second, margin: "8px 0 0", fontSize: 13 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+              <p style={{ color: C.second, margin: "8px 0 0", fontSize: 13 }}>{[ev(event, "host"), formatEventDate(ev(event, "event_date"), lang)].filter(Boolean).join(" · ")}</p>
             )}
           </div>
 
@@ -477,6 +599,22 @@ export default function EventPage() {
             <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden
               onChange={(e) => { addFilesFirst(e.target.files); e.target.value = ""; }} />
           </div>
+          {starting && (
+            <div role="status" style={{ ...S.sendRow, justifyContent: "center", marginTop: 14 }}>
+              <span className="spin" style={S.spin} />{t("up.uploading")}&hellip;
+            </div>
+          )}
+          {waiting.length > 0 && (
+            <div role="status" style={{ ...S.waitBox, marginTop: 14 }}>
+              <span className="spin" style={{ ...S.spin, marginTop: 2 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
+                <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{t("up.startQueued")}</div>
+              </div>
+              <button type="button" onClick={flushWaiting} disabled={flushing} style={{ ...S.tryBtn, opacity: flushing ? 0.6 : 1 }}>{t("up.tryNow")}</button>
+            </div>
+          )}
+          {(starting || waiting.length > 0) && <KeepOpen text={t("up.keepOpen")} />}
           <p style={S.note}>{t("event.welcomeNote")}</p>
         </div>
       </Dark>
@@ -586,21 +724,27 @@ export default function EventPage() {
               </div>
             )}
 
+            {(uploading > 0 || waiting.length > 0) && <KeepOpen text={t("up.keepOpen")} />}
+
             {waiting.length > 0 && (
-              <div role="status" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px" }}>
-                <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
+              <div role="status" style={{ ...S.waitBox, marginTop: 12, alignItems: "center" }}>
+                <span className="spin" style={S.spin} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t("up.waiting").replace("{n}", waiting.length)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                    {t("up.waiting").replace("{n}", waiting.length)}
+                    {flushing && uploading === 0 && progress != null && <span style={{ color: C.gold, fontVariantNumeric: "tabular-nums" }}> &middot; {progress}%</span>}
+                  </div>
                   <div style={{ fontSize: 12, color: C.second }}>{t("up.waitingSub")}</div>
                 </div>
-                <button type="button" onClick={flushWaiting} style={{ flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{t("up.tryNow")}</button>
+                <button type="button" onClick={flushWaiting} disabled={flushing} style={{ ...S.tryBtn, opacity: flushing ? 0.6 : 1 }}>{t("up.tryNow")}</button>
               </div>
             )}
 
             {uploading > 0 && (
-              <div style={{ marginTop: 12, fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="spin" style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" }} />
-                {t("up.uploading")} {uploading}&hellip;
+              <div role="status" aria-live="polite" style={{ ...S.sendRow, marginTop: 12 }}>
+                <span className="spin" style={S.spin} />
+                <span>{t("up.uploading")} {uploading}&hellip;</span>
+                {progress != null && <span style={{ color: C.gold, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{progress}%</span>}
               </div>
             )}
 
@@ -622,7 +766,7 @@ export default function EventPage() {
                     ))}
                   </div>
                   <div style={{ fontSize: 15, color: C.gold, fontWeight: 700 }}>
-                    {photos[0]?.status === "pending" ? t("up.latestHeld") : t("up.latestLive")}
+                    {photos[0]?.status === "pending" ? t("up.latestHeld") : photos[0]?.kept === false ? t("up.latestSaved") : t("up.latestLive")}
                   </div>
                   <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>
                     {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)} {t("up.hintAfter")}
@@ -798,6 +942,15 @@ function TabBtn({ active, onClick, icon, iconNode, label }) {
   );
 }
 
+function KeepOpen({ text }) {
+  return (
+    <div role="note" style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, background: "rgba(var(--tint, 255,255,255),.05)", border: `1px solid ${C.line2}`, borderRadius: 12, padding: "9px 12px", fontSize: 13, fontWeight: 600, color: C.text, lineHeight: 1.35 }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "0 0 auto" }} aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M12 7v6M9.5 10.5 12 13l2.5-2.5" /></svg>
+      <span style={{ flex: 1, minWidth: 0 }}>{text}</span>
+    </div>
+  );
+}
+
 function StatTile({ label, value, gold }) {
   return (
     <div style={{ flex: 1, background: "rgba(var(--tint, 255,255,255),.04)", border: `1px solid ${C.line}`, borderRadius: 14, padding: "12px 14px" }}>
@@ -836,5 +989,9 @@ const S = {
   camBtn: { display: "block", width: "100%", background: "transparent", border: "none", color: C.text, padding: "6px 0 14px", cursor: "pointer", textAlign: "center" },
   camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" },
   libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(var(--tint, 255,255,255),.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  spin: { width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" },
+  sendRow: { fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 },
+  waitBox: { display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px", textAlign: "left" },
+  tryBtn: { flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "var(--tabbar, #0d0716)", backdropFilter: "blur(8px)" },
 };

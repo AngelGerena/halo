@@ -24,6 +24,28 @@ async function getModel() {
 
 export function preloadNsfw() { getModel().catch(() => {}); }
 
+// Has anything started loading the model yet? (preloadNsfw or a classify call)
+export function nsfwStarted() { return modelPromise !== null; }
+
+// Upload-path classify: never lets the explicit-content check hold an upload
+// hostage on weak signal. If the model hasn't started loading we do NOT start
+// it here (that would put a multi-MB download in front of the guest's photo);
+// the page preloads it once the first upload is done or the page is idle.
+// Otherwise classify, but give up after `ms` and treat the photo as not flagged.
+export async function classifyQuick(file, ms = 2500) {
+  const clean = { flagged: false, reason: null };
+  if (!modelPromise) return clean;
+  let timer;
+  const timeout = new Promise((res) => { timer = setTimeout(() => res(clean), ms); });
+  try {
+    return await Promise.race([classifyFile(file), timeout]);
+  } catch {
+    return clean;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Classify a File. Returns { flagged, reason } and NEVER throws.
 export async function classifyFile(file) {
   try {
