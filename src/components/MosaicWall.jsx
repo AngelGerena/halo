@@ -115,7 +115,7 @@ export function MosaicCard({ event, photos, counts, onClose }) {
   const [target] = useState(() => mosaicTarget(event, photos, counts));
   const [used, setUsed] = useState(0);
   return (
-    <div id="halo-mosaic" onClick={onClose} style={{ position: "absolute", inset: 0, zIndex: 6, background: "#0a0410", animation: "fadeIn .9s ease", cursor: "pointer" }}>
+    <div id="halo-mosaic" onClick={onClose} style={{ position: "absolute", inset: 0, zIndex: 6, background: "var(--ink, #0a0410)", animation: "fadeIn .9s ease", cursor: "pointer" }}>
       <MosaicCanvas target={target} photos={photos} seed={String(event && event.id)} onStats={(s) => setUsed(s.used)} />
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "6vh 4vw 4.5vh", background: "linear-gradient(to top, rgba(10,4,16,.85), rgba(10,4,16,0))", textAlign: "center", pointerEvents: "none" }}>
         <div style={{ color: C.gold, fontSize: "max(1vw, 11px)", fontWeight: 800, letterSpacing: ".35em", textTransform: "uppercase" }}>{t("mosaic.eyebrow")}</div>

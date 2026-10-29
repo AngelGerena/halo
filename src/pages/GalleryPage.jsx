@@ -18,7 +18,7 @@ export default function GalleryPage() {
   const [contributor, setContributor] = useState(null);
   const [event, setEvent] = useState(null);
   const siteLook = useSiteThemeKey();
-  useEffect(() => { applyLook((event && event.look) || siteLook); return () => clearLook(); }, [event && event.look, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { applyLook(siteLook); return () => clearLook(); }, [siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({});
