@@ -21,7 +21,10 @@ function readCachedTheme() {
   try { const t = localStorage.getItem("halo_theme"); return THEMES[t] ? t : null; } catch { return null; }
 }
 
-export function useSiteTheme() {
+// The site theme's key ("obsidian", "midnight", ...). Guest pages and the live
+// wall use it as the event's look when the host hasn't picked one, so every
+// page matches the site unless the event chooses its own colors.
+export function useSiteThemeKey() {
   const [theme, setTheme] = useState(() => readCachedTheme() || "midnight");
   useEffect(() => {
     let alive = true;
@@ -35,5 +38,9 @@ export function useSiteTheme() {
       .catch(() => {});
     return () => { alive = false; };
   }, []);
-  return THEMES[theme];
+  return theme;
+}
+
+export function useSiteTheme() {
+  return THEMES[useSiteThemeKey()];
 }
