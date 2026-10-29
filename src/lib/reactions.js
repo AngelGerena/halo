@@ -32,7 +32,7 @@ export async function fetchReactions(photoIds, eventId) {
     const PAGE = 1000;
     for (let from = 0; from < 50000; from += PAGE) {
       const { data: rows, error } = await supabase.from("reactions").select("photo_id,device_id,kind")
-        .eq("event_id", eventId).order("photo_id").range(from, from + PAGE - 1);
+        .eq("event_id", eventId).order("photo_id").order("id").range(from, from + PAGE - 1);
       if (error) { if (from === 0) throw error; break; }
       data = data.concat(rows || []);
       if (!rows || rows.length < PAGE) break;
