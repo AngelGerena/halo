@@ -21,11 +21,26 @@ export const rxKey = (photoId, kind) => `${photoId}:${kind}`;
 //   kinds:  {photoId: {heart: n, like: n}},
 //   liked:  Set("photoId:kind") this device has already sent
 // }
-export async function fetchReactions(photoIds) {
+// Pass eventId to query by event (paged) instead of a long photo-id list,
+// which breaks once an event has a few hundred photos (URL too long).
+export async function fetchReactions(photoIds, eventId) {
   const out = { counts: {}, kinds: {}, liked: new Set() };
   if (!photoIds || photoIds.length === 0) return out;
   const dev = getDeviceId();
-  const { data } = await supabase.from("reactions").select("photo_id,device_id,kind").in("photo_id", photoIds);
+  let data = [];
+  if (eventId) {
+    const PAGE = 1000;
+    for (let from = 0; from < 50000; from += PAGE) {
+      const { data: rows, error } = await supabase.from("reactions").select("photo_id,device_id,kind")
+        .eq("event_id", eventId).order("photo_id").range(from, from + PAGE - 1);
+      if (error) { if (from === 0) throw error; break; }
+      data = data.concat(rows || []);
+      if (!rows || rows.length < PAGE) break;
+    }
+  } else {
+    const r = await supabase.from("reactions").select("photo_id,device_id,kind").in("photo_id", photoIds);
+    data = r.data || [];
+  }
   (data || []).forEach((r) => {
     const kind = r.kind || "heart";
     out.counts[r.photo_id] = (out.counts[r.photo_id] || 0) + 1;
