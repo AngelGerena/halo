@@ -21,7 +21,7 @@
 // pass a passcode-based api, deleting ~500 duplicated lines. It was left
 // untouched here to avoid colliding with the auth/admin migration happening in
 // parallel.
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import QRCode from "qrcode";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
@@ -30,6 +30,7 @@ import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS, getLook } from "../lib/looks.js";
+import { pickHighlights } from "../lib/highlight.js";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
@@ -458,9 +459,24 @@ export function EventDetail({ event, api, back }) {
   const [hlVertical, setHlVertical] = useState(true);
   const [hl, setHl] = useState(null); // null | { busy, sec, total } | { url, type, seconds } | { error }
   const hlAbort = useRef(null);
+  // Every photo that can go in the film, best-loved first, plus HALO's own
+  // picks. The host can keep HALO's picks or choose photos themselves.
+  const hlPool = useMemo(() => pickHighlights(photos, counts, 10000)
+    .sort((a, b) => ((counts[b.id] || 0) - (counts[a.id] || 0)) || ((b.quality || 0) - (a.quality || 0))), [photos, counts]);
+  const hlAuto = useMemo(() => pickHighlights(photos, counts, 20), [photos, counts]);
+  const [hlPick, setHlPick] = useState(null);     // null = HALO's picks, else Set of photo ids
+  const [hlChoosing, setHlChoosing] = useState(false);
+  const hlSelected = hlPick ? hlPool.filter((p) => hlPick.has(p.id)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) : hlAuto;
+  function toggleHlPhoto(id) {
+    setHlPick((cur) => {
+      const next = new Set(cur || hlAuto.map((p) => p.id));
+      if (next.has(id)) next.delete(id); else if (next.size < 40) next.add(id);
+      return next;
+    });
+  }
   async function makeHighlightVideo() {
-    const { pickHighlights, makeHighlight } = await import("../lib/highlight.js");
-    const chosen = pickHighlights(photos, counts, 20);
+    const { makeHighlight } = await import("../lib/highlight.js");
+    const chosen = hlSelected;
     if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
     const look = getLook(event.look || "midnight");
     const music = event.music_url === "none" ? null
@@ -777,14 +793,64 @@ export function EventDetail({ event, api, back }) {
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.line2}`, overflow: "hidden" }}>
-              <button type="button" onClick={() => setHlVertical(true)} aria-pressed={hlVertical} style={{ background: hlVertical ? C.gold : "transparent", color: hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.vertical")}</button>
-              <button type="button" onClick={() => setHlVertical(false)} aria-pressed={!hlVertical} style={{ background: !hlVertical ? C.gold : "transparent", color: !hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.wide")}</button>
+          hlPool.length < 3 ? (
+            <div style={{ background: "rgba(255,255,255,.04)", border: `1px dashed ${C.line2}`, borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+                {hlPool.length === 1 ? t("hl.notEnough1") : t("hl.notEnough").replace("{n}", hlPool.length)}
+              </div>
+              <div style={{ fontSize: 12, color: C.second, lineHeight: 1.5, marginTop: 4 }}>{t("hl.autoExplain")}</div>
+              <a href={`/e/${event.code}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10, background: C.gold, color: C.onInk, padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                {t("hl.addPhotos")}
+              </a>
             </div>
-            <button type="button" onClick={makeHighlightVideo} style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("hl.make")}</button>
-            {hl && hl.error && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{hl.error}</span>}
+          ) : (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+              <span style={{ fontSize: 12.5, color: C.text }}>
+                {hlPick ? t("hl.youChose").replace("{n}", hlSelected.length) : t("hl.haloPicks").replace("{n}", hlAuto.length)}
+              </span>
+              <span style={{ display: "flex", gap: 8 }}>
+                {hlPick && <button type="button" onClick={() => { setHlPick(null); setHlChoosing(false); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("hl.useHalo")}</button>}
+                <button type="button" onClick={() => setHlChoosing((v) => !v)} aria-expanded={hlChoosing} style={{ background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
+                  {hlChoosing ? t("hl.doneChoosing") : t("hl.choose")}
+                </button>
+              </span>
+            </div>
+            {hlChoosing && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11.5, color: C.second, marginBottom: 8 }}>{t("hl.chooseHelp")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(78px, 1fr))", gap: 6, maxHeight: 340, overflowY: "auto", paddingRight: 2 }}>
+                  {hlPool.map((p) => {
+                    const on = hlPick ? hlPick.has(p.id) : hlAuto.some((a) => a.id === p.id);
+                    return (
+                      <button type="button" key={p.id} onClick={() => toggleHlPhoto(p.id)} aria-pressed={on}
+                        style={{ position: "relative", aspectRatio: "1 / 1", padding: 0, border: on ? `2px solid ${C.gold}` : "2px solid transparent", borderRadius: 10, overflow: "hidden", background: "#111", cursor: "pointer" }}>
+                        <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: on ? 1 : 0.45 }} />
+                        {on && (
+                          <span style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: C.gold, color: C.onInk, display: "grid", placeItems: "center" }}>
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+                          </span>
+                        )}
+                        {(counts[p.id] || 0) > 0 && (
+                          <span style={{ position: "absolute", left: 4, bottom: 4, fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.6)", borderRadius: 999, padding: "1px 6px" }}>{counts[p.id]}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.line2}`, overflow: "hidden" }}>
+                <button type="button" onClick={() => setHlVertical(true)} aria-pressed={hlVertical} style={{ background: hlVertical ? C.gold : "transparent", color: hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.vertical")}</button>
+                <button type="button" onClick={() => setHlVertical(false)} aria-pressed={!hlVertical} style={{ background: !hlVertical ? C.gold : "transparent", color: !hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.wide")}</button>
+              </div>
+              <button type="button" onClick={makeHighlightVideo} disabled={hlSelected.length < 3} style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, opacity: hlSelected.length < 3 ? 0.5 : 1 }}>{t("hl.make")}</button>
+              {hlSelected.length < 3 && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{t("hl.pickThree")}</span>}
+              {hl && hl.error && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{hl.error}</span>}
+            </div>
           </div>
+          )
         )}
       </div>
 
