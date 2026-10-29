@@ -12,6 +12,7 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
+import { BoomerangFrame } from "../components/BoomerangPlayer.jsx";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -533,10 +534,12 @@ export default function SlideshowPage() {
 
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
-        <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading still={!!prev.video_url} />
+        prev.kind === "boomerang" ? <BoomerangFrame key={"p" + prev.id + idx} src={prev.url} frames={prev.loop_frames} fading />
+          : <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading still={!!prev.video_url} />
       )}
       {cur.video_url
         ? <ClipFrame key={"v" + cur.id + idx} src={cur.video_url} poster={cur.url} onDone={() => { if (!paused && photos.length > 1) go(1); }} />
+        : cur.kind === "boomerang" ? <BoomerangFrame key={"b" + cur.id + idx} src={cur.url} frames={cur.loop_frames} />
         : <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />}
       {cur.video_url && (
         <div style={{ position: "absolute", right: "2.2vw", bottom: "2.4vw", display: "flex", alignItems: "center", gap: ".6vw", background: "rgba(10,4,16,.6)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
