@@ -21,6 +21,8 @@ import { makeApi } from "../lib/authedFetch.js";
 import { useFilterGate } from "../components/FilterPicker.jsx";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 import { frameFor } from "../lib/frames.js";
+import VideoMessage from "../components/VideoMessage.jsx";
+import { notMessage } from "../lib/videoMessage.js";
 import { isBoomerangFile, uploadBoomerang } from "../lib/boomerang.js";
 import { BoomerangButton, MediaThumb } from "../components/BoomerangPlayer.jsx";
 
@@ -193,7 +195,7 @@ export default function EventPage() {
       .eq("event_id", evrow.id).eq("kept", true).eq("status", "approved");
     if (evrow.current_session) q = q.eq("session_label", evrow.current_session);
     const { data } = await q.order("created_at", { ascending: false }).limit(500);
-    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
+    const rows = (data || []).filter(notMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
     setEveryone(rows);
     refreshReactions(rows.map((p) => p.id));
   }
@@ -203,7 +205,7 @@ export default function EventPage() {
       .from("photos").select("*")
       .eq("contributor_id", contributorId)
       .order("created_at", { ascending: false });
-    const rows = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
+    const rows = (data || []).filter(notMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
     setPhotos(rows);
     refreshReactions(rows.map((p) => p.id));
   }
@@ -890,6 +892,10 @@ export default function EventPage() {
                     </button>
                   </div>
                 </>
+              )}
+              {event.video_guestbook_enabled && (
+                <VideoMessage event={event} getGuest={ensureContributor} guestName={wishName}
+                  onRenamed={(c) => { localStorage.setItem(LS_KEY(code), JSON.stringify(c)); setContributor(c); }} />
               )}
             </div>
 

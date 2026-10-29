@@ -9,6 +9,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { frameFor } from "../lib/frames.js";
 import { applyLook, clearLook } from "../lib/looks.js";
 import { useSiteThemeKey } from "../lib/siteTheme.js";
+import { notMessage } from "../lib/videoMessage.js";
 
 export default function GalleryPage() {
   const { contributorId } = useParams();
@@ -34,7 +35,7 @@ export default function GalleryPage() {
         const { data } = await supabase.from("photos").select("*")
           .eq("contributor_id", contributorId).eq("kept", true).eq("status", "approved")
           .order("created_at", { ascending: false });
-        const mapped = (data || []).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
+        const mapped = (data || []).filter(notMessage).map((p) => ({ ...p, url: publicUrl(p.storage_path), edited_url: p.edited_path ? publicUrl(p.edited_path) : null, video_url: p.video_path ? publicUrl(p.video_path) : null }));
         setPhotos(mapped);
         const r = await fetchReactions(mapped.map((p) => p.id));
         setCounts(r.counts); setLiked(r.liked);
