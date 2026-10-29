@@ -96,11 +96,14 @@ export async function deleteObjects(paths) {
 
 // Presigned PUT URL so a browser can upload a file directly to R2 without
 // ever seeing the secret. Short-lived (default 5 min).
-export async function presignPut(path, contentType, expiresIn = 300) {
+// When contentLength is given it is part of the signature, so R2 rejects any
+// upload whose byte count differs (the size limit is enforced server-side).
+export async function presignPut(path, contentType, expiresIn = 300, contentLength) {
   const cmd = new PutObjectCommand({
     Bucket: R2_BUCKET,
     Key: path,
     ContentType: contentType || "application/octet-stream",
+    ...(Number.isInteger(contentLength) && contentLength > 0 ? { ContentLength: contentLength } : {}),
   });
   return getSignedUrl(r2(), cmd, { expiresIn });
 }

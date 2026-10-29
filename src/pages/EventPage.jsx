@@ -182,7 +182,7 @@ export default function EventPage() {
       if (email.trim()) {
         fetch("/.netlify/functions/notify-welcome", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), name: c.name, eventName: event.name, galleryUrl: `${window.location.origin}/g/${c.id}` }),
+          body: JSON.stringify({ contributorId: c.id }),
         }).catch(() => {});
       }
     } catch (e) { alert(t("event.startError")); }
@@ -204,10 +204,7 @@ export default function EventPage() {
     if (email.trim()) {
       fetch("/.netlify/functions/notify-welcome", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(), name: data.name, eventName: event.name,
-          galleryUrl: `${window.location.origin}/g/${data.id}`,
-        }),
+        body: JSON.stringify({ contributorId: data.id }),
       }).catch(() => {});
     }
   }
@@ -257,7 +254,7 @@ export default function EventPage() {
     // Upload straight to R2 via a short-lived presigned URL (secret stays server-side).
     const path = await withRetry(async () => {
       const [signed] = await signPhotoUploads({
-        eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg",
+        eventId: event.id, contributorId: who.id, count: 1, contentType: f.type || "image/jpeg", size: f.size,
       });
       await putToR2(signed.uploadUrl, f, f.type || "image/jpeg");
       return signed.path;
@@ -319,12 +316,12 @@ export default function EventPage() {
     }
     const status = (needsReview || flagged) ? "pending" : "approved";
     const posterPath = await withRetry(async () => {
-      const [s1] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: "image/jpeg" });
+      const [s1] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: "image/jpeg", size: poster.size });
       await putToR2(s1.uploadUrl, poster, s1.contentType);
       return s1.path;
     });
     const videoPath = await withRetry(async () => {
-      const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4" });
+      const [s2] = await signPhotoUploads({ eventId: event.id, contributorId: who.id, count: 1, contentType: file.type || "video/mp4", size: file.size });
       await putToR2(s2.uploadUrl, file, s2.contentType);
       return s2.path;
     }, 5);

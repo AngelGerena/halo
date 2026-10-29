@@ -1,5 +1,6 @@
 // Deletes one or more photos — removes the storage file(s) AND the DB row(s).
-// Service-role + passcode gated so it can never be triggered from the public side.
+// Service-role + owner gated so it can never be triggered from the public side.
+// Permanent deletion is owner/admin only: co-hosts can hide photos but not delete.
 // Also removes any edited copy.
 import { createClient } from "@supabase/supabase-js";
 import { deleteObjects } from "./_r2.js";
@@ -16,7 +17,7 @@ export async function handler(event) {
   if (!auth.ok) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
-  if (!Array.isArray(photoIds) || photoIds.length === 0) {
+  if (!Array.isArray(photoIds) || photoIds.length === 0 || photoIds.length > 1000) {
     return { statusCode: 400, body: JSON.stringify({ error: "photoIds (array) required" }) };
   }
 
@@ -33,7 +34,7 @@ export async function handler(event) {
   // Ownership: every target photo's event must belong to the caller (or admin).
   const eventIds = [...new Set(rows.map((r) => r.event_id).filter(Boolean))];
   for (const eid of eventIds) {
-    if (!(await ownsEventOrAdmin(supabase, eid, auth))) {
+    if (!(await ownsEventOrAdmin(supabase, eid, auth, { allowCohost: false }))) {
       return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
     }
   }
