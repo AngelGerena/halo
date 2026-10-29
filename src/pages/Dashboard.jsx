@@ -66,7 +66,7 @@ const PS_CSS = `
 .ps-new span{font-size:13px;color:#c6cad8}
 .ps-form{margin-top:4px}
 .poster{position:relative;border-radius:26px;overflow:hidden;min-height:340px;padding-top:68px;display:flex;flex-direction:column;justify-content:flex-end;background:#111;box-shadow:0 24px 50px rgba(0,0,0,.5);isolation:isolate}
-.poster .bg{position:absolute;inset:0;z-index:-2;background:#111 center/cover no-repeat;transition:transform .6s ease}
+.poster .bg{position:absolute;inset:0;z-index:-2;background:#111 center/cover no-repeat;transition:transform .6s ease,opacity .35s ease}
 .poster:hover .bg{transform:scale(1.03)}
 .poster::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.4) 0%,transparent 28%,rgba(0,0,0,.5) 56%,rgba(0,0,0,.94) 100%)}
 .poster .open{position:absolute;inset:0;z-index:0;border:0;background:transparent;cursor:pointer;border-radius:26px}
@@ -151,7 +151,19 @@ function Poster({ e, info, onOpen }) {
   const [copied, setCopied] = useState(false);
   const url = `${window.location.origin}/e/${e.code}`;
   const tile = dateTile(e, lang);
-  const cover = info?.cover || fallbackCover(e.category);
+  // Use the event's own cover right away. Only when there is no cover do we
+  // wait for the best-photo lookup, and only then fall back to a stock image,
+  // so the poster never flashes a different photo first.
+  const cover = e.cover_path ? publicUrl(e.cover_path) : info ? (info.cover || fallbackCover(e.category)) : null;
+  const [shown, setShown] = useState(null);
+  useEffect(() => {
+    if (!cover) return;
+    let alive = true;
+    const img = new Image();
+    img.onload = img.onerror = () => { if (alive) setShown(cover); };
+    img.src = cover;
+    return () => { alive = false; };
+  }, [cover]);
   const pos = e.cover_path && e.cover_focus_x != null ? `${Math.round(e.cover_focus_x * 100)}% ${Math.round((e.cover_focus_y ?? 0.4) * 100)}%` : "center 35%";
   const live = !e.published_at;
   async function copy() {
@@ -163,7 +175,7 @@ function Poster({ e, info, onOpen }) {
   }
   return (
     <article className="poster">
-      <div className="bg" style={{ backgroundImage: `url(${cover})`, backgroundPosition: pos }} aria-hidden="true" />
+      <div className="bg" style={{ backgroundImage: shown ? `url(${shown})` : "none", backgroundPosition: pos, opacity: shown ? 1 : 0 }} aria-hidden="true" />
       <button className="open" onClick={onOpen} aria-label={`${t("dash.manage")}: ${ev(e, "name")}`} />
       <div className="tagrow">
         <span className={"pill " + (live ? "live" : "done")}>{live ? t("dash.status.live") : t("dash.status.published")}</span>
