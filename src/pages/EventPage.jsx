@@ -18,6 +18,7 @@ import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
+import { frameFor } from "../lib/frames.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -909,7 +910,7 @@ export default function EventPage() {
               </div>
             )}
             {galleryShown.length > 0 ? (
-              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} kinds={kinds} liked={liked} onLike={onLike} />
+              <PhotoGrid photos={galleryShown} dimUnkept={tab === "mine"} kinds={kinds} liked={liked} onLike={onLike} frame={frameFor(event)} eventCode={event.code} />
             ) : (
               <div style={{ textAlign: "center", padding: "40px 20px", color: C.second }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{t("up.emptyTitle")}</div>
