@@ -45,44 +45,47 @@ export async function signAdminUpload({ passcode, kind, filename, contentType })
   return j; // { uploadUrl, path, contentType }
 }
 
-// How long one PUT may take. Small photos: 45 s. Videos and anything big:
-// 60 s plus 1 s per MB (a 50 MB clip gets ~110 s), never more than 10 min.
-export function putTimeoutMs(file, contentType) {
-  const type = contentType || (file && file.type) || "";
-  const mb = Math.ceil(((file && file.size) || 0) / (1024 * 1024));
-  if (type.startsWith("image/") && mb <= 8) return 45000;
-  return Math.min(10 * 60 * 1000, 60000 + mb * 1000);
-}
+// Upload deadline is about stalls, not total time: a slow but moving upload
+// (a big clip on crowded venue Wi-Fi) is never cut off, but if no bytes move
+// for STALL_MS the attempt fails so the retry / "waiting to send" path takes
+// over. After the last byte goes out, the server gets REPLY_MS to answer.
+// A hard cap stops anything from hanging forever.
+const STALL_MS = 40000;
+const REPLY_MS = 60000;
+const HARD_CAP_MS = 30 * 60 * 1000;
+export function putTimeoutMs() { return STALL_MS; } // kept for older callers
 
 // PUT raw bytes to a presigned R2 URL. The Content-Type MUST match what was signed.
 // Uses XMLHttpRequest (not fetch) so we can report upload progress. Optional
 // onProgress(fraction 0..1, loadedBytes, totalBytes) fires as bytes go out.
-// Rejects on a non-2xx answer, a network error, or the size-scaled timeout.
+// Rejects on a non-2xx answer, a network error, or a stall.
 export function putToR2(uploadUrl, file, contentType, onProgress) {
   const type = contentType || file.type || "application/octet-stream";
-  const timeoutMs = putTimeoutMs(file, type);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     let done = false;
-    // Our own timer as well as xhr.timeout: some mobile browsers don't fire
-    // ontimeout while the upload body is still being sent.
-    const timer = setTimeout(() => {
+    let stall = null;
+    const stalled = () => {
       if (done) return;
       try { xhr.abort(); } catch { /* ignore */ }
-      fail(Object.assign(new Error("Upload timed out"), { timeout: true }));
-    }, timeoutMs + 1000);
-    function fail(err) { if (done) return; done = true; clearTimeout(timer); reject(err); }
-    function ok() { if (done) return; done = true; clearTimeout(timer); resolve(true); }
+      fail(Object.assign(new Error("Upload stalled"), { timeout: true }));
+    };
+    const arm = (ms) => { clearTimeout(stall); stall = setTimeout(stalled, ms); };
+    const cap = setTimeout(stalled, HARD_CAP_MS);
+    function fail(err) { if (done) return; done = true; clearTimeout(stall); clearTimeout(cap); reject(err); }
+    function ok() { if (done) return; done = true; clearTimeout(stall); clearTimeout(cap); resolve(true); }
 
     xhr.open("PUT", uploadUrl, true);
-    xhr.timeout = timeoutMs;
     xhr.setRequestHeader("Content-Type", type);
-    if (onProgress && xhr.upload) {
+    if (xhr.upload) {
       xhr.upload.onprogress = (e) => {
-        if (!e.lengthComputable || !e.total) return;
+        arm(STALL_MS); // bytes are moving: push the stall deadline out
+        if (!onProgress || !e.lengthComputable || !e.total) return;
         try { onProgress(Math.min(1, e.loaded / e.total), e.loaded, e.total); } catch { /* UI only */ }
       };
+      xhr.upload.onload = () => arm(REPLY_MS); // body fully sent; wait for the answer
     }
+    arm(STALL_MS);
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         if (onProgress) { try { onProgress(1, file.size || 0, file.size || 0); } catch { /* UI only */ } }
@@ -94,7 +97,6 @@ export function putToR2(uploadUrl, file, contentType, onProgress) {
     };
     xhr.onerror = () => fail(new Error("Upload failed (network)"));
     xhr.onabort = () => fail(new Error("Upload aborted"));
-    xhr.ontimeout = () => fail(Object.assign(new Error("Upload timed out"), { timeout: true }));
     xhr.send(file);
   });
 }

@@ -17,7 +17,7 @@ import { formatEventDate } from "../lib/eventDate.js";
 import { coverStyle } from "../components/CoverFramer.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
-import { newSecret, insertContributor } from "../lib/contributors.js";
+import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 
 const LS_KEY = (code) => `halo_contributor_${code}`;
 
@@ -215,15 +215,15 @@ export default function EventPage() {
   function ensureContributor() {
     if (contributorRef.current) return Promise.resolve(contributorRef.current);
     if (!creatingRef.current) {
-      creatingRef.current = withRetry(() => dbTimed(() => createAnonContributor()), 3)
+      const ids = { id: newId(), secret: newSecret() }; // same row on every retry
+      creatingRef.current = withRetry(() => dbTimed(() => createAnonContributor(ids)), 3)
         .catch((e) => { console.error(e); return null; })
         .finally(() => { creatingRef.current = null; });
     }
     return creatingRef.current;
   }
-  async function createAnonContributor() {
-    const secret = newSecret();
-    const { data, error } = await insertContributor({ event_id: event.id, name: ANON_NAME, email: null, secret });
+  async function createAnonContributor({ id, secret }) {
+    const { data, error } = await insertContributor({ id, event_id: event.id, name: ANON_NAME, email: null, secret });
     if (error) throw error;
     // A slow earlier attempt may have landed after a retry already won.
     if (contributorRef.current) return contributorRef.current;
@@ -345,8 +345,10 @@ export default function EventPage() {
       await putToR2(signed.uploadUrl, f, f.type || "image/jpeg", onProgress);
       return signed.path;
     });
-    const row = await withRetry(async () => {
-      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert({
+    // The photo's id is made here, once, so a retry after a lost reply can't
+    // save the same photo twice (the second insert hits the same id).
+    const rowIn = {
+      id: newId(),
         event_id: event.id,
         contributor_id: who.id,
         storage_path: path,
@@ -360,7 +362,10 @@ export default function EventPage() {
         auto_flagged: flagged,
         tags,
         ...(challengeId ? { challenge: challengeId } : {}),
-      }).select(), signal).single());
+    };
+    const row = await withRetry(async () => {
+      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert(rowIn).select(), signal).single());
+      if (error && error.code === "23505") return { ...rowIn }; // already saved by an earlier try
       if (error) throw error;
       return data;
     });
@@ -412,8 +417,10 @@ export default function EventPage() {
       await putToR2(s2.uploadUrl, file, s2.contentType, onProgress);
       return s2.path;
     }, 5);
-    const row = await withRetry(async () => {
-      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert({
+    // The photo's id is made here, once, so a retry after a lost reply can't
+    // save the same photo twice (the second insert hits the same id).
+    const rowIn = {
+      id: newId(),
         event_id: event.id,
         contributor_id: who.id,
         storage_path: posterPath,
@@ -427,7 +434,10 @@ export default function EventPage() {
         auto_flagged: flagged,
         tags: kids ? ["kids"] : [],
         ...(challengeId ? { challenge: challengeId } : {}),
-      }).select(), signal).single());
+    };
+    const row = await withRetry(async () => {
+      const { data, error } = await dbTimed((signal) => sig(supabase.from("photos").insert(rowIn).select(), signal).single());
+      if (error && error.code === "23505") return { ...rowIn }; // already saved by an earlier try
       if (error) throw error;
       return data;
     });
