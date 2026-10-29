@@ -98,10 +98,15 @@ input:focus-visible, select:focus-visible {
 .btn-primary { background: #fff; color: var(--ink); }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(255,255,255,.2); }
 .btn-gold { background: var(--gold); color: var(--ink); }
-.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(255,184,107,.3); }
+.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 30px color-mix(in srgb, var(--gold) 35%, transparent); }
 .btn-ghost { background: transparent; border: 1.4px solid rgba(255,255,255,.5); color: #fff; }
 .btn-ghost:hover { transform: translateY(-1px); background: rgba(255,255,255,.08); }
 .btn-full { width: 100%; }
+/* Secondary action that still reads as a button on every look: accent tint + outline. */
+.btn-soft { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font-weight: 700; cursor: pointer;
+  background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--text, #fff); border: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent);
+  transition: transform .2s ease, background .2s ease; }
+.btn-soft:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--gold) 24%, transparent); }
 .eyebrow { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
 .field {
   width: 100%; padding: 13px 15px; border-radius: 12px;

@@ -176,7 +176,7 @@ export function BoomerangButton({ style, onReady, onError }) {
   return (
     <>
       <button type="button" id="boom-btn" onClick={() => !busy && ref.current?.click()} aria-busy={busy} style={{ ...style, opacity: busy ? 0.7 : 1 }}>
-        {busy ? <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: "2px solid rgba(var(--tint, 255,255,255),.18)", borderTopColor: C.gold, display: "inline-block" }} /> : <LoopIcon size={18} />}
+        {busy ? <span className="spin" style={{ width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: "2px solid rgba(var(--tint, 255,255,255),.18)", borderTopColor: C.gold, display: "inline-block" }} /> : <span style={{ color: "var(--gold)", display: "inline-flex" }}><LoopIcon size={19} /></span>}
         {busy ? t("boom.making") : t("boom.button")}
       </button>
       <input ref={ref} type="file" accept="video/*" capture="environment" hidden data-boomerang-input=""
