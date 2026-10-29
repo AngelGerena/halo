@@ -390,9 +390,9 @@ export default function SlideshowPage() {
   ) : null;
 
   if (photos.length === 0) return (
-    <Stage onClick={wake}>
+    <Stage onMouseMove={wake} onClick={wake} onTouchStart={wake}>
       {tapPrompt}
-      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap || photos.length === 0} />
+      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap} />
       <Centered>
        <div>
         <div className="serif" style={{ fontSize: "4vw", color: C.text, marginBottom: 6 }}>{ev(event, "name")}</div>
@@ -427,7 +427,7 @@ export default function SlideshowPage() {
   return (
     <Stage onMouseMove={wake} onClick={wake} onTouchStart={wake}>
       {tapPrompt}
-      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap || photos.length === 0} />
+      <ExitButton label={t("live.exit")} onClick={exitWall} show={showChrome || needsTap} />
 
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
       {prev && prev.id !== cur.id && (
