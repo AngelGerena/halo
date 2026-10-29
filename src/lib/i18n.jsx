@@ -751,6 +751,14 @@ const STRINGS = {
   "admin.clientNoName": { en: "(no name)", es: "(sin nombre)" },
 };
 
+// Feature string packs: each file in ./i18n/ exports default { key: { en, es } }.
+// Lets features add their own strings without editing this file.
+const PACKS = import.meta.glob("./i18n/*.js", { eager: true });
+Object.values(PACKS).forEach((m) => {
+  const d = m && m.default;
+  if (d) Object.keys(d).forEach((k) => { if (!STRINGS[k]) STRINGS[k] = d[k]; });
+});
+
 const LANG_KEY = "halo_lang";
 const I18nContext = createContext(null);
 
