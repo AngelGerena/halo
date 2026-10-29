@@ -1,3 +1,4 @@
+import { corsUrl } from "./corsUrl.js";
 // HALO photo frames. The host picks one frame per event; guests get it on
 // the photos they save or share. The stored photo is never changed: the frame
 // is drawn on top in the browser, so originals stay clean for the host.
@@ -39,6 +40,7 @@ export function monogram(title) {
 }
 
 const cache = new Map();
+
 function loadImage(src) {
   if (!src) return Promise.resolve(null);
   if (cache.has(src)) return cache.get(src);
@@ -46,10 +48,12 @@ function loadImage(src) {
     const img = new Image();
     // Same-origin files don't need CORS; R2 photos do (the bucket allows it,
     // the highlight video already relies on this).
-    if (/^https?:/i.test(src) && !src.startsWith(window.location.origin)) img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
+    const remote = /^https?:/i.test(src) && !src.startsWith(window.location.origin);
+    if (remote) img.crossOrigin = "anonymous";
+    const timer = setTimeout(() => resolve(null), 20000); // never leave "Preparing..." up forever
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); resolve(null); };
+    img.src = remote ? corsUrl(src) : src;
   });
   cache.set(src, p);
   p.then((v) => { if (!v) cache.delete(src); });

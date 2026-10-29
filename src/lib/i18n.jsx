@@ -422,6 +422,7 @@ const STRINGS = {
   "frame.saveError": { en: "Couldn't save. Try again.", es: "No se pudo guardar. Inténtalo de nuevo." },
   "frame.previewAlt": { en: "Frame preview", es: "Vista previa del marco" },
   "frame.preparing": { en: "Preparing your photo…", es: "Preparando tu foto…" },
+  "frame.previewFailed": { en: "Preview unavailable right now. Your frame setting is still saved.", es: "La vista previa no está disponible ahora. Tu marco sigue guardado." },
   "frame.viewer": { en: "Your photo", es: "Tu foto" },
   "frame.open": { en: "Open photo to save or share", es: "Abrir foto para guardar o compartir" },
   "frame.saveShare": { en: "Save or share", es: "Guardar o compartir" },

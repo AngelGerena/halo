@@ -1,3 +1,4 @@
+import { corsUrl } from "./corsUrl.js";
 // HALO — boomerangs (short clips that play forward, then backward, on a loop).
 //
 // How it works, start to finish:
@@ -182,7 +183,7 @@ export function loadSprite(src) {
     img.crossOrigin = "anonymous";
     img.onload = () => res(img);
     img.onerror = () => rej(new Error("load"));
-    img.src = src;
+    img.src = corsUrl(src);
   });
 }
 
