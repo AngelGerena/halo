@@ -695,7 +695,7 @@ export default function EventPage() {
 
             <button type="button" onClick={() => setKidsInFrame((v) => !v)} aria-pressed={kidsInFrame}
               style={{ width: "100%", textAlign: "left", display: "flex", gap: 12, alignItems: "flex-start",
-                background: kidsInFrame ? "rgba(255,184,107,.12)" : "rgba(var(--tint, 255,255,255),.03)",
+                background: kidsInFrame ? "color-mix(in srgb, var(--gold) 12%, transparent)" : "rgba(var(--tint, 255,255,255),.03)",
                 border: `1px solid ${kidsInFrame ? C.gold : C.line}`, borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
               <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, marginTop: 1, background: kidsInFrame ? C.gold : "transparent", border: `2px solid ${kidsInFrame ? C.gold : C.second}`, display: "grid", placeItems: "center", color: C.ink, fontSize: 13, fontWeight: 800 }}>{kidsInFrame && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>}</span>
               <span>
@@ -714,12 +714,12 @@ export default function EventPage() {
                 <span style={{ display: "block", fontWeight: 800, fontSize: 19, marginTop: 10 }}>{t("up.takePhoto")}</span>
                 <span style={{ display: "block", fontSize: 12.5, color: C.second, marginTop: 3 }}>{t("up.takePhotoSub")}</span>
               </button>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-                <button type="button" onClick={() => videoRef.current?.click()} style={S.libBtn}>
-                  <VideoIcon size={18} /> {t("up.recordVideo")}
+              <div style={S.actRow}>
+                <button type="button" onClick={() => videoRef.current?.click()} style={{ ...S.libBtn, ...S.actBtn }}>
+                  <span style={{ color: "var(--gold)", display: "inline-flex" }}><VideoIcon size={19} /></span> {t("up.recordVideo")}
                 </button>
-                <button type="button" onClick={() => inputRef.current?.click()} style={S.libBtn}>
-                  <UploadIcon size={18} /> {t("up.fromLibrary")}
+                <button type="button" onClick={() => inputRef.current?.click()} style={{ ...S.libBtn, ...S.actBtn }}>
+                  <span style={{ color: "var(--gold)", display: "inline-flex" }}><UploadIcon size={19} /></span> {t("up.fromLibrary")}
                 </button>
               </div>
               <div style={{ fontSize: 11.5, color: C.second, marginTop: 8 }}>{t("up.videoHint").replace("{s}", MAX_CLIP_SECONDS)}</div>
@@ -764,7 +764,7 @@ export default function EventPage() {
 
             {/* 3) One warm line instead of two jargon stat tiles.
                 First visit nudges them to the button; after that, a friendly count + what to do next. */}
-            {photos.length > 0 && <div style={{ marginTop: 14, textAlign: "center", background: "rgba(255,184,107,.08)", border: `1px solid rgba(255,184,107,.25)`, borderRadius: 12, padding: "12px 14px" }}>
+            {photos.length > 0 && <div style={{ marginTop: 14, textAlign: "center", background: "color-mix(in srgb, var(--gold) 9%, transparent)", border: `1px solid color-mix(in srgb, var(--gold) 35%, transparent)`, borderRadius: 12, padding: "12px 14px" }}>
               {photos.length === 0 ? (
                 <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{t("up.hintFirst")}</div>
               ) : (
@@ -785,7 +785,7 @@ export default function EventPage() {
                   <div style={{ fontSize: 12.5, color: C.second, marginTop: 3 }}>
                     {photos.length === 1 ? t("up.countOne") : t("up.countMany").replace("{n}", photos.length)} {t("up.hintAfter")}
                   </div>
-                  <button onClick={() => setTab("gallery")} className="btn-ghost" style={{ marginTop: 10, padding: "8px 16px", fontSize: 13 }}>{t("up.seeGallery")} &#8594;&#xFE0E;</button>
+                  <button onClick={() => setTab("gallery")} className="btn-soft" style={{ marginTop: 12, padding: "11px 20px", fontSize: 14, minHeight: 44 }}>{t("up.seeGallery")} &#8594;&#xFE0E;</button>
                 </>
               )}
             </div>}
@@ -818,7 +818,7 @@ export default function EventPage() {
                     <div style={{ fontSize: 12, color: C.gold, fontWeight: 700 }}>{t("ch.progress").replace("{done}", list.filter((c) => done.has(c.id)).length).replace("{total}", list.length)}</div>
                   </div>
                   {active && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,184,107,.12)", border: `1px solid ${C.gold}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "color-mix(in srgb, var(--gold) 12%, transparent)", border: `1px solid ${C.gold}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
                       <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.text }}><strong>{t("ch.now")}</strong> {challengeText(active, lang)}</div>
                       <button type="button" onClick={() => inputRef.current?.click()} style={{ ...S.libBtn, padding: "6px 10px", fontSize: 12 }}>{t("ch.fromLibrary")}</button>
                       <button type="button" onClick={() => setChallenge(null)} style={{ background: "none", border: "none", color: C.second, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{t("ch.cancel")}</button>
@@ -829,9 +829,9 @@ export default function EventPage() {
                       const isDone = done.has(c.id), on = c.id === challenge;
                       return (
                         <button key={c.id} type="button" onClick={() => { setChallenge(c.id); cameraRef.current?.click(); }}
-                          style={{ flex: "0 0 auto", width: 150, minHeight: 74, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, background: on ? "rgba(255,184,107,.18)" : isDone ? "rgba(var(--tint, 255,255,255),.04)" : "rgba(var(--tint, 255,255,255),.07)", border: `1px solid ${on ? C.gold : isDone ? "rgba(255,184,107,.45)" : C.line2}`, borderRadius: 14, padding: "10px 12px", color: C.text, cursor: "pointer" }}>
+                          style={{ flex: "0 0 auto", width: 150, minHeight: 74, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, background: on ? "color-mix(in srgb, var(--gold) 18%, transparent)" : isDone ? "rgba(var(--tint, 255,255,255),.04)" : "rgba(var(--tint, 255,255,255),.07)", border: `1px solid ${on ? C.gold : isDone ? "color-mix(in srgb, var(--gold) 45%, transparent)" : C.line2}`, borderRadius: 14, padding: "10px 12px", color: C.text, cursor: "pointer" }}>
                           <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.25 }}>{challengeText(c, lang)}</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: isDone ? C.gold : C.second }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: C.gold }}>
                             {isDone ? (
                               <><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{t("ch.done")}</>
                             ) : (
@@ -903,7 +903,7 @@ export default function EventPage() {
               </div>
               {tab === "mine" && (
                 <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert(t("up.linkCopied") + "\n" + shareUrl); }}
-                  className="btn-ghost" style={{ padding: "8px 14px", fontSize: 12.5 }}>{t("up.copyShareLink")}</button>
+                  className="btn-soft" style={{ padding: "10px 16px", fontSize: 13, minHeight: 44 }}>{t("up.copyShareLink")}</button>
               )}
             </div>
             {tab === "mine" && (
@@ -946,10 +946,10 @@ export default function EventPage() {
 function TabBtn({ active, onClick, icon, iconNode, label }) {
   return (
     <button onClick={onClick} aria-current={active ? "page" : undefined}
-      style={{ flex: 1, textAlign: "center", padding: "11px 0", background: "transparent",
-        color: active ? C.gold : C.second, borderTop: active ? `2px solid ${C.gold}` : "2px solid transparent", marginTop: -1 }}>
+      style={{ flex: 1, textAlign: "center", padding: "8px 4px 10px", background: "transparent", border: "none", cursor: "pointer",
+        color: active ? C.gold : C.text, opacity: active ? 1 : 0.78, fontWeight: active ? 800 : 600 }}>
       {iconNode
-        ? <div style={{ height: 22, display: "flex", justifyContent: "center", alignItems: "center" }} aria-hidden="true">{iconNode}</div>
+        ? <div style={{ height: 30, width: 56, margin: "0 auto", borderRadius: 999, display: "flex", justifyContent: "center", alignItems: "center", background: active ? "color-mix(in srgb, var(--gold) 20%, transparent)" : "transparent", transition: "background .2s ease" }} aria-hidden="true">{iconNode}</div>
         : <div style={{ fontSize: 17 }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon + "︎" }} />}
       <div style={{ fontSize: 11, letterSpacing: ".04em", marginTop: 2 }}>{label}</div>
     </button>
@@ -1001,11 +1001,15 @@ const S = {
   drop: { border: "1.6px dashed rgba(var(--tint, 255,255,255),.28)", background: "rgba(var(--tint, 255,255,255),.03)", borderRadius: 18, padding: "22px 20px 20px", textAlign: "center" },
   dropIc: { width: 46, height: 46, margin: "0 auto 10px", borderRadius: "50%", border: `3px solid ${C.gold}`, display: "grid", placeItems: "center", color: C.gold, fontSize: 22 },
   camBtn: { display: "block", width: "100%", background: "transparent", border: "none", color: C.text, padding: "6px 0 14px", cursor: "pointer", textAlign: "center" },
-  camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(255,184,107,.35)" },
-  libBtn: { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(var(--tint, 255,255,255),.06)", color: C.text, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  camIc: { width: 72, height: 72, margin: "0 auto", borderRadius: "50%", background: C.gold, color: C.ink, display: "grid", placeItems: "center", boxShadow: "0 8px 26px color-mix(in srgb, var(--gold) 45%, transparent)" },
+  // Secondary actions: filled with a soft tint of the event accent and an
+  // accent outline, so they read as buttons on any look (never grey ghosts).
+  libBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "color-mix(in srgb, var(--gold) 16%, transparent)", color: C.text, border: `1.5px solid color-mix(in srgb, var(--gold) 70%, transparent)`, padding: "11px 18px", minHeight: 44, borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  actRow: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" },
+  actBtn: { flex: "1 1 140px", flexDirection: "column", gap: 4, minHeight: 72, padding: "10px 12px", borderRadius: 16, fontSize: 13.5, lineHeight: 1.2 },
   spin: { width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", border: `2px solid rgba(var(--tint, 255,255,255),.18)`, borderTopColor: C.gold, display: "inline-block" },
   sendRow: { fontSize: 13, color: C.second, display: "flex", alignItems: "center", gap: 8 },
-  waitBox: { display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(255,184,107,.1)", border: `1px solid rgba(255,184,107,.35)`, borderRadius: 12, padding: "10px 12px", textAlign: "left" },
+  waitBox: { display: "flex", alignItems: "flex-start", gap: 10, background: "color-mix(in srgb, var(--gold) 10%, transparent)", border: `1px solid color-mix(in srgb, var(--gold) 40%, transparent)`, borderRadius: 12, padding: "10px 12px", textAlign: "left" },
   tryBtn: { flex: "0 0 auto", background: C.gold, color: C.onInk, border: "none", borderRadius: 999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
-  tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid ${C.line}`, background: "var(--tabbar, #0d0716)", backdropFilter: "blur(8px)" },
+  tabbar: { position: "sticky", bottom: 0, display: "flex", borderTop: `1px solid color-mix(in srgb, var(--gold) 30%, transparent)`, background: "var(--tabbar, #0d0716)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" },
 };
