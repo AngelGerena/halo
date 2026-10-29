@@ -33,6 +33,7 @@ export default function SlideshowPage() {
   // Per-event look: restyle via CSS variables while this page is mounted.
   useEffect(() => { if (event && event.look) applyLook(event.look); return () => clearLook(); }, [event && event.look]);
   const [photos, setPhotos] = useState([]);
+  const hasTwo = photos.length >= 2;
   const [idx, setIdx] = useState(0);
   const [prevIdx, setPrevIdx] = useState(null);
   const [ready, setReady] = useState(false);
@@ -91,7 +92,9 @@ export default function SlideshowPage() {
   const loadNames = useCallback(async (eventId) => {
     const { data: people, error } = await supabase.from("contributors").select("id,name").eq("event_id", eventId);
     if (error || !people) return; // keep what we have on a network blip
-    const m = {}; people.forEach((c) => { m[c.id] = c.name; }); setNames(m);
+    const m = {}; people.forEach((c) => { m[c.id] = c.name; });
+    // Only replace when something changed, so timers keyed on names don't restart.
+    setNames((cur) => (JSON.stringify(cur) === JSON.stringify(m) ? cur : m));
   }, []);
 
   // Fetch every approved, kept photo (pages of 1000, the API's row cap) and
@@ -289,13 +292,15 @@ export default function SlideshowPage() {
       const tmr = setTimeout(() => setWishCard(null), WISH_HOLD);
       return () => clearTimeout(tmr);
     }
-    if (paused || photos.length < 2) return;
+    if (paused || !hasTwo) return;
     // Clips play once (up to WALL_SECONDS), then the wall moves on.
     const item = photos[idx];
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, photos.length, spot, wishCard, board]);
+  }, [idx, paused, hasTwo, spot, wishCard, board]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Not keyed on photos.length: new uploads arriving must not restart the
+  // current slide's timer, or a busy room would freeze the wall on one photo.
 
   // ---- Shot of the night ----
   // Every 10 minutes, if any photo has hearts, jump to the most-hearted one
@@ -303,20 +308,23 @@ export default function SlideshowPage() {
   // this; it also nudges people to heart more.
   const countsRef = useRef(counts); useEffect(() => { countsRef.current = counts; }, [counts]);
   const photosRef = useRef(photos); useEffect(() => { photosRef.current = photos; }, [photos]);
+  const namesRef = useRef(names); useEffect(() => { namesRef.current = names; }, [names]);
   useEffect(() => {
-    if (!event || photos.length < 2) return;
+    if (!event || !hasTwo) return;
     const tmr = setInterval(() => {
       const list = photosRef.current, c = countsRef.current;
       let best = null, bestN = 0;
       list.forEach((p, i) => { const n = c[p.id] || 0; if (n > bestN) { bestN = n; best = i; } });
       if (best == null || bestN < 1) return;
       const p = list[best];
-      setSpot({ photoId: p.id, count: bestN, name: p.contributor_id ? names[p.contributor_id] : null });
-      setPrevIdx(idx); setIdx(best);
+      setSpot({ photoId: p.id, count: bestN, name: p.contributor_id ? namesRef.current[p.contributor_id] : null });
+      setPrevIdx(idxRef.current); setIdx(best);
       setTimeout(() => setSpot(null), SPOT_HOLD);
     }, SPOT_EVERY);
     return () => clearInterval(tmr);
-  }, [event, photos.length, names]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [event, hasTwo]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Set up once: refs carry the latest photos, hearts and names, so syncs
+  // every 45s no longer restart the 10-minute clock.
 
   function go(dir) {
     setPhotos((cur) => {
