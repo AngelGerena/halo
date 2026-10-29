@@ -31,7 +31,7 @@ import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS, getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
-import CoverFramer from "./CoverFramer.jsx";
+import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
@@ -753,6 +753,11 @@ export function EventDetail({ event, api, back }) {
 
       <div id="halo-qr-box" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
+          {coverPath && (
+            <div style={{ width: 160, maxWidth: "100%", aspectRatio: "4 / 5", margin: "0 auto 12px", borderRadius: 12, overflow: "hidden", background: "#111", border: "1px solid rgba(255,255,255,.12)" }}>
+              <img src={publicUrl(coverPath)} alt="" style={coverStyle(coverFx, coverFy, coverZoom)} />
+            </div>
+          )}
           {qr && (
             <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", margin: "0 auto" }}>
               <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10, maxWidth: "100%", display: "block" }} />
