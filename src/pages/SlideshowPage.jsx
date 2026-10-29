@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { fetchReactions, like, getDeviceId, rxKey } from "../lib/reactions.js";
@@ -36,6 +36,8 @@ function resolveMusic(ev) {
 export default function SlideshowPage() {
   const { t, ev, lang } = useI18n();
   const { code } = useParams();
+  const navigate = useNavigate();
+  const routerLoc = useLocation();
   const [event, setEvent] = useState(null);
   // Per-event look: restyle via CSS variables while this page is mounted.
   // The event's own look, or the site's theme when the host hasn't picked one.
@@ -468,14 +470,29 @@ export default function SlideshowPage() {
     else document.exitFullscreen?.();
   }
   // Leave the live wall. Drops out of fullscreen first, then goes back to
-  // where the host came from. The wall usually opens in its own tab, so try
-  // closing that tab, and fall back to the dashboard if the browser says no.
+  // where the host came from. The wall usually opens in its own tab from the
+  // dashboard, where there is nothing to go "back" to and phones ignore
+  // window.close(), so Exit always ends on the dashboard if it is still here.
   async function exitWall(e) {
     e?.stopPropagation?.();
-    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
-    if (window.history.length > 1) { window.history.back(); return; }
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
+    } catch {}
+    const here = window.location.href;
+    const goDashboard = () => { if (window.location.href === here) window.location.assign("/dashboard"); };
+    // Opened from another HALO screen inside the app: step back in the app.
+    if (routerLoc.key && routerLoc.key !== "default") { navigate(-1); setTimeout(goDashboard, 600); return; }
+    // Loaded from another HALO page: let the browser go back, but only if it really moves.
+    let fromHalo = false;
+    try {
+      const r = document.referrer ? new URL(document.referrer) : null;
+      fromHalo = !!r && r.origin === window.location.origin && r.pathname !== window.location.pathname;
+    } catch {}
+    if (fromHalo && window.history.length > 1) { window.history.back(); setTimeout(goDashboard, 600); return; }
+    // Its own tab: try closing it, and go to the dashboard if the browser says no.
     try { window.close(); } catch {}
-    setTimeout(() => { window.location.assign("/dashboard"); }, 250);
+    setTimeout(goDashboard, 300);
   }
   // Escape (when not in fullscreen, where the browser uses it) also leaves.
   useEffect(() => {
@@ -497,8 +514,14 @@ export default function SlideshowPage() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch?.(() => {});
   }
 
-  if (!ready) return <Stage><Centered>{t("live.preparing")}</Centered></Stage>;
-  if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered></Stage>;
+  // Exit stays reachable while the wall loads or when the event is missing.
+  const exitOnly = (
+    <TopActions show>
+      <ExitButton label={t("live.exit")} onClick={exitWall} />
+    </TopActions>
+  );
+  if (!ready) return <Stage><Centered>{t("live.preparing")}</Centered>{exitOnly}</Stage>;
+  if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered>{exitOnly}</Stage>;
   // Shared one-time fullscreen prompt (see needsTap). Big, centered, obvious.
   const tapPrompt = needsTap ? (
     <div onClick={firstTap} role="button" style={{ position: "absolute", inset: 0, zIndex: 20, display: "grid", placeItems: "center", background: "rgba(5,8,16,.55)", cursor: "pointer" }}>
