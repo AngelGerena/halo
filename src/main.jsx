@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nProvider } from "./lib/i18n.jsx";
 import { AuthProvider } from "./lib/auth.jsx";
+import { DialogProvider } from "./components/Dialogs.jsx";
 import "./styles.css";
 
 import EventPage from "./pages/EventPage.jsx";
@@ -25,6 +26,7 @@ import DemoPage from "./pages/DemoPage.jsx";
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <I18nProvider>
+      <DialogProvider>
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -42,6 +44,7 @@ createRoot(document.getElementById("root")).render(
           </Routes>
         </AuthProvider>
       </BrowserRouter>
+      </DialogProvider>
     </I18nProvider>
   </React.StrictMode>
 );
