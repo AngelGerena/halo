@@ -32,6 +32,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { LOOKS, getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
+import FrameSettings from "./FrameSettings.jsx";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -1187,6 +1188,8 @@ export function EventDetail({ event, api, back }) {
               </div>
             </div>
           </div>
+
+          <FrameSettings event={event} api={api} updateEvent={updateEvent} photos={photos} onError={showErr} />
 
           <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.look")}</div>

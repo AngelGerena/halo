@@ -6,12 +6,14 @@ import { Header, Footer, Spinner, Empty } from "../components/UI.jsx";
 import { PhotoGrid } from "../components/PhotoGrid.jsx";
 import { fetchReactions, like } from "../lib/reactions.js";
 import { useI18n } from "../lib/i18n.jsx";
+import { frameFor } from "../lib/frames.js";
 
 export default function GalleryPage() {
   const { contributorId } = useParams();
   const navigate = useNavigate();
   const { t } = useI18n();
   const [contributor, setContributor] = useState(null);
+  const [event, setEvent] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({});
@@ -22,6 +24,9 @@ export default function GalleryPage() {
       const { data: c } = await supabase.from("contributors").select("id,event_id,name,created_at").eq("id", contributorId).single();
       setContributor(c || false);
       if (c) {
+        // The event's frame (if any) so saved photos carry it. Optional: a
+        // failed read just means plain photos.
+        try { const { data: ev } = await supabase.from("events").select("*").eq("id", c.event_id).maybeSingle(); setEvent(ev || null); } catch { /* plain photos */ }
         const { data } = await supabase.from("photos").select("*")
           .eq("contributor_id", contributorId).eq("kept", true).eq("status", "approved")
           .order("created_at", { ascending: false });
@@ -50,7 +55,7 @@ export default function GalleryPage() {
           <>
             <h1 className="serif" style={{ fontSize: 34, color: C.text, marginBottom: 2 }}>{t("gal.titlePrefix")}{contributor.name}{t("gal.titleSuffix")}</h1>
             <p style={{ color: C.second, marginTop: 0 }}>{photos.length} {photos.length === 1 ? t("gal.curatedPhoto") : t("gal.curatedPhotos")}</p>
-            {photos.length === 0 ? <Empty title={t("gal.empty.title")} sub={t("gal.empty.sub")} /> : <PhotoGrid photos={photos} dimUnkept={false} counts={counts} liked={liked} onLike={onLike} />}
+            {photos.length === 0 ? <Empty title={t("gal.empty.title")} sub={t("gal.empty.sub")} /> : <PhotoGrid photos={photos} dimUnkept={false} counts={counts} liked={liked} onLike={onLike} frame={frameFor(event)} eventCode={event?.code || ""} />}
           </>}
       </main>
       <Footer />

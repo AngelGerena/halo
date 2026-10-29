@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { C } from "../lib/score.js";
 import { useI18n } from "../lib/i18n.jsx";
+import FramedViewer from "./FramedViewer.jsx";
 
 function Thumb({ filled }) {
   return (
@@ -50,13 +51,17 @@ function ClipPlayer({ photo, onClose }) {
   );
 }
 
-export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edited", kinds = {}, liked, onLike }) {
+// `frame` (from frameFor(event)): when set, tapping a photo opens it with the
+// event's frame and a Save / Share button. Without it the grid behaves as before.
+export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edited", kinds = {}, liked, onLike, frame = null, eventCode = "" }) {
   const { t } = useI18n();
   const likedSet = liked || new Set();
   const [playing, setPlaying] = useState(null);
+  const [viewing, setViewing] = useState(null);
   return (
     <>
     {playing && <ClipPlayer photo={playing} onClose={() => setPlaying(null)} />}
+    {viewing && frame && <FramedViewer photo={viewing} frame={frame} eventCode={eventCode} onClose={() => setViewing(null)} />}
     <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${min}px,1fr))`, gap: 14, marginTop: 16 }}>
       {photos.map((p) => {
         const hasEdit = !!p.edited_url;
@@ -69,7 +74,14 @@ export function PhotoGrid({ photos, dimUnkept = true, min = 150, prefer = "edite
         return (
           <figure key={p.id} className="card" style={{ margin: 0, background: C.card, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}`, opacity: dimUnkept && !p.kept ? 0.55 : 1 }}>
             <div style={{ position: "relative" }}>
-              <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block", filter: pending ? "blur(6px)" : "none" }} />
+              {frame && !p.video_url && !pending ? (
+                <button type="button" onClick={() => setViewing(p)} aria-label={t("frame.open")}
+                  style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "zoom-in" }}>
+                  <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block" }} />
+                </button>
+              ) : (
+                <img src={src} alt="" loading="lazy" style={{ width: "100%", height: min, objectFit: "cover", display: "block", filter: pending ? "blur(6px)" : "none" }} />
+              )}
               {p.video_url && !pending && (
                 <button type="button" onClick={() => setPlaying(p)} aria-label={t("grid.playVideo")}
                   style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>

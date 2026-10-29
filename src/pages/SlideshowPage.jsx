@@ -10,6 +10,7 @@ import QRCode from "qrcode";
 import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.jsx";
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
+import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
 const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -566,6 +567,14 @@ export default function SlideshowPage() {
           <div className="serif" style={{ color: "#fff", fontSize: "max(1.5vw, 13px)", lineHeight: 1.05, fontWeight: 700, textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{ev(event, "name")}</div>
           {ev(event, "event_date") && <div style={{ color: C.gold, fontSize: "max(.8vw, 9px)", letterSpacing: 2, textTransform: "uppercase", marginTop: ".2vw", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>{ev(event, "event_date")}</div>}
         </div>
+        {/* Photographer's mark, shown when the host turned on a photo frame
+            with the Finesse Media logo. */}
+        {(() => { const f = frameFor(event); return f && f.logo === "fm" ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: ".2vw", marginLeft: ".6vw", paddingLeft: ".9vw", borderLeft: "1px solid rgba(255,255,255,.25)" }}>
+            <img src={FM_LOGO_URL} alt="Finesse Media" style={{ width: "max(2.2vw, 22px)", height: "max(2.2vw, 22px)", objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,.5))" }} />
+            <span style={{ color: "rgba(255,255,255,.85)", fontSize: "max(.55vw, 7px)", fontWeight: 600, letterSpacing: ".06em", textShadow: "0 1px 6px rgba(0,0,0,.6)" }}>{FM_SITE}</span>
+          </div>
+        ) : null; })()}
       </div>
 
       {/* Always-on room stats: photos and guests so far. Makes the wall feel
