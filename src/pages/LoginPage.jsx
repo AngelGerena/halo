@@ -5,6 +5,7 @@ import { C } from "../lib/score.js";
 import { AuthShell, AuthField, AuthButton, AuthError, authErrorText } from "../components/AuthUI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { safeNext } from "../lib/auth.jsx";
+import ResendConfirm from "../components/ResendConfirm.jsx";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ export default function LoginPage() {
         </div>
 
         {err && <AuthError>{authErrorText(err, t)}</AuthError>}
+        {err && err.toLowerCase().includes("not confirmed") && <div style={{ margin: "-4px 0 14px" }}><ResendConfirm email={email} /></div>}
 
         <AuthButton busy={busy} busyLabel={t("login.busy")}>
           {t("auth.signIn")}

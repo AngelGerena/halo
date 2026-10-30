@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ResendConfirm from "../components/ResendConfirm.jsx";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
@@ -61,6 +62,7 @@ export default function SignUpPage() {
         <Link to="/login" className="btn-gold btn-full" style={{ marginTop: 6 }}>
           {t("auth.goSignIn")}
         </Link>
+        {done === "verify" && <ResendConfirm email={email} />}
       </AuthShell>
     );
   }

@@ -8,7 +8,8 @@
 //
 // Called from the signup page right after the account is created. Best-effort:
 // if it fails, the account is still made and the user still gets Supabase's own
-// confirmation link, so we never block signup on this.
+// confirmation link, so we never block signup on this. When the account still
+// needs confirming, this email now carries the confirm link itself.
 //
 // Locked down: the caller sends ONLY { userId } (the id Supabase returned from
 // signUp). The recipient address and name come from Supabase Auth on the
@@ -18,6 +19,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { haloEmail, sendEmail, siteBase, isEmail } from "./_email.js";
 import { clientIp, overLimit, tooMany } from "./_ratelimit.js";
+import { confirmLinkFor } from "./_confirmLink.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FRESH_MS = 30 * 60 * 1000;
@@ -74,11 +76,14 @@ export async function handler(event) {
       </tr>
     </table>`;
 
-  // If email confirmation is on, remind them to confirm first (Supabase sends
-  // the actual confirm link in its own separate email).
-  const confirmLine = needsConfirm
-    ? `<p style="margin:0 0 16px;">First, a quick step: check your inbox for a separate email from us to <strong>confirm your address</strong> and activate your account. Once that's done, you're ready to roll.</p>`
-    : "";
+  // If the account still needs confirming, this email carries the confirm
+  // link itself (the button below), so nobody depends on Supabase's mailer.
+  const confirm = needsConfirm ? await confirmLinkFor(supabase, email) : null;
+  const confirmLine = confirm
+    ? `<p style="margin:0 0 16px;">First, one quick step: tap <strong>Confirm my email</strong> below. It activates your account, signs you in and opens your dashboard. The link works once and expires in about an hour; if it expires, ask for a new one from the sign-in page.</p>`
+    : needsConfirm
+      ? `<p style="margin:0 0 16px;">First, one quick step: confirm your email. If you can't find the confirmation email, go to the sign-in page and tap <strong>Email me a new confirmation link</strong>.</p>`
+      : "";
 
   const body = `
     <p style="margin:0 0 16px;">Welcome to <strong>HALO</strong> — the effortless way to turn every guest at your event into a photographer and gather every shot into one beautiful, auto-curated gallery.</p>
@@ -107,8 +112,8 @@ export async function handler(event) {
     heading: `Welcome to HALO, ${firstName}!`,
     subhead: "Your account is ready — here's how to get started",
     body,
-    ctaText: "Go to my dashboard",
-    ctaUrl: `${siteBase()}/login`,
+    ctaText: confirm ? "Confirm my email" : "Go to my dashboard",
+    ctaUrl: confirm ? confirm.link : `${siteBase()}/login`,
     footerNote: "HALO by Finesse Media · Reply any time — a real person reads these",
   });
 
