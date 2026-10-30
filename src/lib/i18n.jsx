@@ -599,6 +599,8 @@ const STRINGS = {
   "connect.sub": { en: "Tap to take your next step with us.", es: "Toca para dar tu siguiente paso con nosotros." },
   // admin settings
   "admin.settings": { en: "Event settings", es: "Ajustes del evento" },
+  "admin.addPhotos": { en: "Take or add photos", es: "Tomar o agregar fotos" },
+  "admin.addPhotosHelp": { en: "Open the guest page to take or upload photos to this event", es: "Abrir la página de invitados para tomar o subir fotos a este evento" },
   "admin.cover": { en: "Event cover photo", es: "Foto de portada del evento" },
   "admin.cover.help": { en: "Guests see this as the welcome hero when they scan in. A couple photo, the venue, a logo — your call.", es: "Los invitados la ven como portada al escanear. Una foto de la pareja, el lugar, un logo — tú decides." },
   "admin.cover.none": { en: "No cover yet", es: "Sin portada" },

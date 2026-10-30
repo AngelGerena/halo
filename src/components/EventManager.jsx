@@ -721,6 +721,12 @@ export function EventDetail({ event, api, back }) {
         <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
         <button onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
+      {/* Host shortcut: straight to the guest page to take or add photos, same tab. */}
+      <a href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
+        style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, minHeight: 52, padding: "12px 16px", borderRadius: 14, background: C.gold, color: C.ink, fontSize: 16, fontWeight: 800, textDecoration: "none", boxSizing: "border-box", width: "100%" }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
+        {t("admin.addPhotos")}
+      </a>
 
       {/* ---- YOU'RE READY CHECKLIST ----
           Hosts panic the morning of. Five things, each with a button that does
