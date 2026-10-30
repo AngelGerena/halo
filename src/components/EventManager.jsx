@@ -29,7 +29,7 @@ import { C } from "../lib/score.js";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
-import { LOOKS, getLook } from "../lib/looks.js";
+import { getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 import FrameSettings from "./FrameSettings.jsx";
@@ -228,7 +228,6 @@ export function EventDetail({ event, api, back }) {
   // Moderation. These existed only on the create form before, so a host had
   // no way to see or change them after the fact: "protect children" silently
   // defaulted ON for every event. Surfaced here so what you see is what's set.
-  const [look, setLook] = useState(event.look || ""); // "" = match the site theme
   const [chOn, setChOn] = useState(!(Array.isArray(event.challenges) && event.challenges.length === 0));
   const [chText, setChText] = useState(() => (challengesFor(event).length ? challengesFor(event) : DEFAULT_CHALLENGES).map((c) => challengeText(c, lang)).join("\n"));
   const [requireReview, setRequireReview] = useState(event.moderation_mode === "review");
@@ -444,7 +443,7 @@ export function EventDetail({ event, api, back }) {
     setSaving(true); setSavedMsg("");
     try {
       const patch = {
-        look: look || null,
+        look: null, // every event follows the site palette set in Admin
         challenges: !chOn ? [] : (() => {
           const lines = chText.split("\n").map((x) => x.trim()).filter(Boolean);
           const isDefault = lines.length === DEFAULT_CHALLENGES.length && lines.every((l, i) => l === DEFAULT_CHALLENGES[i].en || l === DEFAULT_CHALLENGES[i].es);
@@ -575,7 +574,7 @@ export function EventDetail({ event, api, back }) {
     const chosen = hlSelected;
     if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
     let siteKey = "midnight"; try { siteKey = localStorage.getItem("halo_theme") || "midnight"; } catch { /* default */ }
-    const look = getLook(event.look || siteKey); // highlight video uses the same colors guests see
+    const look = getLook(siteKey); // highlight video uses the site palette guests see
     const music = event.music_url === "none" ? null
       : event.music_url ? ((event.music_url.startsWith("/") || event.music_url.startsWith("http")) ? event.music_url : publicUrl(event.music_url))
       : (HL_MUSIC[event.category] || "/music/cinematic.mp3");
@@ -1209,33 +1208,6 @@ export function EventDetail({ event, api, back }) {
           <FrameSettings event={event} api={api} updateEvent={updateEvent} photos={photos} onError={showErr} />
           <EventExtras event={event} api={api} updateEvent={updateEvent} onError={showErr} />
 
-          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.look")}</div>
-            <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.look.help")}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
-              <button type="button" onClick={() => setLook("")} aria-pressed={!look}
-                style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: C.panel, color: C.text, border: `2px solid ${!look ? C.gold : "rgba(255,255,255,.14)"}`, borderRadius: 12, padding: "9px 10px", cursor: "pointer", boxShadow: !look ? `0 0 0 3px ${C.gold}33` : "none" }}>
-                <span style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
-                  <span style={{ width: 14, height: 14, borderRadius: "50%", background: "var(--gold)" }} />
-                  <span style={{ width: 14, height: 14, borderRadius: "50%", background: "var(--pink, var(--gold-light))" }} />
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15 }}>{t("admin.look.site")}</span>
-              </button>
-              {LOOKS.map((l) => {
-                const on = look === l.key;
-                return (
-                  <button key={l.key} type="button" onClick={() => setLook(l.key)} aria-pressed={on}
-                    style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: l.bg, color: l.text, border: `2px solid ${on ? l.gold : "rgba(255,255,255,.14)"}`, borderRadius: 12, padding: "9px 10px", cursor: "pointer", boxShadow: on ? `0 0 0 3px ${l.gold}33` : "none" }}>
-                    <span style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: l.gold }} />
-                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: l.pink }} />
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15 }}>{l.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.challenges")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.challenges.help")}</p>

@@ -69,10 +69,10 @@ export default function EventPage() {
       .catch(() => {});
     return () => { alive = false; };
   }, [user, session, event]);
-  // Per-event look: restyle via CSS variables while this page is mounted.
+  // Site palette: restyle via CSS variables (the one picked in Admin > Site Appearance).
   // The event's own look, or the site's theme when the host hasn't picked one.
   const siteLook = useSiteThemeKey();
-  useEffect(() => { if (event) applyLook(event.look || siteLook); return () => clearLook(); }, [event && event.look, !!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (event) applyLook(siteLook); return () => clearLook(); }, [!!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false); // network trouble (not "no such event")
   const [loadTry, setLoadTry] = useState(0);            // bump to load again (Try again button)
@@ -1020,7 +1020,7 @@ function Ring({ small }) {
 function Dark({ children, welcome }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-      background: welcome ? "linear-gradient(180deg, var(--panel2, #1a1020), var(--panel, #120a19) 60%, var(--page, var(--ink, #0a0410)))" : "radial-gradient(130% 70% at 50% -10%, rgba(123,47,247,.18), transparent 55%), var(--page, var(--ink, #0a0410))", color: C.text }}>
+      background: welcome ? "linear-gradient(180deg, var(--panel2, #1a1020), var(--panel, #120a19) 60%, var(--page, var(--ink, #0a0410)))" : "radial-gradient(130% 70% at 50% -10%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 55%), var(--page, var(--ink, #0a0410))", color: C.text }}>
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </div>
@@ -1031,7 +1031,7 @@ const S = {
   center: { minHeight: "70vh", display: "grid", placeItems: "center", textAlign: "center", padding: "0 24px" },
   coverWrap: { position: "relative", height: 180, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line2}` },
   coverImg: { width: "100%", height: "100%", objectFit: "cover" },
-  coverScrim: { position: "absolute", inset: 0, background: "linear-gradient(0deg,rgba(10,4,16,.7),rgba(10,4,16,.05) 60%)" },
+  coverScrim: { position: "absolute", inset: 0, background: "linear-gradient(0deg,color-mix(in srgb, var(--ink) 70%, transparent),color-mix(in srgb, var(--ink) 5%, transparent) 60%)" },
   welcomeCard: { background: "rgba(var(--tint, 255,255,255),.05)", border: `1px solid ${C.line2}`, borderRadius: 20, padding: "22px 20px" },
   note: { textAlign: "center", fontSize: 11.5, color: C.second, marginTop: 16, letterSpacing: ".03em" },
   thumb: { width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.panel, border: `1px solid ${C.line2}`, display: "grid", placeItems: "center" },

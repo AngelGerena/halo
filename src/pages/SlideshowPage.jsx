@@ -39,10 +39,10 @@ export default function SlideshowPage() {
   const navigate = useNavigate();
   const routerLoc = useLocation();
   const [event, setEvent] = useState(null);
-  // Per-event look: restyle via CSS variables while this page is mounted.
+  // Site palette: restyle via CSS variables (the one picked in Admin > Site Appearance).
   // The event's own look, or the site's theme when the host hasn't picked one.
   const siteLook = useSiteThemeKey();
-  useEffect(() => { if (event) applyLook(event.look || siteLook); return () => clearLook(); }, [event && event.look, !!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (event) applyLook(siteLook); return () => clearLook(); }, [!!event, siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   const [photos, setPhotos] = useState([]);
   const hasTwo = photos.length >= 2;
   const [idx, setIdx] = useState(0);
@@ -524,8 +524,8 @@ export default function SlideshowPage() {
   if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered>{exitOnly}</Stage>;
   // Shared one-time fullscreen prompt (see needsTap). Big, centered, obvious.
   const tapPrompt = needsTap ? (
-    <div onClick={firstTap} role="button" style={{ position: "absolute", inset: 0, zIndex: 20, display: "grid", placeItems: "center", background: "rgba(5,8,16,.55)", cursor: "pointer" }}>
-      <div style={{ textAlign: "center", padding: "3vw 4vw", borderRadius: 24, background: "rgba(11,20,38,.85)", border: `1px solid rgba(255,184,107,.5)`, backdropFilter: "blur(10px)", maxWidth: "70vw" }}>
+    <div onClick={firstTap} role="button" style={{ position: "absolute", inset: 0, zIndex: 20, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--ink) 60%, transparent)", cursor: "pointer" }}>
+      <div style={{ textAlign: "center", padding: "3vw 4vw", borderRadius: 24, background: "color-mix(in srgb, var(--panel) 88%, transparent)", border: "1px solid color-mix(in srgb, var(--gold) 50%, transparent)", backdropFilter: "blur(10px)", maxWidth: "70vw" }}>
         <div style={{ fontSize: "5vw", lineHeight: 1, marginBottom: "1.2vw" }} aria-hidden="true">{"⛶"}</div>
         <div className="serif" style={{ color: "#fff", fontSize: "3vw", fontWeight: 700, lineHeight: 1.15 }}>{t("live.tapFull")}</div>
         <div style={{ color: C.gold, fontSize: "1.2vw", letterSpacing: 2, textTransform: "uppercase", marginTop: "1vw" }}>{t("live.tapFullSub")}</div>
@@ -591,14 +591,14 @@ export default function SlideshowPage() {
         : cur.kind === "boomerang" ? <BoomerangFrame key={"b" + cur.id + idx} src={cur.url} frames={cur.loop_frames} />
         : <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />}
       {cur.video_url && (
-        <div style={{ position: "absolute", right: "2.2vw", bottom: "2.4vw", display: "flex", alignItems: "center", gap: ".6vw", background: "rgba(10,4,16,.6)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+        <div style={{ position: "absolute", right: "2.2vw", bottom: "2.4vw", display: "flex", alignItems: "center", gap: ".6vw", background: "color-mix(in srgb, var(--ink) 60%, transparent)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
           <svg viewBox="0 0 24 24" width="1.3em" height="1.3em" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6.5" width="12.5" height="11" rx="2" /><path d="m15.5 10.5 5-3v9l-5-3" /></svg>
           <span style={{ letterSpacing: ".12em" }}>{t("live.video")}</span>
           {cur.contributor_id && names[cur.contributor_id] ? <span style={{ fontWeight: 500, opacity: .9 }}>{t("live.by")} {names[cur.contributor_id]}</span> : null}
         </div>
       )}
 
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(11,20,38,.6) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--ink) 60%, transparent) 100%)", pointerEvents: "none" }} />
 
       {/* Animated reaction characters: one per guest heart or like on the photo currently showing */}
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
@@ -639,7 +639,7 @@ export default function SlideshowPage() {
       {(() => {
         const guests = new Set(photos.map((p) => p.contributor_id).filter(Boolean)).size;
         return (
-          <div style={{ position: "absolute", left: "2.2vw", bottom: "2.2vw", display: "flex", alignItems: "center", gap: ".9vw", background: "rgba(10,4,16,.55)", color: "#fff", padding: ".5vw 1.1vw", borderRadius: 999, fontSize: "1vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+          <div style={{ position: "absolute", left: "2.2vw", bottom: "2.2vw", display: "flex", alignItems: "center", gap: ".9vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".5vw 1.1vw", borderRadius: 999, fontSize: "1vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
             <span>{photos.length} {photos.length === 1 ? t("live.photoWord") : t("live.photosWord")}</span>
             <span style={{ opacity: .5 }}>·</span>
             <span>{guests} {guests === 1 ? t("live.guestWord") : t("live.guestsWord")}</span>
@@ -649,7 +649,7 @@ export default function SlideshowPage() {
 
       {/* Always-on heart count for the photo on screen (pops when it changes) */}
       {curCount > 0 && (
-        <div key={countPop} style={{ position: "absolute", right: "2.2vw", top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "rgba(10,4,16,.55)", color: "#fff", padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
+        <div key={countPop} style={{ position: "absolute", right: "2.2vw", top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
           <svg viewBox="0 0 24 24" style={{ width: "1.4vw", height: "1.4vw" }}><path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} /></svg>
           {curCount}
         </div>
@@ -676,7 +676,7 @@ export default function SlideshowPage() {
         const who = cur.contributor_id && names[cur.contributor_id] && names[cur.contributor_id] !== "Guest" ? names[cur.contributor_id] : null;
         return (
           <div key={"ch" + cur.id} style={{ position: "absolute", left: "50%", bottom: "6vh", transform: "translateX(-50%)", textAlign: "center", pointerEvents: "none", animation: "chIn .7s cubic-bezier(.2,.9,.3,1.2) both", maxWidth: "70vw" }}>
-            <div style={{ display: "inline-block", background: "rgba(10,4,16,.66)", border: `1px solid ${C.gold}`, borderRadius: 18, padding: "1vw 2vw", backdropFilter: "blur(8px)", boxShadow: "0 10px 34px rgba(0,0,0,.45)" }}>
+            <div style={{ display: "inline-block", background: "color-mix(in srgb, var(--ink) 66%, transparent)", border: `1px solid ${C.gold}`, borderRadius: 18, padding: "1vw 2vw", backdropFilter: "blur(8px)", boxShadow: "0 10px 34px rgba(0,0,0,.45)" }}>
               <div style={{ color: C.gold, fontSize: ".9vw", fontWeight: 800, letterSpacing: ".3em", textTransform: "uppercase" }}>{t("live.challenge")}</div>
               <div className="serif" style={{ color: "#fff", fontSize: "2.1vw", fontWeight: 700, lineHeight: 1.15, marginTop: ".3vw" }}>{challengeText(c, lang)}</div>
               {who && <div style={{ color: "rgba(255,255,255,.85)", fontSize: "1.05vw", marginTop: ".35vw" }}>{t("live.by")} {who}</div>}
@@ -687,7 +687,7 @@ export default function SlideshowPage() {
 
       {/* Top photographers card */}
       {board && (
-        <div key="board" style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, rgba(10,4,16,.7), rgba(10,4,16,.93))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
+        <div key="board" style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, color-mix(in srgb, var(--ink) 70%, transparent), color-mix(in srgb, var(--ink) 93%, transparent))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
           <div style={{ width: "min(56vw, 900px)", textAlign: "center" }}>
             <div style={{ color: C.gold, fontSize: "1.1vw", fontWeight: 800, letterSpacing: ".35em", textTransform: "uppercase" }}>{t("live.boardEyebrow")}</div>
             <div className="serif" style={{ color: "#fff", fontSize: "3.6vw", fontWeight: 700, lineHeight: 1.1, margin: ".6vw 0 2.2vw" }}>{t("live.boardTitle")}</div>
@@ -707,7 +707,7 @@ export default function SlideshowPage() {
 
       {/* Guestbook message card */}
       {wishCard && (
-        <div key={"w" + wishCard.id} style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, rgba(10,4,16,.72), rgba(10,4,16,.92))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
+        <div key={"w" + wishCard.id} style={{ position: "absolute", inset: 0, zIndex: 5, display: "grid", placeItems: "center", background: "radial-gradient(ellipse at center, color-mix(in srgb, var(--ink) 72%, transparent), color-mix(in srgb, var(--ink) 92%, transparent))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", animation: "fadeIn .9s ease", pointerEvents: "none" }}>
           <div style={{ maxWidth: "62vw", textAlign: "center", padding: "0 4vw" }}>
             <svg viewBox="0 0 48 36" style={{ width: "4.2vw", height: "auto", opacity: .9 }} aria-hidden="true"><path d="M0 36V22C0 9.5 6.5 2 19 0l2 5c-7 2-10.5 6-11 12h9v19H0Zm27 0V22C27 9.5 33.5 2 46 0l2 5c-7 2-10.5 6-11 12h9v19H27Z" fill={C.gold} /></svg>
             <div className="serif" style={{ color: "#fff", fontSize: wishCard.message.length > 160 ? "2.6vw" : wishCard.message.length > 80 ? "3.2vw" : "3.9vw", lineHeight: 1.3, fontWeight: 600, marginTop: "1.6vw", textShadow: "0 2px 18px rgba(0,0,0,.45)", overflowWrap: "anywhere" }}>{wishCard.message}</div>
