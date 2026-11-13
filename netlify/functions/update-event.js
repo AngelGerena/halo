@@ -4,7 +4,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
-const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name"];
+const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name", "leaderboard_minutes"];
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -32,6 +32,9 @@ export async function handler(event) {
   }
   if ("lead_capture" in clean && !["off", "email", "phone", "both"].includes(clean.lead_capture)) {
     return { statusCode: 400, body: JSON.stringify({ error: "lead_capture must be off, email, phone or both" }) };
+  }
+  if ("leaderboard_minutes" in clean && ![0, 5, 10, 20, null].includes(clean.leaderboard_minutes)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "leaderboard_minutes must be 0, 5, 10 or 20" }) };
   }
   if (Object.keys(clean).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "No updatable fields supplied" }) };
