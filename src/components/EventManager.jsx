@@ -32,6 +32,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
+import LeaderboardSetting from "./LeaderboardSetting.jsx";
 import FrameSettings from "./FrameSettings.jsx";
 import EventExtras from "./EventExtras.jsx";
 import LeadsSection from "./LeadsSection.jsx";
@@ -1211,6 +1212,7 @@ export function EventDetail({ event, api, back }) {
             </div>
           </div>
 
+          <LeaderboardSetting event={event} updateEvent={updateEvent} onError={showErr} />
           <FrameSettings event={event} api={api} updateEvent={updateEvent} photos={photos} onError={showErr} />
           <EventExtras event={event} api={api} updateEvent={updateEvent} onError={showErr} />
 

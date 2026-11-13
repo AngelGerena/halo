@@ -274,22 +274,43 @@ export default function SlideshowPage() {
     return () => { alive = false; clearInterval(tmr); };
   }, [event]);
   // ---- Top photographers ----
-  // Every BOARD_EVERY slides, a "Top photographers tonight" card shows the
-  // five guests with the most photos on the wall. Friendly competition: it
-  // reliably gets people shooting more. Needs at least two named guests.
-  const BOARD_EVERY = 12, BOARD_HOLD = 9000;
+  // On a timer (host picks in Manage: every 5, 10 or 20 minutes, or off;
+  // default 10), a "Top photographers tonight" card shows the five guests with
+  // the most photos on the wall. The first one comes 2.5 minutes in, so it
+  // never lands on the same beat as Shot of the night (every 10 min) or the
+  // mosaic (5, 15, 25...). Skipped when the ranking hasn't changed since the
+  // last time it showed. Needs at least two named guests.
+  const BOARD_HOLD = 9000, BOARD_FIRST = 150000;
+  const boardEveryMs = (() => {
+    const m = event && event.leaderboard_minutes;
+    if (m === 0) return 0;                       // host turned it off
+    return ([5, 10, 20].includes(m) ? m : 10) * 60000;
+  })();
+  const boardNextRef = useRef(0), boardLastRef = useRef("");
   const [board, setBoard] = useState(null); // [{ name, n }]
   // Photo mosaic (Manage > Extras). Does nothing when the event's switch is off.
   const mosaic = useLiveMosaic(event, photos);
 
+  // Leaderboard clock: checked on every slide change, so it only ever shows
+  // between photos and never interrupts a card that's already up.
+  const boardStartRef = useRef(0);
+  useEffect(() => { boardStartRef.current = Date.now(); boardNextRef.current = 0; }, [boardEveryMs]);
+  function boardDue() {
+    if (!boardEveryMs) return false;
+    const now = Date.now();
+    if (!boardNextRef.current) boardNextRef.current = boardStartRef.current + Math.min(BOARD_FIRST, boardEveryMs / 2);
+    return now >= boardNextRef.current;
+  }
+
   useEffect(() => {
     advancesRef.current += 1;
-    if (advancesRef.current % BOARD_EVERY === 0) {
-      if (spot) return;
+    if (boardDue() && !spot && !msgCard && !mosaic.open) {
+      boardNextRef.current = Date.now() + boardEveryMs;
       const tally = {};
       photos.forEach((p) => { const nm = p.contributor_id && names[p.contributor_id]; if (nm && nm !== "Guest") tally[p.contributor_id] = (tally[p.contributor_id] || 0) + 1; });
       const top = Object.entries(tally).map(([id, n]) => ({ name: names[id], n })).sort((a, b) => b.n - a.n).slice(0, 5);
-      if (top.length >= 2) { setWishCard(null); setBoard(top); return; }
+      const sig = top.map((r) => r.name + ":" + r.n).join("|");
+      if (top.length >= 2 && sig !== boardLastRef.current) { boardLastRef.current = sig; setWishCard(null); setBoard(top); return; }
     }
     if (advancesRef.current % WISH_EVERY !== 0 || !wishes.length || spot) return;
     let w = null;
