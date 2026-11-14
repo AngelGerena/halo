@@ -785,15 +785,15 @@ export default function SlideshowPage() {
 
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: showChrome ? 1 : 0, transition: "opacity .6s ease", zIndex: mosaic.open ? 7 : undefined }}>
         <div style={{ position: "absolute", top: "4vh", left: "4vw", display: "flex", alignItems: "center", gap: 14 }}>
-          <img src="/halo-logo.png" alt="HALO" style={{ height: "3vw", width: "auto", display: "block" }} />
+          <img src="/halo-logo.png" alt="HALO" style={{ height: "max(3vw, 26px)", width: "auto", display: "block" }} />
           <div>
-            <div className="serif" style={{ color: "#fff", fontSize: "1.9vw", lineHeight: 1, fontWeight: 700 }}>{ev(event, "name")}</div>
-            <div style={{ color: C.gold, fontSize: ".8vw", letterSpacing: 3, textTransform: "uppercase", marginTop: 4 }}>HALO Live</div>
+            <div className="serif" style={{ color: "#fff", fontSize: "max(1.9vw, 15px)", lineHeight: 1.1, fontWeight: 700, maxWidth: "min(46vw, 60vw)", textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{ev(event, "name")}</div>
+            <div style={{ color: C.gold, fontSize: "max(.8vw, 9px)", letterSpacing: 3, textTransform: "uppercase", marginTop: 4 }}>HALO Live</div>
           </div>
         </div>
 
         <div style={{ position: "absolute", bottom: "4vh", left: "4vw", right: "4vw", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ color: "#fff", fontSize: ".95vw", opacity: .85 }}>
+          <div style={{ color: "#fff", fontSize: "max(.95vw, 12px)", opacity: .85 }}>
             {idx + 1} / {photos.length}{paused ? ` · ${t("live.paused")}` : ""}
           </div>
           <div />
@@ -825,6 +825,7 @@ export default function SlideshowPage() {
         @keyframes kb0 { from { transform: scale(1.04) translate(0,0) } to { transform: scale(1.15) translate(-2%, -1.5%) } }
         @keyframes kb1 { from { transform: scale(1.15) translate(-2%, 1.5%) } to { transform: scale(1.04) translate(0,0) } }
         @keyframes kb2 { from { transform: scale(1.05) translate(1.5%, 1%) } to { transform: scale(1.16) translate(-1.5%, -1.5%) } }
+        @keyframes kbSoft { from { transform: scale(1) } to { transform: scale(1.05) } }
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @media (prefers-reduced-motion: reduce) {
           .kb-img { animation: fadeIn .8s ease !important; }
@@ -834,9 +835,38 @@ export default function SlideshowPage() {
   );
 }
 
+// Phones (upright or sideways): a TV-style full-bleed crop would cut most of each
+// photo away, so show the whole photo over a soft blurred copy of itself.
+// TVs and laptops keep the full-bleed Ken Burns look.
+function usePortrait() {
+  const q = "(max-width: 900px), (max-height: 500px)";
+  const [on, setOn] = useState(() => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(q).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia(q);
+    const fn = () => setOn(mq.matches);
+    fn();
+    mq.addEventListener ? mq.addEventListener("change", fn) : mq.addListener(fn);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", fn) : mq.removeListener(fn); };
+  }, []);
+  return on;
+}
+
 function Frame({ src, fading, variant = 0, still = false }) {
+  const portrait = usePortrait();
+  const wrap = { position: "absolute", inset: 0, overflow: "hidden", animation: fading ? "none" : "fadeIn 1s ease", opacity: fading ? 0 : 1, transition: "opacity 1s ease" };
+  if (portrait) {
+    return (
+      <div style={wrap} data-frame="phone">
+        <img src={src} alt="" aria-hidden="true"
+          style={{ position: "absolute", inset: "-8%", width: "116%", height: "116%", objectFit: "cover", filter: "blur(26px) brightness(.5) saturate(1.15)" }} />
+        <img className="kb-img" src={src} alt=""
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", animation: still ? "none" : "kbSoft 8s ease-out forwards", willChange: "transform" }} />
+      </div>
+    );
+  }
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", animation: fading ? "none" : "fadeIn 1s ease", opacity: fading ? 0 : 1, transition: "opacity 1s ease" }}>
+    <div style={wrap}>
       <img className="kb-img" src={src} alt=""
         style={{ width: "100%", height: "100%", objectFit: "cover", animation: still ? "none" : `kb${variant} 8s ease-out forwards`, willChange: "transform" }} />
     </div>
