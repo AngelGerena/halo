@@ -26,6 +26,7 @@ import { SponsorLine, SponsorRow } from "../components/Sponsor.jsx";
 import { leadExtras } from "../lib/leads.js";
 import VideoMessage from "../components/VideoMessage.jsx";
 import { notMessage } from "../lib/videoMessage.js";
+import { shareLink, galleryUrlFor } from "../lib/share.js";
 import { isBoomerangFile, uploadBoomerang } from "../lib/boomerang.js";
 import { BoomerangButton, MediaThumb } from "../components/BoomerangPlayer.jsx";
 
@@ -939,6 +940,10 @@ export default function EventPage() {
                   {tab === "mine" ? t("up.allYours.sub") : t("up.everyoneTitle.sub")}
                 </p>
               </div>
+              {tab === "gallery" && (
+                <button onClick={async () => { const name = ev(event, "name"); const r = await shareLink({ url: galleryUrlFor(event.code), title: name, text: t("sg.shareText").replace("{name}", name) }); if (r === "copied") alert(t("sg.copied") + "\n" + galleryUrlFor(event.code)); }}
+                  className="btn-soft" style={{ padding: "10px 16px", fontSize: 13, minHeight: 44 }}>{t("sg.share")}</button>
+              )}
               {tab === "mine" && (
                 <button onClick={() => { navigator.clipboard?.writeText(shareUrl); alert(t("up.linkCopied") + "\n" + shareUrl); }}
                   className="btn-soft" style={{ padding: "10px 16px", fontSize: 13, minHeight: 44 }}>{t("up.copyShareLink")}</button>

@@ -7,6 +7,7 @@ import { DialogProvider } from "./components/Dialogs.jsx";
 import "./styles.css";
 
 import EventPage from "./pages/EventPage.jsx";
+import EventGalleryPage from "./pages/EventGalleryPage.jsx";
 import GalleryPage from "./pages/GalleryPage.jsx";
 import Admin from "./pages/Admin.jsx";
 import SlideshowPage from "./pages/SlideshowPage.jsx";
@@ -32,6 +33,7 @@ createRoot(document.getElementById("root")).render(
           <Routes>
             <Route path="/e/:code" element={<EventPage />} />
             <Route path="/g/:contributorId" element={<GalleryPage />} />
+            <Route path="/gallery/:code" element={<EventGalleryPage />} />
             <Route path="/live/:code" element={<SlideshowPage />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/dashboard" element={<Dashboard />} />

@@ -38,6 +38,7 @@ import EventExtras from "./EventExtras.jsx";
 import LeadsSection from "./LeadsSection.jsx";
 import VideoMessages from "./VideoMessages.jsx";
 import { notMessage } from "../lib/videoMessage.js";
+import { shareLink, copyText, galleryUrlFor } from "../lib/share.js";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
 const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
@@ -321,6 +322,14 @@ export function EventDetail({ event, api, back }) {
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
   const liveUrl = `${window.location.origin}/live/${event.code}`;
+  const galleryUrl = galleryUrlFor(event.code);
+  const [galCopied, setGalCopied] = useState(false);
+  async function shareGallery() {
+    const name = ev(event, "name");
+    const r = await shareLink({ url: galleryUrl, title: name, text: t("sg.shareText").replace("{name}", name) });
+    if (r === "copied") { setGalCopied(true); setTimeout(() => setGalCopied(false), 1800); dlg.toast(t("sg.copied")); }
+    else if (r === "failed") dlg.toast(t("sg.copyFailed"), "error");
+  }
   const today = () => new Date().toISOString().slice(0, 10);
 
   async function publish() {
@@ -894,11 +903,26 @@ export function EventDetail({ event, api, back }) {
             <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none", display: "block" }}>
               <button style={{ width: "100%", minHeight: 44, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.launchSlideshow")}</button>
             </a>
-            <a href={eventUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
+            <a href={galleryUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
               <button style={{ width: "100%", minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.viewGallery")}</button>
             </a>
           </div>
           <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0", lineHeight: 1.45 }}>{t("admin.actionsHelp2")}</p>
+          <div data-testid="share-gallery" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("sg.hostTitle")}</div>
+            <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("sg.hostHelp")}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(var(--tint, 255,255,255),.05)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 10px", fontSize: 12.5, color: C.second, overflow: "hidden" }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{galleryUrl.replace(/^https?:\/\//, "")}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, marginTop: 8 }}>
+              <button onClick={shareGallery} style={{ minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
+                {t("sg.share")}
+              </button>
+              <button onClick={async () => { const ok = await copyText(galleryUrl); setGalCopied(ok); if (ok) setTimeout(() => setGalCopied(false), 1800); else dlg.toast(t("sg.copyFailed"), "error"); }}
+                style={{ minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{galCopied ? t("admin.copied") : t("sg.copyLink")}</button>
+            </div>
+          </div>
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("admin.afterEvent")}</div>
             <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("admin.afterEventHelp")}</p>

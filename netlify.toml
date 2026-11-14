@@ -41,6 +41,10 @@
   to = "/index.html"
   status = 200
 [[redirects]]
+  from = "/gallery/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
   from = "/live/*"
   to = "/index.html"
   status = 200
