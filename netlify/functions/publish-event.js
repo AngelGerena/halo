@@ -88,7 +88,8 @@ export async function handler(event) {
       body: `
         <p style="margin:0 0 14px;">Hi ${escapeHtml(c.name)},</p>
         <p style="margin:0 0 14px;">The gallery for <strong>${escapeHtml(ev.name)}</strong> is now live. Your <strong>${count}</strong> curated photo${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} ready to view and share.</p>
-        <p style="margin:0;">Tap below to open your personal gallery.</p>`,
+        <p style="margin:0;">Tap below to open your personal gallery.</p>
+        <p style="margin:14px 0 0;">Want to see everyone's photos from the event? <a href="${base}/gallery/${encodeURIComponent(ev.code)}" style="color:#1C2640;font-weight:bold;">Open the full event gallery</a>.</p>`,
       ctaText: "View my photos",
       ctaUrl: `${base}/g/${encodeURIComponent(c.id)}`,
       footerNote: `${escapeHtml(ev.host || "HALO")} · shared with love`,
