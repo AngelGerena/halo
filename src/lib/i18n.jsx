@@ -648,6 +648,13 @@ const STRINGS = {
   "admin.save": { en: "Save settings", es: "Guardar ajustes" },
   "admin.saving": { en: "Saving\u2026", es: "Guardando\u2026" },
   "admin.saved": { en: "Saved", es: "Guardado" },
+  "edit.details": { en: "Edit details", es: "Editar detalles" },
+  "edit.title": { en: "Edit event details", es: "Editar detalles del evento" },
+  "edit.save": { en: "Save changes", es: "Guardar cambios" },
+  "edit.saving": { en: "Saving…", es: "Guardando…" },
+  "edit.qrNote": { en: "Your QR code link stays the same, so any QR codes you already printed or shared keep working. The new name shows up everywhere right away, including the table card and full-screen QR.", es: "El enlace de tu código QR no cambia, así que los códigos QR que ya imprimiste o compartiste siguen funcionando. El nuevo nombre aparece en todas partes de inmediato, incluida la tarjeta de mesa y el QR en pantalla completa." },
+  "edit.esAuto": { en: "If you change the English and leave the Spanish as is, the Spanish updates automatically when you save.", es: "Si cambias el inglés y dejas el español igual, el español se actualiza automáticamente al guardar." },
+  "edit.done": { en: "Event details updated", es: "Detalles del evento actualizados" },
   "admin.saveFailed": { en: "Could not save settings", es: "No se pudieron guardar los ajustes" },
   // ---- V2 Phase 3a: smarter curation ----
   "grid.duplicate": { en: "Duplicate", es: "Duplicada" },

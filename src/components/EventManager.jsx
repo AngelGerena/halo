@@ -45,6 +45,8 @@ const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebrati
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
 import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
+import EditEventDetails, { qrFileName } from "./EditEventDetails.jsx";
+
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
 
@@ -199,8 +201,12 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
 // ---- Event detail / photo grid ----------------------------------------------
 // Full management surface for one event. All reads use the anon client (RLS
 // scopes a client to their own event); all mutations go through `api.fn(...)`.
-export function EventDetail({ event, api, back }) {
+export function EventDetail({ event: eventProp, api, back }) {
   const { t, ev, lang } = useI18n();
+  // Local copy so edits (e.g. a renamed event) show up everywhere on this
+  // screen right away: header, full-screen QR, table card, downloads.
+  // Keeps client-only flags like _cohost from the prop.
+  const [event, setEvent] = useState(eventProp);
   const dlg = useDialogs();
   // Co-hosts can run the event but can't publish (email every guest) or
   // permanently delete photos; the server enforces it, the UI hides it.
@@ -867,6 +873,9 @@ export function EventDetail({ event, api, back }) {
           <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
           <p style={{ color: C.second, margin: 0 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+          <EditEventDetails event={event} save={updateEvent}
+            translate={async (items) => (await api.fn("translate", { items })).translations}
+            onSaved={(u) => { setEvent((e) => ({ ...e, ...u })); dlg.toast(t("edit.done"), "success"); }} />
         </div>
         <div className="hqb-qr">
           {qr && (
@@ -886,7 +895,7 @@ export function EventDetail({ event, api, back }) {
           </a>
           <div className="hqb-tools">
             {qr && (
-              <a href={qr} download={`HALO-QR-${event.code}.png`} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
+              <a href={qr} download={qrFileName(event)} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
             )}
             <button className="hqb-tool" onClick={async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); }}
               title={t("admin.tableCard.help")}>{t("admin.tableCardShort")}</button>

@@ -4,7 +4,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
-const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name", "leaderboard_minutes", "sponsors", "sponsor_layout", "sponsor_card_minutes", "sponsor_moments"];
+const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name", "leaderboard_minutes", "sponsors", "sponsor_layout", "sponsor_card_minutes", "sponsor_moments", "name", "host", "event_date", "name_es", "host_es", "event_date_es"];
+
+// Event details a host can rename after creation (fix a typo, change the title).
+// The event code (and so the QR link) never changes, so printed QR codes keep working.
+const TEXT_LIMITS = { name: 120, host: 120, event_date: 80, name_es: 120, host_es: 120, event_date_es: 80 };
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
@@ -29,6 +33,18 @@ export async function handler(event) {
   // to change owner_id (that would let them give away or grab events).
   if ("owner_id" in patch && auth.isAdmin) {
     clean.owner_id = patch.owner_id; // may be a uuid or null (unassign)
+  }
+  for (const [k, max] of Object.entries(TEXT_LIMITS)) {
+    if (!(k in clean)) continue;
+    const v = clean[k];
+    if (v !== null && typeof v !== "string") {
+      return { statusCode: 400, body: JSON.stringify({ error: `${k} must be text` }) };
+    }
+    const trimmed = typeof v === "string" ? v.trim().slice(0, max) : "";
+    clean[k] = trimmed || null;
+  }
+  if ("name" in clean && !clean.name) {
+    return { statusCode: 400, body: JSON.stringify({ error: "Event name is required" }) };
   }
   if ("lead_capture" in clean && !["off", "email", "phone", "both"].includes(clean.lead_capture)) {
     return { statusCode: 400, body: JSON.stringify({ error: "lead_capture must be off, email, phone or both" }) };
