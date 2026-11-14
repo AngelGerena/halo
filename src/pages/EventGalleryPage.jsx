@@ -161,8 +161,13 @@ export default function EventGalleryPage() {
         </p>
 
         <div style={S.actions}>
-          <button className="btn-gold" onClick={onShare} style={S.btn}>
-            <ShareIcon /> {t("sg.share")}
+          {photos.length > 0 && (
+            <button className="btn-gold" data-testid="sg-slideshow" onClick={() => navigate(`/live/${encodeURIComponent(event.code)}?from=gallery`)} style={S.btn}>
+              <PlayIcon /> {t("sg.slideshow")}
+            </button>
+          )}
+          <button className={photos.length > 0 ? "btn-soft" : "btn-gold"} onClick={onShare} style={S.btn}>
+            <ShareIcon gold={photos.length > 0} /> {t("sg.share")}
           </button>
           {photos.length > 0 && (
             <button className="btn-soft" onClick={onDownload} disabled={!!zipping} style={{ ...S.btn, opacity: zipping ? 0.75 : 1 }}>
@@ -191,8 +196,11 @@ export default function EventGalleryPage() {
   );
 }
 
-function ShareIcon() {
-  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>;
+function PlayIcon() {
+  return <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>;
+}
+function ShareIcon({ gold = false }) {
+  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={gold ? "var(--gold)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>;
 }
 function DownloadIcon() {
   return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>;
