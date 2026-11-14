@@ -5,6 +5,7 @@ import { signAdminUpload, putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import EditEventDetails, { qrFileName } from "../components/EditEventDetails.jsx";
 import { fetchOwnerProfiles, fetchAllProfiles, eventCountsByOwner, ownerLabel } from "../lib/profiles.js";
 
 // TODO(auth integration): when src/lib/auth.jsx lands (AuthProvider/useAuth/
@@ -680,8 +681,11 @@ function CreateEvent({ token, clients = [], onCreated }) {
   );
 }
 
-function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
+function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, back }) {
   const { t, ev } = useI18n();
+  // Local copy so a renamed event shows its new name right away (header, QR download).
+  const [event, setEvent] = useState(eventProp);
+  const [renamedMsg, setRenamedMsg] = useState("");
   const [photos, setPhotos] = useState([]);
   const [contributors, setContributors] = useState([]);
   const [counts, setCounts] = useState({});
@@ -994,7 +998,7 @@ function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
           {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10 }} />}
           <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "center" }}>
             {qr && (
-              <a href={qr} download={`HALO-QR-${event.code}.png`} style={{ textDecoration: "none" }}>
+              <a href={qr} download={qrFileName(event)} style={{ textDecoration: "none" }}>
                 <button style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>{t("admin.saveQR")}</button>
               </a>
             )}
@@ -1005,6 +1009,16 @@ function EventDetail({ event, token, clients = [], profileMap = {}, back }) {
           <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
           <p style={{ color: C.second, margin: "0 0 8px" }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
+          <EditEventDetails event={event} save={updateEvent}
+            translate={async (items) => {
+              const r = await fetch("/.netlify/functions/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, items }) });
+              const j = await r.json();
+              if (!r.ok) throw new Error(j.error || "Translation failed");
+              return j.translations;
+            }}
+            onSaved={(u) => { setEvent((e) => ({ ...e, ...u })); setRenamedMsg(t("edit.done")); setTimeout(() => setRenamedMsg(""), 2500); }} />
+          {renamedMsg && <div style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: "6px 0 0" }}>{renamedMsg}</div>}
+          <div style={{ height: 8 }} />
           <div style={{ fontSize: 12, color: C.second, margin: "0 0 14px", wordBreak: "break-word" }}>
             <span style={{ color: C.gold, fontWeight: 600 }}>{t("admin.owner")}:</span>{" "}
             {ownerLabel(ownerId, ownerLookup) || t("admin.ownerUnassigned")}
