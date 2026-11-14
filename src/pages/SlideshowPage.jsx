@@ -517,6 +517,13 @@ export default function SlideshowPage() {
       if (document.fullscreenElement) await document.exitFullscreen();
       else if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
     } catch {}
+    // Opened from the shareable event gallery: always go back to that gallery
+    // (guests have no dashboard to land on).
+    if (new URLSearchParams(window.location.search).get("from") === "gallery" && code) {
+      if (routerLoc.key && routerLoc.key !== "default") { navigate(-1); return; }
+      window.location.assign(`/gallery/${encodeURIComponent(code)}`);
+      return;
+    }
     const here = window.location.href;
     const goDashboard = () => { if (window.location.href === here) window.location.assign("/dashboard"); };
     // Opened from another HALO screen inside the app: step back in the app.

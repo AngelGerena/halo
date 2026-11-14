@@ -9,6 +9,7 @@ export default {
   "sg.kicker": { en: "Event gallery", es: "Galería del evento" },
   "sg.count1": { en: "photo from the guests", es: "foto de los invitados" },
   "sg.countN": { en: "photos from the guests", es: "fotos de los invitados" },
+  "sg.slideshow": { en: "Watch slideshow", es: "Ver presentación" },
   "sg.share": { en: "Share gallery", es: "Compartir galería" },
   "sg.copied": { en: "Link copied", es: "Enlace copiado" },
   "sg.copyFailed": { en: "Couldn't copy. Long-press the address bar to copy the link.", es: "No se pudo copiar. Mantén presionada la barra de direcciones para copiar el enlace." },
