@@ -22,7 +22,7 @@ import { useFilterGate } from "../components/FilterPicker.jsx";
 import { newSecret, newId, insertContributor } from "../lib/contributors.js";
 import { frameFor } from "../lib/frames.js";
 import LeadFields from "../components/LeadFields.jsx";
-import { SponsorLine } from "../components/Sponsor.jsx";
+import { SponsorLine, SponsorRow } from "../components/Sponsor.jsx";
 import { leadExtras } from "../lib/leads.js";
 import VideoMessage from "../components/VideoMessage.jsx";
 import { notMessage } from "../lib/videoMessage.js";
@@ -658,6 +658,7 @@ export default function EventPage() {
           {(starting || waiting.length > 0) && <KeepOpen text={t("up.keepOpen")} />}
           <p style={S.note}>{t("event.welcomeNote")}</p>
           <SponsorLine event={event} />
+          <SponsorRow event={event} />
         </div>
       </Dark>
     );
@@ -960,6 +961,7 @@ export default function EventPage() {
             )}
           </>
         )}
+        <SponsorRow event={event} />
       </div>
 
       {/* ---- bottom command bar ---- */}

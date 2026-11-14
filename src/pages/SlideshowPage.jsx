@@ -12,7 +12,8 @@ import ShowOnTVSheet, { ShowOnTVButton, pillBtn } from "../components/ShowOnTV.j
 import { WALL_SECONDS } from "../lib/clip.js";
 import { challengesFor, challengeText } from "../lib/challenges.js";
 import { frameFor, FM_LOGO_URL, FM_SITE } from "../lib/frames.js";
-import { SponsorWallBadge } from "../components/Sponsor.jsx";
+import { SponsorWallLayer, SponsorCard, MomentBadge, wallInsets } from "../components/SponsorWall.jsx";
+import { sponsorsOf, cardEveryMs, momentSponsor } from "../lib/sponsors.js";
 import { useLiveMosaic, MosaicCard, MosaicIcon } from "../components/MosaicWall.jsx";
 import { isMessage, notMessage } from "../lib/videoMessage.js";
 import VideoMessageCard from "../components/VideoMessageCard.jsx";
@@ -319,6 +320,22 @@ export default function SlideshowPage() {
     setWishCard(w);
   }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Sponsors card / sponsor break ----
+  // On its own timer (Manage > Extras > Sponsors; default every 10 minutes).
+  // The first one comes 7.5 minutes in, so it falls between Shot of the night
+  // (10, 20...), the mosaic (5, 15...) and the leaderboard (2.5, 12.5...).
+  const [spCard, setSpCard] = useState(false);
+  const spEveryMs = event && sponsorsOf(event).length ? cardEveryMs(event) : 0;
+  const spNextRef = useRef(0), spStartRef = useRef(0);
+  useEffect(() => { spStartRef.current = Date.now(); spNextRef.current = 0; }, [spEveryMs]);
+  useEffect(() => {
+    if (!spEveryMs || spCard || board || spot || msgCard || mosaic.open) return;
+    if (!spNextRef.current) spNextRef.current = spStartRef.current + Math.min(450000, spEveryMs * 0.75);
+    if (Date.now() < spNextRef.current) return;
+    spNextRef.current = Date.now() + spEveryMs;
+    setWishCard(null); setSpCard(true);
+  }, [idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Video guestbook ----
   // Every MSG_EVERY slides (switch on, approved messages only), one guest
   // video message plays as its own card, newest unseen ones first.
@@ -327,7 +344,7 @@ export default function SlideshowPage() {
   const [msgCard, setMsgCard] = useState(null);
   const msgTurnRef = useRef(0), msgShownRef = useRef(new Set());
   useEffect(() => {
-    if (!event || !event.video_guestbook_enabled || !vmsgs.length || spot || msgCard) return;
+    if (!event || !event.video_guestbook_enabled || !vmsgs.length || spot || msgCard || spCard) return;
     if (advancesRef.current % MSG_EVERY !== 0) return;
     const fresh = vmsgs.filter((m) => !msgShownRef.current.has(m.id));
     const m = fresh.length ? fresh[fresh.length - 1] : vmsgs[msgTurnRef.current++ % vmsgs.length];
@@ -337,7 +354,7 @@ export default function SlideshowPage() {
 
   // advance timer
   useEffect(() => {
-    if (msgCard) return; // the message card moves the wall on when it ends
+    if (msgCard || spCard) return; // these cards move the wall on when they end
     if (board) {
       const tmr = setTimeout(() => setBoard(null), BOARD_HOLD);
       return () => clearTimeout(tmr);
@@ -352,7 +369,7 @@ export default function SlideshowPage() {
     const clipMs = item && item.video_url ? Math.min(item.duration || 8, WALL_SECONDS) * 1000 + 900 : 0;
     const tmr = setTimeout(() => go(1), spot ? SPOT_HOLD : (clipMs || HOLD));
     return () => clearTimeout(tmr);
-  }, [idx, paused, hasTwo, spot, wishCard, board, mosaic.open, msgCard]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idx, paused, hasTwo, spot, wishCard, board, mosaic.open, msgCard, spCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Not keyed on photos.length: new uploads arriving must not restart the
   // current slide's timer, or a busy room would freeze the wall on one photo.
 
@@ -591,6 +608,7 @@ export default function SlideshowPage() {
   }
   const isMoment = event && event.featured_photo_id && cur.id === event.featured_photo_id;
   const curCount = counts[cur.id] || 0;
+  const insets = wallInsets(event);
   const curLiked = liked.has(rxKey(cur.id, "heart"));
 
   return (
@@ -603,6 +621,9 @@ export default function SlideshowPage() {
       {tvOpen && <ShowOnTVSheet code={code} onClose={() => { setTvOpen(false); wake(); }} />}
 
       {musicSrc && <audio ref={audioRef} src={musicSrc} loop preload="auto" />}
+      {/* Photo stage. Sponsor layouts with a side panel (rail, split) take
+          room on the right, so the photo never sits under a logo. */}
+      <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, right: insets.right }}>
       {prev && prev.id !== cur.id && (
         prev.kind === "boomerang" ? <BoomerangFrame key={"p" + prev.id + idx} src={prev.url} frames={prev.loop_frames} fading />
           : <Frame key={"p" + prev.id + idx} src={prev.url} variant={prevIdx % 3} fading still={!!prev.video_url} />
@@ -612,7 +633,7 @@ export default function SlideshowPage() {
         : cur.kind === "boomerang" ? <BoomerangFrame key={"b" + cur.id + idx} src={cur.url} frames={cur.loop_frames} />
         : <Frame key={"c" + cur.id + idx} src={cur.url} variant={idx % 3} />}
       {cur.video_url && (
-        <div style={{ position: "absolute", right: "2.2vw", bottom: "2.4vw", display: "flex", alignItems: "center", gap: ".6vw", background: "color-mix(in srgb, var(--ink) 60%, transparent)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+        <div style={{ position: "absolute", right: "2.2vw", bottom: `calc(2.4vw + ${insets.bottom})`, display: "flex", alignItems: "center", gap: ".6vw", background: "color-mix(in srgb, var(--ink) 60%, transparent)", color: "#fff", padding: ".5vw 1vw", borderRadius: 999, fontSize: "1.05vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
           <svg viewBox="0 0 24 24" width="1.3em" height="1.3em" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6.5" width="12.5" height="11" rx="2" /><path d="m15.5 10.5 5-3v9l-5-3" /></svg>
           <span style={{ letterSpacing: ".12em" }}>{t("live.video")}</span>
           {cur.contributor_id && names[cur.contributor_id] ? <span style={{ fontWeight: 500, opacity: .9 }}>{t("live.by")} {names[cur.contributor_id]}</span> : null}
@@ -620,6 +641,7 @@ export default function SlideshowPage() {
       )}
 
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--ink) 60%, transparent) 100%)", pointerEvents: "none" }} />
+      </div>
 
       {/* Animated reaction characters: one per guest heart or like on the photo currently showing */}
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
@@ -653,14 +675,14 @@ export default function SlideshowPage() {
         ) : null; })()}
       </div>
 
-      <SponsorWallBadge event={event} hidden={showChrome} />
+      <SponsorWallLayer event={event} hidden={showChrome} busyTop={!!(spot && spot.photoId === cur.id) || !!isMoment} busyLower={!!cur.challenge} />
 
       {/* Always-on room stats: photos and guests so far. Makes the wall feel
           alive and nudges the people who haven't scanned yet. */}
       {(() => {
         const guests = new Set(photos.map((p) => p.contributor_id).filter(Boolean)).size;
         return (
-          <div style={{ position: "absolute", left: "2.2vw", bottom: "2.2vw", display: "flex", alignItems: "center", gap: ".9vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".5vw 1.1vw", borderRadius: 999, fontSize: "1vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
+          <div style={{ position: "absolute", left: "2.2vw", bottom: `calc(2.2vw + ${insets.bottom})`, display: "flex", alignItems: "center", gap: ".9vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".5vw 1.1vw", borderRadius: 999, fontSize: "1vw", fontWeight: 700, backdropFilter: "blur(6px)", pointerEvents: "none", opacity: showChrome ? 0 : 1, transition: "opacity .6s ease" }}>
             <span>{photos.length} {photos.length === 1 ? t("live.photoWord") : t("live.photosWord")}</span>
             <span style={{ opacity: .5 }}>·</span>
             <span>{guests} {guests === 1 ? t("live.guestWord") : t("live.guestsWord")}</span>
@@ -670,7 +692,7 @@ export default function SlideshowPage() {
 
       {/* Always-on heart count for the photo on screen (pops when it changes) */}
       {curCount > 0 && (
-        <div key={countPop} style={{ position: "absolute", right: "2.2vw", top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
+        <div key={countPop} style={{ position: "absolute", right: `calc(2.2vw + ${insets.right})`, top: "2.4vw", display: "flex", alignItems: "center", gap: ".5vw", background: "color-mix(in srgb, var(--ink) 55%, transparent)", color: "#fff", padding: ".55vw 1.1vw", borderRadius: 999, fontSize: "1.3vw", fontWeight: 800, backdropFilter: "blur(6px)", animation: "countPop .45s ease-out", pointerEvents: "none" }}>
           <svg viewBox="0 0 24 24" style={{ width: "1.4vw", height: "1.4vw" }}><path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.6 2.6 5.3 5.9 4.6c2-.4 4 .5 6.1 2.6 2.1-2.1 4.1-3 6.1-2.6 3.3.7 5 4 3.5 7.3C19.5 16.4 12 21 12 21z" fill={C.pink} /></svg>
           {curCount}
         </div>
@@ -686,6 +708,7 @@ export default function SlideshowPage() {
           {spot.name && spot.name !== "Guest" && (
             <div style={{ marginTop: ".6vw", color: "#fff", fontSize: "1.1vw", textShadow: "0 2px 10px rgba(0,0,0,.6)" }}>{t("live.by")} {spot.name}</div>
           )}
+          {momentSponsor(event, "spot") && <div style={{ marginTop: ".7vw" }}><MomentBadge sponsor={momentSponsor(event, "spot")} /></div>}
         </div>
       )}
 
@@ -722,6 +745,7 @@ export default function SlideshowPage() {
               ))}
             </div>
             <div style={{ color: "rgba(255,255,255,.75)", fontSize: "1.15vw", marginTop: "2vw" }}>{t("live.boardSub")}</div>
+            {momentSponsor(event, "board") && <div style={{ marginTop: "1.4vw" }}><MomentBadge sponsor={momentSponsor(event, "board")} /></div>}
           </div>
         </div>
       )}
@@ -740,6 +764,9 @@ export default function SlideshowPage() {
       )}
 
       {mosaic.open && <MosaicCard event={event} photos={photos} counts={counts} onClose={mosaic.close} />}
+      {mosaic.open && momentSponsor(event, "mosaic") && <div style={{ position: "absolute", left: "50%", bottom: "2.6vw", transform: "translateX(-50%)", zIndex: 8 }}><MomentBadge sponsor={momentSponsor(event, "mosaic")} /></div>}
+      {spCard && <SponsorCard event={event} onDone={() => { setSpCard(false); if (!paused && photos.length > 1) go(1); }} />}
+      {msgCard && momentSponsor(event, "messages") && <div style={{ position: "absolute", left: "50%", bottom: "2.6vw", transform: "translateX(-50%)", zIndex: 8 }}><MomentBadge sponsor={momentSponsor(event, "messages")} /></div>}
       {msgCard && <VideoMessageCard key={"m" + msgCard.id} msg={msgCard} name={msgCard.contributor_id ? names[msgCard.contributor_id] : null} category={event && event.category} onDone={() => { setMsgCard(null); if (!paused && photos.length > 1) go(1); }} />}
 
       {/* Moment of the Service ribbon */}
