@@ -780,7 +780,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         <button data-tour="ev-settings" onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
         </span>
       </div>
-      <Tour id="event" auto delay={1200} steps={[
+      <Tour id="event" auto={!loading} delay={1200} steps={[
         { title: t("tour.e.welcome.t"), body: t("tour.e.welcome.b") },
         { target: '[data-tour="ev-addphotos"]', title: t("tour.e.add.t"), body: t("tour.e.add.b") },
         { target: "#halo-ready", title: t("tour.e.ready.t"), body: t("tour.e.ready.b") },

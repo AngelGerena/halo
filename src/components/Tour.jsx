@@ -71,47 +71,81 @@ export default function Tour({ id, steps, auto = false, delay = 700, onFinish })
 
   const step = idx >= 0 ? steps[idx] : null;
 
-  // Find the target (skip steps whose target isn't on the page), scroll it in, measure.
+  // Steps are read through a ref: the parent re-renders all the time (live
+  // photo updates, timers), and that must never re-run the step logic below.
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
+  const [ready, setReady] = useState(false); // current step's target found + measured
+  const lastMove = useRef(0);
+
+  // Runs once per step change: wait for the target (sections can still be
+  // loading), skip it only if it never shows up, then scroll to it and keep the
+  // spotlight glued to it while the page moves.
   useLayoutEffect(() => {
     if (idx < 0) return;
-    if (idx >= steps.length) { finish(); return; }
-    const s = steps[idx];
-    if (!s.target) { setRect(null); return; }
-    const el = document.querySelector(s.target);
-    if (!visible(el)) {
-      // Not on the page right now: skip it (backwards only while there's room).
-      if (dir.current < 0 && idx > 0) setIdx(idx - 1);
-      else { dir.current = 1; setIdx(idx + 1); }
-      return;
-    }
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
-    let raf = 0;
+    const list = stepsRef.current;
+    if (idx >= list.length) { finish(); return; }
+    const s = list[idx];
+    setReady(false);
+    if (!s.target) { setRect(null); setReady(true); return; }
+
+    let cancelled = false, el = null, raf = 0, poll = 0, follow = 0, settle = 0;
     const measure = () => {
+      if (!el || !el.isConnected) { el = document.querySelector(s.target); if (!visible(el)) return; }
       const r = el.getBoundingClientRect();
-      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      setRect((prev) => (prev && Math.abs(prev.top - r.top) < 0.5 && Math.abs(prev.left - r.left) < 0.5 && Math.abs(prev.width - r.width) < 0.5 && Math.abs(prev.height - r.height) < 0.5)
+        ? prev : { top: r.top, left: r.left, width: r.width, height: r.height });
       setVw(window.innerWidth); setVh(window.innerHeight);
     };
     const tick = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measure); };
-    measure();
-    const tm = setTimeout(measure, 450); // after the smooth scroll settles
-    window.addEventListener("scroll", tick, true);
-    window.addEventListener("resize", tick);
-    return () => { clearTimeout(tm); cancelAnimationFrame(raf); window.removeEventListener("scroll", tick, true); window.removeEventListener("resize", tick); };
-  }, [idx, steps, finish]);
+    const begin = () => {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      measure(); setReady(true);
+      settle = setTimeout(measure, 450);           // after the smooth scroll settles
+      follow = setInterval(measure, 400);          // follow layout shifts (images, live updates)
+      window.addEventListener("scroll", tick, true);
+      window.addEventListener("resize", tick);
+    };
+    const started = Date.now();
+    const look = () => {
+      if (cancelled) return;
+      el = document.querySelector(s.target);
+      if (visible(el)) { begin(); return; }
+      if (Date.now() - started < 1500) { poll = setTimeout(look, 120); return; }
+      // Never appeared (e.g. a section this event doesn't have): skip it.
+      if (dir.current < 0 && idx > 0) setIdx(idx - 1);
+      else { dir.current = 1; setIdx(idx + 1); }
+    };
+    look();
+    return () => {
+      cancelled = true;
+      clearTimeout(poll); clearTimeout(settle); clearInterval(follow); cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", tick, true); window.removeEventListener("resize", tick);
+    };
+  }, [idx, finish]);
+
+  // One tap = one step (guards against a double tap skipping a card).
+  const go = useCallback((d) => {
+    const now = Date.now();
+    if (now - lastMove.current < 350) return;
+    lastMove.current = now;
+    dir.current = d;
+    setIdx((i) => (d < 0 ? Math.max(0, i - 1) : i + 1));
+  }, []);
 
   useEffect(() => {
     if (idx < 0) return;
     const onKey = (e) => {
       if (e.key === "Escape") finish();
-      else if (e.key === "ArrowRight") { dir.current = 1; setIdx((i) => i + 1); }
-      else if (e.key === "ArrowLeft") { dir.current = -1; setIdx((i) => Math.max(0, i - 1)); }
+      else if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
     };
     window.addEventListener("keydown", onKey);
     const f = setTimeout(() => nextBtn.current && nextBtn.current.focus({ preventScroll: true }), 60);
     return () => { window.removeEventListener("keydown", onKey); clearTimeout(f); };
-  }, [idx, finish]);
+  }, [idx, ready, finish, go]);
 
-  if (!step) return null;
+  if (!step || !ready) return null;
 
   const last = idx === steps.length - 1;
   const mobile = vw < 640;
@@ -168,10 +202,10 @@ export default function Tour({ id, steps, auto = false, delay = 700, onFinish })
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {idx > 0 && (
-            <button type="button" onClick={() => { dir.current = -1; setIdx(idx - 1); }}
+            <button type="button" onClick={() => go(-1)}
               style={{ ...btn, background: "transparent", color: K.text, border: K.backBorder }}>{t("tour.back")}</button>
           )}
-          <button type="button" ref={nextBtn} onClick={() => { if (last) finish(); else { dir.current = 1; setIdx(idx + 1); } }}
+          <button type="button" ref={nextBtn} onClick={() => { if (last) finish(); else go(1); }}
             style={{ ...btn, background: K.a, color: K.onA, border: "none" }}>
             {last ? (step.doneLabel || t("tour.done")) : t("tour.next")}
           </button>
