@@ -6,6 +6,9 @@ import { C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import EditEventDetails, { qrFileName } from "../components/EditEventDetails.jsx";
+import EventExtras from "../components/EventExtras.jsx";
+import FrameSettings from "../components/FrameSettings.jsx";
+import LeaderboardSetting from "../components/LeaderboardSetting.jsx";
 import { fetchOwnerProfiles, fetchAllProfiles, eventCountsByOwner, ownerLabel } from "../lib/profiles.js";
 
 // TODO(auth integration): when src/lib/auth.jsx lands (AuthProvider/useAuth/
@@ -781,6 +784,20 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
     return j.event;
   }
 
+  // Passcode-authorized api for the shared event tools (Sponsors, Extras,
+  // Frames, Leaderboard), the same panels hosts see in their dashboard.
+  const api = { fn: async (name, body = {}) => {
+    const r = await fetch(`/.netlify/functions/${name}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: token, ...body }),
+    });
+    const raw = await r.text();
+    let j = {}; try { j = raw ? JSON.parse(raw) : {}; } catch {}
+    if (!r.ok) throw new Error(j.error || `Request failed (${r.status})`);
+    return j;
+  } };
+  const panelError = (e) => alert(e?.message || String(e));
+
   // Reassign owner: patches owner_id via update-event. The function must add
   // owner_id to its ALLOWED whitelist and permit the change only for admins.
   async function saveOwner() {
@@ -1122,6 +1139,12 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
           <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
             <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
+          </div>
+
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)", display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+            <LeaderboardSetting event={event} updateEvent={updateEvent} onError={panelError} />
+            <FrameSettings event={event} api={api} updateEvent={updateEvent} photos={photos} onError={panelError} />
+            <EventExtras event={event} api={api} updateEvent={updateEvent} onError={panelError} />
           </div>
 
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
