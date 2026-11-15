@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { createPortal } from "react-dom";
 import { C } from "../lib/score.js";
 import { useI18n } from "../lib/i18n.jsx";
+import { useSiteTheme } from "../lib/siteTheme.js";
 
 const KEY = (id) => `halo_tour_${id}_done`;
 const EVT = "halo:tour";
@@ -25,8 +26,27 @@ function visible(el) {
   return r.width > 0 && r.height > 0;
 }
 
+// "Glow" look: hints use the site theme's SECOND color (cyan on the pink
+// Obsidian theme, champagne on Midnight, and so on), so they never look like
+// the theme's main-color buttons and always match whatever theme is chosen.
+function tourColors(th) {
+  const a = (th && th.a2) || "#36e3ff";
+  return {
+    a,
+    card: `color-mix(in srgb, ${a} 7%, #0b0c14)`,
+    border: `1px solid color-mix(in srgb, ${a} 70%, transparent)`,
+    text: "#ffffff",
+    body: "rgba(232,238,248,.78)",
+    muted: "rgba(232,238,248,.6)",
+    onA: "#06101a",
+    backBorder: `1px solid color-mix(in srgb, ${a} 40%, transparent)`,
+    dotOff: "rgba(255,255,255,.15)",
+  };
+}
+
 export default function Tour({ id, steps, auto = false, delay = 700, onFinish }) {
   const { t } = useI18n();
+  const K = tourColors(useSiteTheme());
   const [idx, setIdx] = useState(-1); // -1 = not running
   const [rect, setRect] = useState(null);
   const [vw, setVw] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
@@ -115,7 +135,7 @@ export default function Tour({ id, steps, auto = false, delay = 700, onFinish })
 
   const spot = rect ? {
     position: "fixed", top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2,
-    borderRadius: 16, boxShadow: `0 0 0 9999px rgba(6,3,12,.72), 0 0 0 2px ${C.gold}, 0 0 28px 4px color-mix(in srgb, var(--gold) 45%, transparent)`,
+    borderRadius: 16, boxShadow: `0 0 0 9999px rgba(6,3,12,.72), 0 0 0 2px ${K.a}, 0 0 28px 4px color-mix(in srgb, ${K.a} 45%, transparent)`,
     transition: "top .25s ease, left .25s ease, width .25s ease, height .25s ease", pointerEvents: "none",
   } : null;
 
@@ -129,29 +149,30 @@ export default function Tour({ id, steps, auto = false, delay = 700, onFinish })
       {spot && <div style={spot} aria-hidden="true" />}
       <div style={{
         position: "fixed", ...cardStyle, width: mobile && rect ? "auto" : cardW, maxWidth: "calc(100vw - 24px)", boxSizing: "border-box",
-        background: C.card, color: C.text, border: `1px solid color-mix(in srgb, var(--gold) 55%, transparent)`, borderRadius: 18,
-        padding: "16px 18px 14px", boxShadow: "0 18px 50px rgba(0,0,0,.55)",
+        background: K.card, color: K.text, border: K.border, borderRadius: 18,
+        padding: "16px 18px 14px", boxShadow: `0 18px 50px rgba(0,0,0,.55), 0 0 30px color-mix(in srgb, ${K.a} 14%, transparent)`,
+        fontFamily: "Inter, system-ui, -apple-system, Arial, sans-serif",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: C.gold }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: K.a }}>
             {t("tour.stepOf").replace("{n}", idx + 1).replace("{t}", count)}
           </span>
-          <button type="button" onClick={finish} style={{ background: "transparent", border: "none", color: C.second, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "6px 0" }}>{t("tour.skip")}</button>
+          <button type="button" onClick={finish} style={{ background: "transparent", border: "none", color: K.muted, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "6px 0" }}>{t("tour.skip")}</button>
         </div>
-        <div className="serif" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.2, margin: "6px 0 6px" }}>{step.title}</div>
-        <div style={{ fontSize: 14.5, lineHeight: 1.5, color: C.second }}>{step.body}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.25, margin: "6px 0 6px", letterSpacing: -0.2 }}>{step.title}</div>
+        <div style={{ fontSize: 14.5, lineHeight: 1.5, color: K.body }}>{step.body}</div>
         <div style={{ display: "flex", gap: 5, margin: "14px 0 12px" }} aria-hidden="true">
           {steps.map((_, i) => (
-            <span key={i} style={{ height: 5, flex: 1, maxWidth: 28, borderRadius: 99, background: i <= idx ? C.gold : "rgba(255,255,255,.15)" }} />
+            <span key={i} style={{ height: 5, flex: 1, maxWidth: 28, borderRadius: 99, background: i <= idx ? K.a : K.dotOff }} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {idx > 0 && (
             <button type="button" onClick={() => { dir.current = -1; setIdx(idx - 1); }}
-              style={{ ...btn, background: "transparent", color: C.text, border: `1px solid ${C.line2}` }}>{t("tour.back")}</button>
+              style={{ ...btn, background: "transparent", color: K.text, border: K.backBorder }}>{t("tour.back")}</button>
           )}
           <button type="button" ref={nextBtn} onClick={() => { if (last) finish(); else { dir.current = 1; setIdx(idx + 1); } }}
-            style={{ ...btn, background: C.gold, color: C.ink, border: "none" }}>
+            style={{ ...btn, background: K.a, color: K.onA, border: "none" }}>
             {last ? (step.doneLabel || t("tour.done")) : t("tour.next")}
           </button>
         </div>
