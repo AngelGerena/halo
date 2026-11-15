@@ -567,6 +567,7 @@ export default function SlideshowPage() {
   );
   if (!ready) return <Stage><Centered>{t("live.preparing")}</Centered>{exitOnly}</Stage>;
   if (event === false) return <Stage><Centered>{t("live.notFound")}</Centered>{exitOnly}</Stage>;
+  if (event && event.closed_at) return <Stage><Centered>{t("ret.guestClosedTitle")}</Centered>{exitOnly}</Stage>;
   // Shared one-time fullscreen prompt (see needsTap). Big, centered, obvious.
   const tapPrompt = needsTap ? (
     <div onClick={firstTap} role="button" style={{ position: "absolute", inset: 0, zIndex: 20, display: "grid", placeItems: "center", background: "color-mix(in srgb, var(--ink) 60%, transparent)", cursor: "pointer" }}>

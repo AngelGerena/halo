@@ -10,6 +10,7 @@
 // free text for display, so the upload timeline is the reliable signal.
 import { createClient } from "@supabase/supabase-js";
 import { haloEmail, sendEmail } from "./_email.js";
+import { RETAIN_DAYS, DAY_MS, longDate } from "./_retention.js";
 
 const esc = (s) => String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -22,7 +23,7 @@ export async function handler() {
 
   // Candidate events: have an owner, no wrap sent yet.
   const { data: events, error } = await supabase.from("events")
-    .select("id,name,code,owner_id,wrap_sent_at,published_at")
+    .select("*")
     .is("wrap_sent_at", null).not("owner_id", "is", null);
   if (error) return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
 
@@ -46,6 +47,9 @@ export async function handler() {
     if (!to) { skipped++; continue; }
 
     const dashUrl = `${base}/dashboard?event=${encodeURIComponent(ev.code)}`;
+    const { data: firstRow } = await supabase.from("photos").select("created_at")
+      .eq("event_id", ev.id).order("created_at", { ascending: true }).limit(1);
+    const closeAt = ev.expires_at || new Date(new Date(firstRow?.[0]?.created_at || Date.now()).getTime() + RETAIN_DAYS * DAY_MS).toISOString();
     const html = haloEmail({
       heading: `Your ${photoCount} photos are ready`,
       subhead: esc(ev.name),
@@ -53,7 +57,8 @@ export async function handler() {
         <p style="margin:0 0 14px;">Good morning. Here's how last night went:</p>
         <p style="margin:0 0 14px;"><strong>${photoCount}</strong> photo${photoCount === 1 ? "" : "s"} from <strong>${guestCount || 0}</strong> guest${guestCount === 1 ? "" : "s"}, and HALO picked <strong>${keptCount || 0}</strong> as the best shots.</p>
         <p style="margin:0 0 14px;">Everything is in your dashboard. When you're ready, tap <strong>Publish + notify all</strong> and every guest who left an email gets a link to download their photos.</p>
-        <p style="margin:0;">Tip: look through the review queue first if you held any photos.</p>`,
+        <p style="margin:0 0 14px;">Tip: look through the review queue first if you held any photos.</p>
+        <p style="margin:0;">Your gallery stays open for ${RETAIN_DAYS} days, until <strong>${esc(longDate(closeAt))}</strong>. We'll remind you before it closes so you can download everything.</p>`,
       ctaText: "Open the event",
       ctaUrl: dashUrl,
       footerNote: "HALO by Finesse Media · you're getting this because you host this event",

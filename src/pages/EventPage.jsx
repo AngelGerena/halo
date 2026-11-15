@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { RETAIN_DAYS } from "../lib/retention.js";
 import { safeHttpUrl } from "../lib/safeUrl.js";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { fetchReactions, like, rxKey } from "../lib/reactions.js";
@@ -591,6 +592,12 @@ export default function EventPage() {
       <h1 className="serif" style={{ fontSize: 30, margin: 0 }}>{t("event.notFound.title")}</h1>
       <p style={{ color: C.second, maxWidth: 320, margin: "10px 0 20px" }}>{t("event.notFound.sub")}</p>
       <button className="btn-gold" onClick={() => navigate("/")}>{t("gal.goHome")}</button>
+    </div></Dark>
+  );
+  if (event && event.closed_at) return (
+    <Dark><div style={S.center}>
+      <h1 className="serif" style={{ fontSize: 30, margin: 0 }}>{t("ret.guestClosedTitle")}</h1>
+      <p style={{ color: C.second, maxWidth: 340, margin: "10px auto 20px" }}>{t("ret.guestClosedSub").replace("{n}", RETAIN_DAYS)}</p>
     </div></Dark>
   );
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { RETAIN_DAYS, expiryFor, formatDate } from "../lib/retention.js";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { Header, Footer, Spinner, Empty } from "../components/UI.jsx";
@@ -14,7 +15,7 @@ import { notMessage } from "../lib/videoMessage.js";
 export default function GalleryPage() {
   const { contributorId } = useParams();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [contributor, setContributor] = useState(null);
   const [event, setEvent] = useState(null);
   const siteLook = useSiteThemeKey();
@@ -57,9 +58,11 @@ export default function GalleryPage() {
       <main className="wrap" style={{ flex: 1 }}>
         {loading ? <Spinner label={t("gal.loading")} /> :
           !contributor ? <Empty title={t("gal.notFound.title")} sub={t("gal.notFound.sub")} action={t("gal.goHome")} onAction={() => navigate("/")} /> :
+          event && event.closed_at ? <Empty title={t("ret.guestClosedTitle")} sub={t("ret.guestClosedSub").replace("{n}", RETAIN_DAYS)} action={t("gal.goHome")} onAction={() => navigate("/")} /> :
           <>
             <h1 className="serif" style={{ fontSize: 34, color: C.text, marginBottom: 2 }}>{t("gal.titlePrefix")}{contributor.name}{t("gal.titleSuffix")}</h1>
             <p style={{ color: C.second, marginTop: 0 }}>{photos.length} {photos.length === 1 ? t("gal.curatedPhoto") : t("gal.curatedPhotos")}</p>
+            {photos.length > 0 && expiryFor(event, null) && <p style={{ color: C.gold, marginTop: -6, fontSize: 13, fontWeight: 700 }}>{t("ret.guestUntil").replace("{date}", formatDate(expiryFor(event, null), lang))}</p>}
             {photos.length === 0 ? <Empty title={t("gal.empty.title")} sub={t("gal.empty.sub")} /> : <PhotoGrid photos={photos} dimUnkept={false} counts={counts} liked={liked} onLike={onLike} frame={frameFor(event)} eventCode={event?.code || ""} />}
           </>}
       </main>

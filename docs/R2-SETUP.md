@@ -83,15 +83,19 @@ bucket settings — use Option 2.
 
 Add any custom domain you later point at the app to `AllowedOrigins`.
 
-**60-day auto-delete**: R2 → `halo-events` → **Settings** → **Object lifecycle rules**
-→ add a rule: delete objects **60 days** after they are created, applied to the whole
-bucket (empty prefix).
+**No bucket-wide auto-delete.** Do NOT add an object lifecycle rule to the whole
+bucket: it would also delete landing-page photos (`site/`), covers and sponsor logos
+(`covers/`), hero images and music. If one exists, remove it: R2 → `halo-events` →
+**Settings** → **Object lifecycle rules** → delete the rule.
 
 ## Retention policy (product note)
 
-Galleries live for **60 days**, then auto-delete. The marketing site, the in-app
-disclaimer, and (future) pre-deletion reminder emails should all say 60 days so the
-promise matches what the bucket actually does.
+Galleries live for **60 days** after their first photo, then close. The nightly
+`gallery-retention` function (netlify.toml schedule) emails the host 30, 7 and 1 day
+before, then deletes the event's photo files from R2 and the photo rows, and stamps
+`events.closed_at`. Recurring events never close; each photo is removed 60 days after
+upload. Set `RETENTION_DRY_RUN=1` in Netlify to log deletions without deleting.
+Database columns: `supabase/gallery-retention.sql`.
 
 ## Legacy events
 

@@ -46,6 +46,7 @@ import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES }
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
 import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
 import EditEventDetails, { qrFileName } from "./EditEventDetails.jsx";
+import RetentionBanner from "./RetentionBanner.jsx";
 
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
@@ -838,6 +839,10 @@ export function EventDetail({ event: eventProp, api, back }) {
           </div>
         );
       })()}
+
+      <RetentionBanner event={event}
+        firstPhotoAt={photos.reduce((m, p) => (!m || (p.created_at && p.created_at < m) ? p.created_at : m), null)}
+        onDownload={photos.length ? downloadAll : null} />
 
       <div id="halo-qr-box" className="hqb" style={{ background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16 }}>
         <style>{`

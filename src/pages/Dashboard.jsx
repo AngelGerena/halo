@@ -17,6 +17,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { Footer, Spinner, Empty, LangToggle } from "../components/UI.jsx";
 import { CreateEvent, EventDetail } from "../components/EventManager.jsx";
+import { shortDate } from "../lib/retention.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth, RequireAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
@@ -75,6 +76,8 @@ const PS_CSS = `
 .pill.live{color:#fff;border:1px solid color-mix(in srgb,var(--gold) 60%,transparent)}
 .pill.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);animation:psPing 1.6s ease-out infinite}
 .pill.done{color:#3ee08f;border:1px solid rgba(62,224,143,.45)}
+.pill.ret{color:#fff;border:1px solid rgba(255,255,255,.28)}
+.pill.ret.soon{color:#ff8a80;border-color:rgba(255,138,128,.6)}
 .datebox{background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:7px 11px;text-align:center;line-height:1}
 .datebox small{display:block;font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--gold-light)}
 .datebox b{font-family:var(--display);font-weight:400;font-size:28px}
@@ -178,7 +181,11 @@ function Poster({ e, info, onOpen }) {
       <div className="bg" style={{ backgroundImage: shown ? `url(${shown})` : "none", backgroundPosition: pos, opacity: shown ? 1 : 0 }} aria-hidden="true" />
       <button className="open" onClick={onOpen} aria-label={`${t("dash.manage")}: ${ev(e, "name")}`} />
       <div className="tagrow">
-        <span className={"pill " + (live ? "live" : "done")}>{live ? t("dash.status.live") : t("dash.status.published")}</span>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
+          <span className={"pill " + (live ? "live" : "done")}>{live ? t("dash.status.live") : t("dash.status.published")}</span>
+          {e.closed_at ? <span className="pill ret">{t("ret.chipClosed")}</span>
+            : (e.expires_at && !e.is_recurring) ? <span className={"pill ret" + (new Date(e.expires_at) - Date.now() < 7 * 864e5 ? " soon" : "")}>{t("ret.chipCloses").replace("{date}", shortDate(e.expires_at, lang))}</span> : null}
+        </div>
         {tile && <div className="datebox"><small>{tile.mon}</small><b>{tile.day}</b></div>}
       </div>
       <div className="inner">

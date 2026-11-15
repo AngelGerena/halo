@@ -92,3 +92,10 @@
 # 14:00 UTC during standard time). See netlify/functions/daily-wrap.js.
 [functions."daily-wrap"]
   schedule = "0 13 * * *"
+
+# 60-day gallery retention: starts each gallery's clock, emails hosts 30/7/1
+# days before it closes, and closes expired galleries (deletes the photo files
+# and rows). Runs daily at 8:30 AM Eastern (13:30 UTC). See
+# netlify/functions/gallery-retention.js.
+[functions."gallery-retention"]
+  schedule = "30 13 * * *"
