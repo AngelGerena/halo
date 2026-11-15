@@ -23,9 +23,9 @@ function audioDuration(file) {
   });
 }
 
-export default function MusicLibraryAdmin({ token }) {
+export default function MusicLibraryAdmin({ token, api, startOpen = false }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [rows, setRows] = useState([]);
   const [starterTotal, setStarterTotal] = useState(0);
   const [importing, setImporting] = useState(null); // { done, total, failed }
@@ -36,6 +36,7 @@ export default function MusicLibraryAdmin({ token }) {
   const [msg, setMsg] = useState("");
 
   async function call(body) {
+    if (api) return api.fn("music-library", body); // signed-in admin account (dashboard)
     const r = await fetch("/.netlify/functions/music-library", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, ...body }),
     });
@@ -44,7 +45,7 @@ export default function MusicLibraryAdmin({ token }) {
     return j;
   }
   async function load() {
-    try { const j = await call({ action: "list" }); setRows(j.rows || []); setStarterTotal(j.starterTotal || 0); }
+    try { const j = await call({ action: "list" }); setRows(j.rows || []); setStarterTotal(j.starterTotal || 0); if (!(j.rows || []).length) setOpen(true); }
     catch (e) { setMsg(e.message); }
   }
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps

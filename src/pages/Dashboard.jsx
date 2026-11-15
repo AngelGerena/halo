@@ -18,6 +18,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { Footer, Spinner, Empty, LangToggle } from "../components/UI.jsx";
 import { CreateEvent, EventDetail } from "../components/EventManager.jsx";
 import { shortDate } from "../lib/retention.js";
+import MusicLibraryAdmin from "../components/MusicLibraryAdmin.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth, RequireAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
@@ -217,6 +218,7 @@ function DashboardInner() {
   const [events, setEvents] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const info = useEventInfo(events);
 
   async function loadEvents() {
@@ -228,6 +230,7 @@ function DashboardInner() {
       const { data: prof } = await supabase.from("profiles").select("is_admin").eq("id", user?.id).maybeSingle();
       isAdmin = !!prof?.is_admin;
     } catch {}
+    setIsAdmin(isAdmin);
     let q = supabase.from("events").select("*").order("created_at", { ascending: false });
     if (!isAdmin) q = q.eq("owner_id", user?.id);
     const { data: own } = user?.id ? await q : { data: [] };
@@ -285,6 +288,11 @@ function DashboardInner() {
             )}
           />
         </div>
+        {isAdmin && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <MusicLibraryAdmin api={api} />
+          </div>
+        )}
         {loading ? (
           <div style={{ gridColumn: "1 / -1" }}><Spinner label={t("dash.loading")} /></div>
         ) : events.length === 0 ? (
