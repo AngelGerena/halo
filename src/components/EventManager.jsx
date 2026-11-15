@@ -46,7 +46,7 @@ import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseI
 import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
 import EditEventDetails, { qrFileName } from "./EditEventDetails.jsx";
 import RetentionBanner from "./RetentionBanner.jsx";
-import Tour, { TourButton } from "./Tour.jsx";
+import Tour, { TourButton, HelpMenu, HoverHints, tourChapters } from "./Tour.jsx";
 import MusicPicker, { trackLabel } from "./MusicPicker.jsx";
 import HighlightList from "./HighlightList.jsx";
 import { autoTrack } from "../lib/music.js";
@@ -248,6 +248,7 @@ export function EventDetail({ event: eventProp, api, back }) {
   const [tagging, setTagging] = useState(false);
   const [featuredId, setFeaturedId] = useState(event.featured_photo_id || null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const tourOpenedSettings = useRef(false);
   const [isRecurring, setIsRecurring] = useState(!!event.is_recurring);
   // Moderation. These existed only on the create form before, so a host had
   // no way to see or change them after the fact: "protect children" silently
@@ -771,30 +772,75 @@ export function EventDetail({ event: eventProp, api, back }) {
   const sfield = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,.2)", marginTop: 4, background: "rgba(255,255,255,.05)", color: C.text };
   const slab = { fontSize: 12, fontWeight: 600, color: C.text };
 
+  // ---- FULL WALKTHROUGH ----
+  // One card per section and button group on this screen, in screen order,
+  // grouped into chapters (the Help menu can jump to any chapter). Settings
+  // steps open the Settings panel; it closes again when the tour ends.
+  const openSettings = () => setSettingsOpen((v) => { if (!v) tourOpenedSettings.current = true; return true; });
+  const S = (key, target, ch, extra) => ({ target, chapter: t("tw.ch." + ch), title: t(`tw.${key}.t`), body: t(`tw.${key}.b`), ...extra });
+  const M = (key) => t(`tw.${key}.m`);
+  const eventTourSteps = [
+    { chapter: t("tw.ch.start"), title: t("tw.welcome.t"), body: t("tw.welcome.b") },
+    S("back", '[data-tour="ev-back"]', "start"),
+    S("help", '[data-tour="ev-help"]', "start"),
+    S("add", '[data-tour="ev-addphotos"]', "start"),
+    S("ready", "#halo-ready", "start", { missing: M("ready") }),
+    S("pulse", '[data-tour="ev-pulse"]', "start"),
+    S("ret", "#halo-retention", "start", { missing: M("ret") }),
+    S("head", '[data-tour="ev-head"]', "qr"),
+    S("edit", '[data-tour="ev-edit"]', "qr"),
+    S("cover", '[data-tour="ev-cover"]', "qr", { missing: M("cover") }),
+    S("qr", '[data-tour="ev-qrcode"]', "qr"),
+    S("guest", '[data-tour="ev-guestview"]', "qr"),
+    S("tools", '[data-tour="ev-qrtools"]', "qr"),
+    S("stats", '[data-tour="ev-stats"]', "share"),
+    S("launch", '[data-tour="ev-launch"]', "share"),
+    S("share", '[data-tour="ev-share"]', "share"),
+    S("pub", '[data-tour="ev-publish"]', "share"),
+    S("team", '[data-tour="ev-cohosts"]', "team"),
+    S("hl", '[data-tour="ev-highlight"]', "hl"),
+    S("hlmake", '[data-tour="ev-hlmake"]', "hl", { missing: M("hlmake") }),
+    S("hlsaved", '[data-tour="ev-hlsaved"]', "hl", { missing: M("hlsaved") }),
+    S("wish", '[data-tour="ev-wishes"]', "msg"),
+    S("vmsg", '[data-tour="ev-vmsg"]', "msg", { missing: M("vmsg") }),
+    S("tv", '[data-tour="ev-tv"]', "tv"),
+    S("tvqr", '[data-tour="ev-tvqr"]', "tv"),
+    S("tvphone", '[data-tour="ev-tvphone"]', "tv"),
+    S("set", '[data-tour="ev-settings"]', "set"),
+    S("setcover", "#set-cover", "set", { before: openSettings }),
+    S("board", "#set-leaderboard", "set", { before: openSettings }),
+    S("frame", "#set-frame", "set", { before: openSettings }),
+    S("extras", "#set-extras", "set", { before: openSettings }),
+    S("leads", '[data-tour="ev-leads"]', "set", { before: openSettings }),
+    S("sponsor", '[data-tour="ev-sponsor"]', "set", { before: openSettings, skip: true }),
+    S("ch", '[data-tour="ev-challenges"]', "set", { before: openSettings }),
+    S("priv", "#set-privacy", "set", { before: openSettings }),
+    S("rec", '[data-tour="ev-recurring"]', "set", { before: openSettings }),
+    S("conn", '[data-tour="ev-connect"]', "set", { before: openSettings }),
+    S("music", '[data-tour="ev-music"]', "set", { before: openSettings }),
+    S("save", '[data-tour="ev-save"]', "set", { before: openSettings }),
+    S("danger", '[data-tour="ev-danger"]', "set", { before: openSettings, skip: true }),
+    S("moment", '[data-tour="ev-moment"]', "photos", { missing: M("moment") }),
+    S("review", '[data-tour="ev-review"]', "photos", { missing: M("review") }),
+    S("coll", '[data-tour="ev-collection"]', "photos", { missing: M("coll") }),
+    S("card", '[data-tour="ev-photocard"]', "photos", { missing: M("card") }),
+    S("end", '[data-tour="ev-help"]', "photos", { doneLabel: t("tour.letsGo") }),
+  ];
+  const endTour = () => { if (tourOpenedSettings.current) { tourOpenedSettings.current = false; setSettingsOpen(false); } };
+
   return (
     <div>
+      <HoverHints />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
+        <button data-tour="ev-back" data-hint={t("hint.back")} onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
         <span style={{ display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
-        <span data-tour="ev-tour"><TourButton id="event" /></span>
-        <button data-tour="ev-settings" onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        <span data-tour="ev-help"><HelpMenu id="event" chapters={tourChapters(eventTourSteps)} /></span>
+        <button data-tour="ev-settings" data-hint={t("hint.settings")} onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
         </span>
       </div>
-      <Tour id="event" auto={!loading} delay={1200} steps={[
-        { title: t("tour.e.welcome.t"), body: t("tour.e.welcome.b") },
-        { target: '[data-tour="ev-addphotos"]', title: t("tour.e.add.t"), body: t("tour.e.add.b") },
-        { target: "#halo-ready", title: t("tour.e.ready.t"), body: t("tour.e.ready.b") },
-        { target: '[data-tour="ev-qr"]', title: t("tour.e.qr.t"), body: t("tour.e.qr.b") },
-        { target: '[data-tour="ev-edit"]', title: t("tour.e.edit.t"), body: t("tour.e.edit.b") },
-        { target: "#halo-retention", title: t("tour.e.ret.t"), body: t("tour.e.ret.b") },
-        { target: '[data-tour="ev-settings"]', title: t("tour.e.settings.t"), body: t("tour.e.settings.b") },
-        { target: '[data-tour="ev-tv"]', title: t("tour.e.tv.t"), body: t("tour.e.tv.b") },
-        { target: '[data-tour="ev-highlight"]', title: t("tour.e.hl.t"), body: t("tour.e.hl.b") },
-        { target: '[data-tour="ev-publish"]', title: t("tour.e.pub.t"), body: t("tour.e.pub.b") },
-        { target: '[data-tour="ev-tour"]', title: t("tour.e.end.t"), body: t("tour.e.end.b"), doneLabel: t("tour.letsGo") },
-      ]} />
+      <Tour id="event" auto={!loading} delay={1200} steps={eventTourSteps} onFinish={endTour} />
       {/* Host shortcut: straight to the guest page to take or add photos, same tab. */}
-      <a data-tour="ev-addphotos" href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
+      <a data-tour="ev-addphotos" data-hint={t("hint.add")} href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
         style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, minHeight: 52, padding: "12px 16px", borderRadius: 14, background: C.gold, color: C.ink, fontSize: 16, fontWeight: 800, textDecoration: "none", boxSizing: "border-box", width: "100%" }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
         {t("admin.addPhotos")}
@@ -880,7 +926,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         const ago = lastChange ? Math.max(0, Math.round((now - lastChange.getTime()) / 60000)) : null;
         const live = ago != null && ago < 5;
         return (
-          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: C.card, border: `1px solid ${live ? C.gold : "rgba(255,255,255,.12)"}`, borderRadius: 16, padding: "12px 16px" }}>
+          <div data-tour="ev-pulse" style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: C.card, border: `1px solid ${live ? C.gold : "rgba(255,255,255,.12)"}`, borderRadius: 16, padding: "12px 16px" }}>
             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: live ? "#4ade80" : C.second, boxShadow: live ? "0 0 0 4px rgba(74,222,128,.18)" : "none", animation: live ? "pulseDot 1.6s ease-in-out infinite" : "none", flexShrink: 0 }} />
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {live ? t("pulse.live") : t("pulse.quiet")}
@@ -926,11 +972,11 @@ export function EventDetail({ event: eventProp, api, back }) {
           }
         `}</style>
         {coverPath && (
-          <div className="hqb-cover">
+          <div className="hqb-cover" data-tour="ev-cover">
             <img src={publicUrl(coverPath)} alt="" style={coverStyle(coverFx, coverFy, coverZoom)} />
           </div>
         )}
-        <div className="hqb-head">
+        <div className="hqb-head" data-tour="ev-head">
           <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>{event.code}{isRecurring ? ` · ${t("admin.session")} ${currentSession || today()}` : ""}</div>
           <h2 className="serif" style={{ fontSize: 30, color: C.text, margin: "4px 0 2px" }}>{ev(event, "name")}</h2>
           <p style={{ color: C.second, margin: 0 }}>{[ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · ")}</p>
@@ -940,52 +986,52 @@ export function EventDetail({ event: eventProp, api, back }) {
         </div>
         <div className="hqb-qr" data-tour="ev-qr">
           {qr && (
-            <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", width: "100%" }}>
+            <button type="button" data-tour="ev-qrcode" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", width: "100%" }}>
               <img src={qr} alt="Event QR code" className="hqb-qrimg" />
             </button>
           )}
           {qr && (
-            <button type="button" onClick={() => setQrFull("join")} style={{ marginTop: 10, width: "100%", minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button type="button" data-hint={t("hint.qrFull")} onClick={() => setQrFull("join")} style={{ marginTop: 10, width: "100%", minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <ExpandIcon /> {t("qr.showBig")}
             </button>
           )}
-          <a href={`/e/${event.code}`} target="_blank" rel="noreferrer" className="btn-soft"
+          <a data-tour="ev-guestview" data-hint={t("hint.guest")} href={`/e/${event.code}`} target="_blank" rel="noreferrer" className="btn-soft"
             style={{ marginTop: 8, width: "100%", minHeight: 44, padding: "9px 12px", fontSize: 14, textDecoration: "none", boxSizing: "border-box" }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
             {t("qr.guestView")}
           </a>
-          <div className="hqb-tools">
+          <div className="hqb-tools" data-tour="ev-qrtools">
             {qr && (
-              <a href={qr} download={qrFileName(event)} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
+              <a data-hint={t("hint.saveQr")} href={qr} download={qrFileName(event)} onClick={() => markReady("qr")} className="hqb-tool">{t("admin.saveQR")}</a>
             )}
             <button className="hqb-tool" onClick={async () => { markReady("qr"); const { openTableCard } = await import("../lib/tableCard.js"); openTableCard({ eventName: ev(event, "name"), subline: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "), eventUrl, code: event.code }); }}
-              title={t("admin.tableCard.help")}>{t("admin.tableCardShort")}</button>
-            <button className="hqb-tool" onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); }}>{linkCopied ? t("admin.copied") : t("admin.copyLink")}</button>
+              data-hint={t("hint.card")}>{t("admin.tableCardShort")}</button>
+            <button className="hqb-tool" data-hint={t("hint.copy")} onClick={() => { navigator.clipboard?.writeText(eventUrl); markReady("qr"); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); }}>{linkCopied ? t("admin.copied") : t("admin.copyLink")}</button>
           </div>
         </div>
         <div className="hqb-rest">
-          <div className="hqb-stats">
+          <div className="hqb-stats" data-tour="ev-stats">
             <Stat label={t("admin.photos")} value={photos.length} />
             <Stat label={t("admin.kept")} value={kept.length} gold />
             <Stat label={<><span className="hqb-long">{t("admin.contributors")}</span><span className="hqb-short">{t("admin.guestsShort")}</span></>} value={contributors.length} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 14 }}>
+          <div data-tour="ev-launch" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 14 }}>
             <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none", display: "block" }}>
-              <button style={{ width: "100%", minHeight: 44, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.launchSlideshow")}</button>
+              <button data-hint={t("hint.slide")} style={{ width: "100%", minHeight: 44, background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.launchSlideshow")}</button>
             </a>
             <a href={galleryUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
-              <button style={{ width: "100%", minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.viewGallery")}</button>
+              <button data-hint={t("hint.gallery")} style={{ width: "100%", minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{t("admin.viewGallery")}</button>
             </a>
           </div>
           <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0", lineHeight: 1.45 }}>{t("admin.actionsHelp2")}</p>
-          <div data-testid="share-gallery" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+          <div data-testid="share-gallery" data-tour="ev-share" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("sg.hostTitle")}</div>
             <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("sg.hostHelp")}</p>
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(var(--tint, 255,255,255),.05)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 10px", fontSize: 12.5, color: C.second, overflow: "hidden" }}>
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{galleryUrl.replace(/^https?:\/\//, "")}</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, marginTop: 8 }}>
-              <button onClick={shareGallery} style={{ minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <button data-hint={t("hint.share")} onClick={shareGallery} style={{ minHeight: 44, background: C.gold, color: C.ink, border: "none", padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
                 {t("sg.share")}
               </button>
@@ -999,7 +1045,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             {isCohost ? (
               <OwnerOnlyNote />
             ) : (
-            <button onClick={publish} disabled={publishing} style={{ minHeight: 40, background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, opacity: publishing ? 0.6 : 1 }}>
+            <button data-hint={t("hint.publish")} onClick={publish} disabled={publishing} style={{ minHeight: 40, background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, opacity: publishing ? 0.6 : 1 }}>
               {publishing ? t("admin.publishing") : event.published_at ? t("admin.resendEmails") : t("admin.publishNotify")}
             </button>
             )}
@@ -1028,9 +1074,9 @@ export function EventDetail({ event: eventProp, api, back }) {
 
       {/* ---- CO-HOSTS ---- */}
       {event._cohost ? (
-        <div style={{ marginTop: 16, background: "rgba(255,184,107,.08)", border: "1px solid rgba(255,184,107,.3)", borderRadius: 14, padding: "10px 14px", fontSize: 13, color: C.text }}>{t("cohost.youAre")}</div>
+        <div data-tour="ev-cohosts" style={{ marginTop: 16, background: "rgba(255,184,107,.08)", border: "1px solid rgba(255,184,107,.3)", borderRadius: 14, padding: "10px 14px", fontSize: 13, color: C.text }}>{t("cohost.youAre")}</div>
       ) : cohosts && (
-        <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
+        <details data-tour="ev-cohosts" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
           <summary style={{ cursor: "pointer", fontWeight: 800, color: C.text, fontSize: 15 }}>{t("cohost.title")} ({cohosts.length})</summary>
           <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px" }}>{t("cohost.help")}</p>
           <form onSubmit={(e) => { e.preventDefault(); if (cohostEmail.trim()) changeCohosts({ add: cohostEmail.trim() }); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1096,14 +1142,14 @@ export function EventDetail({ event: eventProp, api, back }) {
               </a>
             </div>
           ) : (
-          <div>
+          <div data-tour="ev-hlmake">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
               <span style={{ fontSize: 12.5, color: C.text }}>
                 {hlPick ? t("hl.youChose").replace("{n}", hlSelected.length) : t("hl.haloPicks").replace("{n}", hlAuto.length)}
               </span>
               <span style={{ display: "flex", gap: 8 }}>
                 {hlPick && <button type="button" onClick={() => { setHlPick(null); setHlChoosing(false); }} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("hl.useHalo")}</button>}
-                <button type="button" onClick={() => setHlChoosing((v) => !v)} aria-expanded={hlChoosing} style={{ background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
+                <button type="button" data-hint={t("hint.hlChoose")} onClick={() => setHlChoosing((v) => !v)} aria-expanded={hlChoosing} style={{ background: "transparent", color: C.gold, border: `1px solid ${C.gold}`, padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
                   {hlChoosing ? t("hl.doneChoosing") : t("hl.choose")}
                 </button>
               </span>
@@ -1138,7 +1184,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                 <button type="button" onClick={() => setHlVertical(true)} aria-pressed={hlVertical} style={{ background: hlVertical ? C.gold : "transparent", color: hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.vertical")}</button>
                 <button type="button" onClick={() => setHlVertical(false)} aria-pressed={!hlVertical} style={{ background: !hlVertical ? C.gold : "transparent", color: !hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.wide")}</button>
               </div>
-              <button type="button" onClick={makeHighlightVideo} disabled={hlSelected.length < 3} style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, opacity: hlSelected.length < 3 ? 0.5 : 1 }}>{t("hl.make")}</button>
+              <button type="button" data-hint={t("hint.hlMake")} onClick={makeHighlightVideo} disabled={hlSelected.length < 3} style={{ background: C.gold, color: C.onInk, border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, opacity: hlSelected.length < 3 ? 0.5 : 1 }}>{t("hl.make")}</button>
               {hlSelected.length < 3 && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{t("hl.pickThree")}</span>}
               {hl && hl.error && <span style={{ fontSize: 12, color: C.pink, flexBasis: "100%" }}>{hl.error}</span>}
             </div>
@@ -1148,7 +1194,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       </div>
 
       {Array.isArray(event.highlights) && event.highlights.length > 0 && (
-        <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "4px 18px 18px" }}>
+        <div data-tour="ev-hlsaved" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "4px 18px 18px" }}>
           <HighlightList event={event} highlights={event.highlights}
             confirm={(message) => dlg.confirm({ title: t("hls.deleteTitle"), message, confirmLabel: t("hls.delete") })}
             onDelete={async (id) => {
@@ -1164,7 +1210,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       <LeadsSection event={event} api={api} mode={leadMode} />
 
       {/* ---- GUESTBOOK MESSAGES ---- */}
-      <details style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
+      <details data-tour="ev-wishes" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
         <summary style={{ cursor: "pointer", fontWeight: 800, color: C.text, fontSize: 15 }}>{t("admin.wishes")} ({wishes.filter((w) => w.status === "approved").length})</summary>
         <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px" }}>{t("admin.wishes.help")}</p>
         {wishes.length === 0 ? (
@@ -1191,7 +1237,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         )}
       </details>
 
-      {event.video_guestbook_enabled && <VideoMessages event={event} api={api} contributors={contributors} canDelete={!isCohost} />}
+      {event.video_guestbook_enabled && <div data-tour="ev-vmsg"><VideoMessages event={event} api={api} contributors={contributors} canDelete={!isCohost} /></div>}
 
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has
@@ -1209,14 +1255,14 @@ export function EventDetail({ event: eventProp, api, back }) {
 
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
           <a href={liveUrl} target="_blank" rel="noreferrer" onClick={() => markReady("live")} style={{ textDecoration: "none" }}>
-            <button style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8 }}><PlayIcon /> {t("tv.open")}</button>
+            <button data-hint={t("hint.tvOpen")} style={{ background: C.gold, color: C.ink, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8 }}><PlayIcon /> {t("tv.open")}</button>
           </a>
-          <button onClick={copyTvLink} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "12px 16px", borderRadius: 10, fontSize: 13 }}>
+          <button data-hint={t("hint.tvCopy")} onClick={copyTvLink} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "12px 16px", borderRadius: 10, fontSize: 13 }}>
             {tvCopied ? t("tv.copied") : t("tv.copy")}
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 18, marginTop: 18, alignItems: "start" }}>
+        <div data-tour="ev-tvqr" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 18, marginTop: 18, alignItems: "start" }}>
           <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 12 }}>
             {[["tv.step1.t", "tv.step1.d"], ["tv.step2.t", "tv.step2.d"], ["tv.step3.t", "tv.step3.d"]].map(([tk, dk], i) => (
               <li key={tk} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -1245,7 +1291,7 @@ export function EventDetail({ event: eventProp, api, back }) {
 
         {/* No laptop? Phone paths. Collapsed by default so the card stays
             short for the common case; each <details> is its own step list. */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+        <div data-tour="ev-tvphone" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{t("tv.phone.t")}</div>
           <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.5 }}>{t("tv.phone.d")}</p>
 
@@ -1328,7 +1374,7 @@ export function EventDetail({ event: eventProp, api, back }) {
           <FrameSettings event={event} api={api} updateEvent={updateEvent} photos={photos} onError={showErr} />
           <EventExtras event={event} api={api} updateEvent={updateEvent} onError={showErr} />
 
-          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
+          <div data-tour="ev-challenges" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.challenges")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.challenges.help")}</p>
             <Toggle on={chOn} onClick={() => setChOn((v) => !v)} title={t("admin.challengesOn")} />
@@ -1348,6 +1394,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
             <Toggle on={protectMinors} onClick={() => setProtectMinors((v) => !v)} title={t("admin.protectMinors")} help={t("admin.protectMinors.help")} />
           </div>
+          <div data-tour="ev-recurring">
           <Toggle on={isRecurring} onClick={() => setIsRecurring((v) => !v)} title={t("admin.recurring")} help={t("admin.recurring.help")} />
           {isRecurring && (
             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -1355,8 +1402,9 @@ export function EventDetail({ event: eventProp, api, back }) {
               <button onClick={startNewSession} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.startSession")}</button>
             </div>
           )}
+          </div>
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+          <div data-tour="ev-connect" style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.connectCta")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.connectHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
@@ -1366,7 +1414,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+          <div data-tour="ev-music" style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.music")}</div>
             <p style={{ fontSize: 11, color: C.second, margin: "4px 0 10px" }}>{t("admin.musicHelp")}</p>
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
@@ -1400,21 +1448,21 @@ export function EventDetail({ event: eventProp, api, back }) {
             <p style={{ fontSize: 11, color: C.second, margin: "8px 0 0" }}>{t("admin.musicUploadTips")}</p>
           </div>
 
-          <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
-            <button onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
+          <div data-tour="ev-save" style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
+            <button data-hint={t("hint.save")} onClick={saveSettings} disabled={saving} style={{ background: C.gold, color: C.ink, padding: "10px 18px", borderRadius: 10, fontSize: 14, opacity: saving ? 0.6 : 1 }}>{saving ? t("admin.saving") : t("admin.save")}</button>
             {savedMsg && <span style={{ fontSize: 12, color: C.second }}>{savedMsg}</span>}
           </div>
 
-          {!event._cohost && <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
+          {!event._cohost && <div data-tour="ev-danger" style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(179,38,30,.25)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#b3261e" }}>{t("admin.dangerZone")}</div>
             <p style={{ fontSize: 12, color: C.second, margin: "4px 0 10px" }}>{t("admin.deleteEventHelp")}</p>
-            <button onClick={deleteEvent} disabled={deletingEvent} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "10px 16px", borderRadius: 10, fontSize: 14, opacity: deletingEvent ? 0.6 : 1 }}>{deletingEvent ? t("admin.deletingEvent") : t("admin.deleteEvent")}</button>
+            <button data-hint={t("hint.delEvent")} onClick={deleteEvent} disabled={deletingEvent} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "10px 16px", borderRadius: 10, fontSize: 14, opacity: deletingEvent ? 0.6 : 1 }}>{deletingEvent ? t("admin.deletingEvent") : t("admin.deleteEvent")}</button>
           </div>}
         </div>
       )}
 
       {photos.length > 0 && (
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.card, border: `1px solid ${featured ? C.gold : "rgba(255,255,255,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
+        <div data-tour="ev-moment" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.card, border: `1px solid ${featured ? C.gold : "rgba(255,255,255,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.moment")}</span>
           {featured ? (
             <>
@@ -1423,12 +1471,12 @@ export function EventDetail({ event: eventProp, api, back }) {
               <button onClick={clearMoment} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.clearMoment")}</button>
             </>
           ) : <span style={{ fontSize: 12, color: C.second }}>{t("admin.momentNone")}</span>}
-          <button onClick={pinTopMoment} style={{ marginLeft: "auto", background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.pinTopMoment")}</button>
+          <button data-hint={t("hint.pinTop")} onClick={pinTopMoment} style={{ marginLeft: "auto", background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 12 }}>{t("admin.pinTopMoment")}</button>
         </div>
       )}
 
       {pending.length > 0 && (
-        <div style={{ marginTop: 18, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+        <div data-tour="ev-review" style={{ marginTop: 18, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 22, color: C.text, margin: 0 }}>
@@ -1436,7 +1484,7 @@ export function EventDetail({ event: eventProp, api, back }) {
               </h3>
               <p style={{ fontSize: 12, color: C.second, margin: "4px 0 0" }}>{t("admin.reviewHintQueue")}</p>
             </div>
-            <button onClick={() => moderate(pending.map((p) => p.id), "approved")} disabled={moderating}
+            <button data-hint={t("hint.approveAll")} onClick={() => moderate(pending.map((p) => p.id), "approved")} disabled={moderating}
               style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "9px 16px", borderRadius: 999, fontSize: 13, opacity: moderating ? 0.6 : 1 }}>
               {moderating ? t("admin.moderating") : t("admin.approveAll")}
             </button>
@@ -1477,7 +1525,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         <Empty title={t("admin.nothing.title")} sub={t("admin.nothing.sub")} />
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
+          <div data-tour="ev-collection" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 className="serif" style={{ fontSize: 24, color: C.text, margin: 0 }}>{t("admin.collection")}</h3>
               <div style={{ fontSize: 12, color: C.second, marginTop: 2 }}>{photos.length} {t("admin.photosWord")} · {editedCount} {t("admin.autoEdited")}{rejected.length ? ` · ${rejected.length} ${t("admin.rejected")}` : ""}{dupCount ? ` · ${dupCount} ${t("admin.duplicates")}` : ""}</div>
@@ -1498,15 +1546,15 @@ export function EventDetail({ event: eventProp, api, back }) {
                 <button onClick={() => setVersion("edited")} style={{ background: version === "edited" ? C.ink : "transparent", color: version === "edited" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.edited")}</button>
                 <button onClick={() => setVersion("original")} style={{ background: version === "original" ? C.ink : "transparent", color: version === "original" ? C.bg : C.second, padding: "7px 12px", fontSize: 12, border: "none", borderRadius: 0 }}>{t("admin.original")}</button>
               </div>
-              <button onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
-              <button onClick={downloadAll} disabled={!!zipping} style={{ background: C.gold, color: C.onInk, padding: "7px 14px", borderRadius: 999, fontSize: 12, opacity: zipping ? 0.8 : 1, minWidth: 150 }}>{zipping ? t("admin.zipping").replace("{done}", zipping.done).replace("{total}", zipping.total) : `${t("admin.downloadAllBtn")} (${shown.length})`}</button>
+              <button data-hint={t("hint.kept")} onClick={() => setFilter(filter === "all" ? "kept" : "all")} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{filter === "all" ? t("admin.keptOnly") : `${t("admin.all")} (${photos.length})`}</button>
+              <button data-hint={t("hint.zip")} onClick={downloadAll} disabled={!!zipping} style={{ background: C.gold, color: C.onInk, padding: "7px 14px", borderRadius: 999, fontSize: 12, opacity: zipping ? 0.8 : 1, minWidth: 150 }}>{zipping ? t("admin.zipping").replace("{done}", zipping.done).replace("{total}", zipping.total) : `${t("admin.downloadAllBtn")} (${shown.length})`}</button>
               {!selectMode ? (
-                <button onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
+                <button data-hint={t("hint.select")} onClick={() => setSelectMode(true)} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.select")}</button>
               ) : (
                 <button onClick={exitSelect} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12 }}>{t("admin.done")}</button>
               )}
               {rejected.length > 0 && !isCohost && (
-                <button onClick={deleteAllRejected} disabled={deleting} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.clearRejected")} {rejected.length} {t("admin.rejected")}</button>
+                <button data-hint={t("hint.rejected")} onClick={deleteAllRejected} disabled={deleting} style={{ background: "transparent", color: "#b3261e", border: "1px solid #b3261e", padding: "7px 12px", borderRadius: 999, fontSize: 12, opacity: deleting ? 0.6 : 1 }}>{t("admin.clearRejected")} {rejected.length} {t("admin.rejected")}</button>
               )}
             </div>
           </div>
@@ -1532,13 +1580,13 @@ export function EventDetail({ event: eventProp, api, back }) {
           )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 14, marginTop: 16 }}>
-            {shown.map((p) => {
+            {shown.map((p, pi) => {
               const isSel = selected.has(p.id);
               const statusLabel = p.status === "pending" ? t("admin.pendingBadge") : p.status === "hidden" ? t("admin.hiddenBadge") : null;
               const isFeatured = p.id === featuredId;
               const n = counts[p.id] || 0;
               return (
-                <div key={p.id} className="card" onClick={() => selectMode && toggleSelect(p.id)}
+                <div key={p.id} data-tour={pi === 0 ? "ev-photocard" : undefined} className="card" onClick={() => selectMode && toggleSelect(p.id)}
                   style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: isSel ? `2px solid ${C.gold}` : isFeatured ? `2px solid ${C.gold}` : "1px solid rgba(255,255,255,.08)", opacity: p.kept ? 1 : 0.6, cursor: selectMode ? "pointer" : "default" }}>
                   <div style={{ position: "relative" }}>
                     <MediaThumb photo={p} src={version === "edited" && p.edited_url ? p.edited_url : p.url} loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />

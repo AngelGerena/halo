@@ -74,7 +74,7 @@ export default function EventExtras({ event, updateEvent, api, onError }) {
         </div>
       ))}
 
-      <div style={row}>
+      <div style={row} data-tour="ev-leads">
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("extras.leads")}</div>
           <div style={{ fontSize: 11.5, color: C.second, lineHeight: 1.45, marginTop: 2 }}>{t("extras.leads.help")}</div>
@@ -86,7 +86,7 @@ export default function EventExtras({ event, updateEvent, api, onError }) {
           {PANELS.lead_capture && vals.lead_capture !== "off" ? <div style={{ marginTop: 10 }}>{panel("lead_capture")}</div> : null}
         </div>
       </div>
-      {PANELS.sponsor ? <div style={row}><div style={{ minWidth: 0, flex: 1 }}>{panel("sponsor")}</div></div> : null}
+      {PANELS.sponsor ? <div style={row} data-tour="ev-sponsor"><div style={{ minWidth: 0, flex: 1 }}>{panel("sponsor")}</div></div> : null}
     </div>
   );
 }
