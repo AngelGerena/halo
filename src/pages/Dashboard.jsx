@@ -19,7 +19,7 @@ import { Footer, Spinner, Empty, LangToggle } from "../components/UI.jsx";
 import { CreateEvent, EventDetail } from "../components/EventManager.jsx";
 import { shortDate } from "../lib/retention.js";
 import MusicLibraryAdmin from "../components/MusicLibraryAdmin.jsx";
-import Tour, { TourButton } from "../components/Tour.jsx";
+import Tour, { HelpMenu, HoverHints } from "../components/Tour.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth, RequireAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
@@ -263,17 +263,23 @@ function DashboardInner() {
     );
   }
 
+  const D = (key, target, extra) => ({ target, title: t(`tw.d.${key}.t`), body: t(`tw.d.${key}.b`), ...extra });
+  const dashSteps = [
+    D("welcome"),
+    D("lang", '[data-tour="d-lang"]'),
+    D("create", '[data-tour="d-create"]'),
+    D("music", '[data-tour="d-music"]', { skip: true }),
+    D("event", '[data-tour="d-event"] .poster', { missing: t("tw.d.event.m") }),
+    D("btns", '[data-tour="d-event"] .ps-acts', { skip: true }),
+    D("help", '[data-tour="d-help"]', { doneLabel: t("tour.letsGo") }),
+  ];
   const who = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || "";
 
   return (
     <div>
+      <HoverHints />
       {!loading && (
-        <Tour id="dashboard" auto steps={[
-          { title: t("tour.d.welcome.t"), body: t("tour.d.welcome.b") },
-          { target: '[data-tour="d-create"]', title: t("tour.d.create.t"), body: t("tour.d.create.b") },
-          { target: '[data-tour="d-event"] .poster', title: t("tour.d.event.t"), body: t("tour.d.event.b") },
-          { target: '[data-tour="d-help"]', title: t("tour.d.help.t"), body: t("tour.d.help.b"), doneLabel: t("tour.letsGo") },
-        ]} />
+        <Tour id="dashboard" auto steps={dashSteps} />
       )}
       <div className="ps-hello">
         <div>
@@ -282,7 +288,7 @@ function DashboardInner() {
           {who && <p className="ps-who">{t("dash.signedInAs")} <b>{who}</b></p>}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <span data-tour="d-help"><TourButton id="dashboard" /></span>
+          <span data-tour="d-help"><HelpMenu id="dashboard" /></span>
           <button className="ps-out" onClick={signOut}>{t("dash.signOut")}</button>
         </div>
       </div>
@@ -301,7 +307,7 @@ function DashboardInner() {
           />
         </div>
         {isAdmin && (
-          <div style={{ gridColumn: "1 / -1" }}>
+          <div style={{ gridColumn: "1 / -1" }} data-tour="d-music">
             <MusicLibraryAdmin api={api} />
           </div>
         )}
@@ -328,7 +334,7 @@ function Shell({ children }) {
       <header className="ps-top">
         <a href="/" className="ps-wm" aria-label="HALO home">HALO</a>
         <div className="ps-right">
-          <LangToggle />
+          <span data-tour="d-lang" style={{ display: "inline-flex" }}><LangToggle /></span>
           {initials && <span className="ps-av" aria-hidden="true">{initials}</span>}
         </div>
       </header>
