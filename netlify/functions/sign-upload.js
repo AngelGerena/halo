@@ -29,6 +29,9 @@ function keyFor(eventId, contributorId, ct) {
   return `${eventId}/${contributorId}/${Date.now()}-${rnd}.${ext}`;
 }
 
+// SVG can carry script and would be served as-is from the public bucket.
+const IMAGE_BLOCKED = new Set(["image/svg+xml", "image/svg"]);
+
 export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
 
@@ -40,6 +43,9 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: "eventId and contributorId required" }) };
   }
   const raw = contentType ? String(contentType).toLowerCase() : "";
+  if (IMAGE_BLOCKED.has(raw)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "That file type isn't supported. Please upload a photo or video." }) };
+  }
   const ct = raw.startsWith("image/") ? raw : (VIDEO_EXT[raw] ? raw : (raw.startsWith("video/") ? "video/mp4" : "image/jpeg"));
   const isVideo = ct.startsWith("video/");
   const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;

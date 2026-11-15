@@ -26,13 +26,14 @@ export async function handler(event) {
 
   // 1. collect every storage path tied to this event
   const { data: photos, error: selErr } = await supabase
-    .from("photos").select("storage_path, edited_path, crops").eq("event_id", eventId);
+    .from("photos").select("storage_path, edited_path, video_path, crops").eq("event_id", eventId);
   if (selErr) return { statusCode: 500, body: JSON.stringify({ error: selErr.message }) };
 
   const paths = [];
   for (const p of photos || []) {
     if (p.storage_path) paths.push(p.storage_path);
     if (p.edited_path) paths.push(p.edited_path);
+    if (p.video_path) paths.push(p.video_path);
     if (p.crops && typeof p.crops === "object") {
       for (const k of Object.keys(p.crops)) { if (p.crops[k]) paths.push(p.crops[k]); }
     }

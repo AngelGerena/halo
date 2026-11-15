@@ -166,7 +166,7 @@ const STRINGS = {
   "admin.wishes": { en: "Guestbook messages", es: "Mensajes del libro de visitas" },
   "admin.wishes.help": { en: "Messages guests left. They show on the live screen. Hide any you don't want shown.", es: "Mensajes que dejaron los invitados. Salen en la pantalla en vivo. Oculta los que no quieras mostrar." },
   "admin.wishesNone": { en: "No messages yet.", es: "Todavía no hay mensajes." },
-  "admin.hide": { en: "Hide", es: "Ocultar" },
+  "admin.hideWish": { en: "Hide", es: "Ocultar" },
   "admin.show": { en: "Show", es: "Mostrar" },
   "admin.hidden": { en: "Hidden", es: "Oculto" },
   "admin.wishesDownload": { en: "Download messages", es: "Descargar mensajes" },

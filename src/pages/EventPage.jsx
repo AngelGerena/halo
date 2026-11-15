@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { safeHttpUrl } from "../lib/safeUrl.js";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { fetchReactions, like, rxKey } from "../lib/reactions.js";
 import { shrinkImage } from "../lib/shrink.js";
@@ -913,8 +914,8 @@ export default function EventPage() {
               )}
             </div>
 
-            {event.connect_url && (
-              <a href={event.connect_url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
+            {safeHttpUrl(event.connect_url) && (
+              <a href={safeHttpUrl(event.connect_url)} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
                 <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: "15px 17px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{connectLabel}</div>

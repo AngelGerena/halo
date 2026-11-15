@@ -1321,7 +1321,7 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                         {p.tags.map((tg) => (
                           <span key={tg} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,.08)", color: C.text, fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 999 }}>
-                            {t("tag." + tg)}<span onClick={(e) => { e.stopPropagation(); tagPhotos([p.id], tg, "remove"); }} aria-label={t("admin.removeTag")} style={{ cursor: "pointer", color: C.second }}>Ã—</span>
+                            {t("tag." + tg)}<span onClick={(e) => { e.stopPropagation(); tagPhotos([p.id], tg, "remove"); }} aria-label={t("admin.removeTag")} style={{ cursor: "pointer", color: C.second }}>×</span>
                           </span>
                         ))}
                       </div>
