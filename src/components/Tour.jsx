@@ -1,0 +1,176 @@
+// HALO guided tour: spotlights one part of the page at a time with a short
+// hint card (Back / Next / Skip). Runs once per tour per browser on its own,
+// and can be replayed any time with replayTour(id) (the "Take the tour" buttons).
+//
+// <Tour id="dashboard" steps={[{ target: '[data-tour="create"]', title, body }]} auto />
+//   target   CSS selector; steps whose target isn't on the page are skipped.
+//            Omit it for a centered welcome card.
+//   auto     start by itself the first time (remembered in localStorage)
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { C } from "../lib/score.js";
+import { useI18n } from "../lib/i18n.jsx";
+
+const KEY = (id) => `halo_tour_${id}_done`;
+const EVT = "halo:tour";
+const PAD = 8;
+
+export function tourDone(id) { try { return localStorage.getItem(KEY(id)) === "1"; } catch { return false; } }
+function markDone(id) { try { localStorage.setItem(KEY(id), "1"); } catch {} }
+export function replayTour(id) { window.dispatchEvent(new CustomEvent(EVT, { detail: { id } })); }
+
+function visible(el) {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+
+export default function Tour({ id, steps, auto = false, delay = 700, onFinish }) {
+  const { t } = useI18n();
+  const [idx, setIdx] = useState(-1); // -1 = not running
+  const [rect, setRect] = useState(null);
+  const [vw, setVw] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  const [vh, setVh] = useState(typeof window !== "undefined" ? window.innerHeight : 800);
+  const nextBtn = useRef(null);
+  const dir = useRef(1);
+
+  const start = useCallback(() => { dir.current = 1; setIdx(0); }, []);
+  const finish = useCallback(() => { setIdx(-1); setRect(null); markDone(id); onFinish && onFinish(); }, [id, onFinish]);
+
+  useEffect(() => {
+    if (!auto || tourDone(id)) return;
+    const tm = setTimeout(start, delay);
+    return () => clearTimeout(tm);
+  }, [auto, id, delay, start]);
+
+  useEffect(() => {
+    const on = (e) => { if (e.detail && e.detail.id === id) start(); };
+    window.addEventListener(EVT, on);
+    return () => window.removeEventListener(EVT, on);
+  }, [id, start]);
+
+  const step = idx >= 0 ? steps[idx] : null;
+
+  // Find the target (skip steps whose target isn't on the page), scroll it in, measure.
+  useLayoutEffect(() => {
+    if (idx < 0) return;
+    if (idx >= steps.length) { finish(); return; }
+    const s = steps[idx];
+    if (!s.target) { setRect(null); return; }
+    const el = document.querySelector(s.target);
+    if (!visible(el)) {
+      // Not on the page right now: skip it (backwards only while there's room).
+      if (dir.current < 0 && idx > 0) setIdx(idx - 1);
+      else { dir.current = 1; setIdx(idx + 1); }
+      return;
+    }
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    let raf = 0;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      setVw(window.innerWidth); setVh(window.innerHeight);
+    };
+    const tick = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measure); };
+    measure();
+    const tm = setTimeout(measure, 450); // after the smooth scroll settles
+    window.addEventListener("scroll", tick, true);
+    window.addEventListener("resize", tick);
+    return () => { clearTimeout(tm); cancelAnimationFrame(raf); window.removeEventListener("scroll", tick, true); window.removeEventListener("resize", tick); };
+  }, [idx, steps, finish]);
+
+  useEffect(() => {
+    if (idx < 0) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") finish();
+      else if (e.key === "ArrowRight") { dir.current = 1; setIdx((i) => i + 1); }
+      else if (e.key === "ArrowLeft") { dir.current = -1; setIdx((i) => Math.max(0, i - 1)); }
+    };
+    window.addEventListener("keydown", onKey);
+    const f = setTimeout(() => nextBtn.current && nextBtn.current.focus({ preventScroll: true }), 60);
+    return () => { window.removeEventListener("keydown", onKey); clearTimeout(f); };
+  }, [idx, finish]);
+
+  if (!step) return null;
+
+  const last = idx === steps.length - 1;
+  const mobile = vw < 640;
+  const cardW = Math.min(360, vw - 24);
+
+  // Card position: below the target if there's room, else above; centered if no target.
+  let cardStyle;
+  if (!rect) {
+    cardStyle = { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+  } else if (mobile) {
+    const targetMid = rect.top + rect.height / 2;
+    cardStyle = targetMid > vh * 0.55
+      ? { left: 12, right: 12, top: 12 }
+      : { left: 12, right: 12, bottom: 12 };
+  } else {
+    const below = rect.top + rect.height + PAD + 14;
+    const spaceBelow = vh - below;
+    const left = Math.min(Math.max(12, rect.left), vw - cardW - 12);
+    cardStyle = spaceBelow > 230 ? { left, top: below } : { left, bottom: vh - rect.top + PAD + 14 };
+  }
+
+  const spot = rect ? {
+    position: "fixed", top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2,
+    borderRadius: 16, boxShadow: `0 0 0 9999px rgba(6,3,12,.72), 0 0 0 2px ${C.gold}, 0 0 28px 4px color-mix(in srgb, var(--gold) 45%, transparent)`,
+    transition: "top .25s ease, left .25s ease, width .25s ease, height .25s ease", pointerEvents: "none",
+  } : null;
+
+  const count = steps.length;
+  const btn = { minHeight: 42, padding: "0 16px", borderRadius: 999, fontSize: 14, fontWeight: 800, cursor: "pointer" };
+
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={step.title} style={{ position: "fixed", inset: 0, zIndex: 9000 }}>
+      {/* click-catcher: keeps the page from being used mid-tour */}
+      <div onClick={() => {}} style={{ position: "fixed", inset: 0, background: rect ? "transparent" : "rgba(6,3,12,.72)" }} />
+      {spot && <div style={spot} aria-hidden="true" />}
+      <div style={{
+        position: "fixed", ...cardStyle, width: mobile && rect ? "auto" : cardW, maxWidth: "calc(100vw - 24px)", boxSizing: "border-box",
+        background: C.card, color: C.text, border: `1px solid color-mix(in srgb, var(--gold) 55%, transparent)`, borderRadius: 18,
+        padding: "16px 18px 14px", boxShadow: "0 18px 50px rgba(0,0,0,.55)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: C.gold }}>
+            {t("tour.stepOf").replace("{n}", idx + 1).replace("{t}", count)}
+          </span>
+          <button type="button" onClick={finish} style={{ background: "transparent", border: "none", color: C.second, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "6px 0" }}>{t("tour.skip")}</button>
+        </div>
+        <div className="serif" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.2, margin: "6px 0 6px" }}>{step.title}</div>
+        <div style={{ fontSize: 14.5, lineHeight: 1.5, color: C.second }}>{step.body}</div>
+        <div style={{ display: "flex", gap: 5, margin: "14px 0 12px" }} aria-hidden="true">
+          {steps.map((_, i) => (
+            <span key={i} style={{ height: 5, flex: 1, maxWidth: 28, borderRadius: 99, background: i <= idx ? C.gold : "rgba(255,255,255,.15)" }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          {idx > 0 && (
+            <button type="button" onClick={() => { dir.current = -1; setIdx(idx - 1); }}
+              style={{ ...btn, background: "transparent", color: C.text, border: `1px solid ${C.line2}` }}>{t("tour.back")}</button>
+          )}
+          <button type="button" ref={nextBtn} onClick={() => { if (last) finish(); else { dir.current = 1; setIdx(idx + 1); } }}
+            style={{ ...btn, background: C.gold, color: C.ink, border: "none" }}>
+            {last ? (step.doneLabel || t("tour.done")) : t("tour.next")}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// Small "Take the tour" button.
+export function TourButton({ id, label, style }) {
+  const { t } = useI18n();
+  return (
+    <button type="button" onClick={() => replayTour(id)}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: "pointer", ...style }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block" }}>
+        <circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01" />
+      </svg>
+      {label || t("tour.take")}
+    </button>
+  );
+}

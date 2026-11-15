@@ -19,6 +19,7 @@ import { Footer, Spinner, Empty, LangToggle } from "../components/UI.jsx";
 import { CreateEvent, EventDetail } from "../components/EventManager.jsx";
 import { shortDate } from "../lib/retention.js";
 import MusicLibraryAdmin from "../components/MusicLibraryAdmin.jsx";
+import Tour, { TourButton } from "../components/Tour.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth, RequireAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
@@ -266,13 +267,24 @@ function DashboardInner() {
 
   return (
     <div>
+      {!loading && (
+        <Tour id="dashboard" auto steps={[
+          { title: t("tour.d.welcome.t"), body: t("tour.d.welcome.b") },
+          { target: '[data-tour="d-create"]', title: t("tour.d.create.t"), body: t("tour.d.create.b") },
+          { target: '[data-tour="d-event"] .poster', title: t("tour.d.event.t"), body: t("tour.d.event.b") },
+          { target: '[data-tour="d-help"]', title: t("tour.d.help.t"), body: t("tour.d.help.b"), doneLabel: t("tour.letsGo") },
+        ]} />
+      )}
       <div className="ps-hello">
         <div>
           <div className="ps-eyebrow">{t("dash.space")}</div>
           <h1 className="ps-title">{t("dash.title")}</h1>
           {who && <p className="ps-who">{t("dash.signedInAs")} <b>{who}</b></p>}
         </div>
-        <button className="ps-out" onClick={signOut}>{t("dash.signOut")}</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <span data-tour="d-help"><TourButton id="dashboard" /></span>
+          <button className="ps-out" onClick={signOut}>{t("dash.signOut")}</button>
+        </div>
       </div>
 
       <div className="ps-grid">
@@ -281,7 +293,7 @@ function DashboardInner() {
             api={api}
             onCreated={(newEvent) => { loadEvents(); if (newEvent) setSelected(newEvent); }}
             renderTrigger={(open) => (
-              <button className="ps-new" onClick={open}>
+              <button className="ps-new" data-tour="d-create" onClick={open}>
                 <span className="plus">{I.plus}</span>
                 <span><b>{t("admin.createEvent").replace(/^\+\s*/, "")}</b><span>{t("dash.createSub")}</span></span>
               </button>
@@ -298,7 +310,7 @@ function DashboardInner() {
         ) : events.length === 0 ? (
           <div style={{ gridColumn: "1 / -1" }}><Empty title={t("dash.noEvents.title")} sub={t("dash.noEvents.sub")} /></div>
         ) : (
-          events.map((e) => <Poster key={e.id} e={e} info={info[e.id]} onOpen={() => setSelected(e)} />)
+          events.map((e, i) => <div key={e.id} data-tour={i === 0 ? "d-event" : undefined} style={{ display: "contents" }}><Poster e={e} info={info[e.id]} onOpen={() => setSelected(e)} /></div>)
         )}
       </div>
     </div>

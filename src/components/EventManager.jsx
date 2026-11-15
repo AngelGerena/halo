@@ -46,6 +46,7 @@ import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseI
 import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
 import EditEventDetails, { qrFileName } from "./EditEventDetails.jsx";
 import RetentionBanner from "./RetentionBanner.jsx";
+import Tour, { TourButton } from "./Tour.jsx";
 import MusicPicker, { trackLabel } from "./MusicPicker.jsx";
 import HighlightList from "./HighlightList.jsx";
 import { autoTrack } from "../lib/music.js";
@@ -146,26 +147,38 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
 
   return (
     <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
-      <h3 className="serif" style={{ fontSize: 22, color: C.text, margin: "0 0 12px" }}>{t("admin.newEvent")}</h3>
+      <Tour id="create" auto steps={[
+        { target: '[data-tour="c-name"]', title: t("tour.c.name.t"), body: t("tour.c.name.b") },
+        { target: '[data-tour="c-category"]', title: t("tour.c.cat.t"), body: t("tour.c.cat.b") },
+        { target: '[data-tour="c-host"]', title: t("tour.c.host.t"), body: t("tour.c.host.b") },
+        { target: '[data-tour="c-code"]', title: t("tour.c.code.t"), body: t("tour.c.code.b") },
+        { target: '[data-tour="c-safety"]', title: t("tour.c.safety.t"), body: t("tour.c.safety.b") },
+        { target: '[data-tour="c-spanish"]', title: t("tour.c.es.t"), body: t("tour.c.es.b") },
+        { target: '[data-tour="c-create"]', title: t("tour.c.create.t"), body: t("tour.c.create.b"), doneLabel: t("tour.c.go") },
+      ]} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", margin: "0 0 12px" }}>
+        <h3 className="serif" style={{ fontSize: 22, color: C.text, margin: 0 }}>{t("admin.newEvent")}</h3>
+        <TourButton id="create" label={t("tour.showMe")} />
+      </div>
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
-        <div style={{ gridColumn: "1 / -1" }}>
+        <div style={{ gridColumn: "1 / -1" }} data-tour="c-name">
           <label style={lab}>{t("admin.eventName")} *</label>
           <input style={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="Resurrection Sunday Service" />
         </div>
-        <div style={{ gridColumn: "1 / -1" }}>
+        <div style={{ gridColumn: "1 / -1" }} data-tour="c-category">
           <label style={lab}>{t("admin.category")}</label>
           <select style={field} value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">—</option>
             {["wedding", "quinceanera", "church", "corporate", "gala", "other"].map((c) => <option key={c} value={c}>{t("cat." + c)}</option>)}
           </select>
         </div>
-        <div><label style={lab}>{t("admin.hostChurch")}</label><input style={field} value={host} onChange={(e) => setHost(e.target.value)} placeholder="Iglesia Cristiana Gracia y Gloria" /></div>
+        <div data-tour="c-host"><label style={lab}>{t("admin.hostChurch")}</label><input style={field} value={host} onChange={(e) => setHost(e.target.value)} placeholder="Iglesia Cristiana Gracia y Gloria" /></div>
         <div><label style={lab}>{t("admin.dateDisplay")}</label><input style={field} value={date} onChange={(e) => setDate(e.target.value)} placeholder="March 31, 2026" /></div>
-        <div><label style={lab}>{t("admin.customCode")}</label><input style={field} value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("admin.autoFromName")} /></div>
+        <div data-tour="c-code"><label style={lab}>{t("admin.customCode")}</label><input style={field} value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("admin.autoFromName")} /></div>
         <div><label style={lab}>{t("admin.keepThreshold")} ({threshold})</label><input type="range" min="0" max="80" value={threshold} onChange={(e) => setThreshold(e.target.value)} style={{ width: "100%", marginTop: 10 }} /></div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+      <div data-tour="c-safety" style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>{t("admin.safety")}</div>
         <div style={{ display: "grid", gap: 10 }}>
           <Toggle on={requireReview} onClick={() => setRequireReview((v) => !v)} title={t("admin.requireReview")} help={t("admin.requireReview.help")} />
@@ -173,7 +186,7 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+      <div data-tour="c-spanish" style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.1)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.spanishVersion")}</div>
           <button onClick={autoTranslate} disabled={translating || !hasEnglish}
@@ -194,7 +207,7 @@ export function CreateEvent({ api, onCreated, renderTrigger }) {
 
       {err && <div style={{ color: "#b3261e", fontSize: 13, marginTop: 10 }}>{err}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-        <button onClick={create} disabled={busy} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 10, fontSize: 14, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.creating") : t("admin.createGenerate")}</button>
+        <button data-tour="c-create" onClick={create} disabled={busy} style={{ background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "11px 18px", borderRadius: 10, fontSize: 14, opacity: busy ? 0.6 : 1 }}>{busy ? t("admin.creating") : t("admin.createGenerate")}</button>
         <button onClick={() => setOpen(false)} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "11px 18px", borderRadius: 10, fontSize: 14 }}>{t("admin.cancel")}</button>
       </div>
     </div>
@@ -762,10 +775,26 @@ export function EventDetail({ event: eventProp, api, back }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
-        <button onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        <span style={{ display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
+        <span data-tour="ev-tour"><TourButton id="event" /></span>
+        <button data-tour="ev-settings" onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        </span>
       </div>
+      <Tour id="event" auto delay={1200} steps={[
+        { title: t("tour.e.welcome.t"), body: t("tour.e.welcome.b") },
+        { target: '[data-tour="ev-addphotos"]', title: t("tour.e.add.t"), body: t("tour.e.add.b") },
+        { target: "#halo-ready", title: t("tour.e.ready.t"), body: t("tour.e.ready.b") },
+        { target: '[data-tour="ev-qr"]', title: t("tour.e.qr.t"), body: t("tour.e.qr.b") },
+        { target: '[data-tour="ev-edit"]', title: t("tour.e.edit.t"), body: t("tour.e.edit.b") },
+        { target: "#halo-retention", title: t("tour.e.ret.t"), body: t("tour.e.ret.b") },
+        { target: '[data-tour="ev-settings"]', title: t("tour.e.settings.t"), body: t("tour.e.settings.b") },
+        { target: '[data-tour="ev-tv"]', title: t("tour.e.tv.t"), body: t("tour.e.tv.b") },
+        { target: '[data-tour="ev-highlight"]', title: t("tour.e.hl.t"), body: t("tour.e.hl.b") },
+        { target: '[data-tour="ev-publish"]', title: t("tour.e.pub.t"), body: t("tour.e.pub.b") },
+        { target: '[data-tour="ev-tour"]', title: t("tour.e.end.t"), body: t("tour.e.end.b"), doneLabel: t("tour.letsGo") },
+      ]} />
       {/* Host shortcut: straight to the guest page to take or add photos, same tab. */}
-      <a href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
+      <a data-tour="ev-addphotos" href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
         style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, minHeight: 52, padding: "12px 16px", borderRadius: 14, background: C.gold, color: C.ink, fontSize: 16, fontWeight: 800, textDecoration: "none", boxSizing: "border-box", width: "100%" }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
         {t("admin.addPhotos")}
@@ -909,7 +938,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             translate={async (items) => (await api.fn("translate", { items })).translations}
             onSaved={(u) => { setEvent((e) => ({ ...e, ...u })); dlg.toast(t("edit.done"), "success"); }} />
         </div>
-        <div className="hqb-qr">
+        <div className="hqb-qr" data-tour="ev-qr">
           {qr && (
             <button type="button" onClick={() => setQrFull("join")} aria-label={t("qr.showBig")} style={{ padding: 0, border: "none", background: "transparent", cursor: "zoom-in", display: "block", width: "100%" }}>
               <img src={qr} alt="Event QR code" className="hqb-qrimg" />
@@ -964,7 +993,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                 style={{ minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{galCopied ? t("admin.copied") : t("sg.copyLink")}</button>
             </div>
           </div>
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
+          <div data-tour="ev-publish" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("admin.afterEvent")}</div>
             <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("admin.afterEventHelp")}</p>
             {isCohost ? (
@@ -1024,7 +1053,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       )}
 
       {/* ---- HIGHLIGHT VIDEO ---- */}
-      <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "16px 18px" }}>
+      <div data-tour="ev-highlight" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "16px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ color: C.gold, display: "inline-flex" }}><VideoIcon size={20} /></span>
           <div style={{ fontWeight: 800, color: C.text, fontSize: 15 }}>{t("hl.title")}</div>
@@ -1169,7 +1198,7 @@ export function EventDetail({ event: eventProp, api, back }) {
           to get a browser URL onto a TV. Make that a first-class, plain-language
           card: one big action, a QR so nobody types a URL, and three steps that
           cover the real ways people connect. */}
-      <div style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+      <div data-tour="ev-tv" style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <div style={{ color: C.gold, marginTop: 2 }}><TvIcon size={30} /></div>
           <div style={{ flex: 1, minWidth: 220 }}>
