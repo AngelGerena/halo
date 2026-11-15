@@ -144,7 +144,11 @@ export async function handler() {
         const r = await purge(supabase, (q) => q.eq("event_id", ev.id), started, dryRun);
         report.photosDeleted += r.deleted;
         if (r.done && !dryRun) {
-          await supabase.from("events").update({ closed_at: new Date().toISOString() }).eq("id", ev.id);
+          // Saved highlight videos go with the photos.
+          const { data: hrow } = await supabase.from("events").select("highlights").eq("id", ev.id).maybeSingle();
+          const hpaths = (Array.isArray(hrow?.highlights) ? hrow.highlights : []).map((h) => h && h.path).filter(Boolean);
+          if (hpaths.length) { try { await deleteObjects(hpaths); } catch (e) { console.error("R2 delete warning:", e.message); } }
+          await supabase.from("events").update({ closed_at: new Date().toISOString(), highlights: [] }).eq("id", ev.id);
           report.closed++;
         } else if (!r.done) report.unfinished++;
         continue;

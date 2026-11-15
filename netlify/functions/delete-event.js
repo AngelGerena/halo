@@ -39,6 +39,12 @@ export async function handler(event) {
     }
   }
 
+  // Saved highlight videos for this event
+  try {
+    const { data: hrow } = await supabase.from("events").select("highlights").eq("id", eventId).maybeSingle();
+    for (const h of (Array.isArray(hrow?.highlights) ? hrow.highlights : [])) if (h && h.path) paths.push(h.path);
+  } catch { /* column may not exist yet */ }
+
   // 2. remove files from R2 (batched inside the helper; don't hard-fail on errors)
   try { await deleteObjects(paths); }
   catch (e) { console.error("R2 remove warning:", e.message); }
