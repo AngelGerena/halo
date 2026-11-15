@@ -78,7 +78,7 @@ export default function EditEventDetails({ event, save, translate, onSaved }) {
 
   if (!open) {
     return (
-      <button type="button" onClick={start}
+      <button type="button" data-tour="ev-edit" onClick={start}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "rgba(255,255,255,.06)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "7px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
         <PencilIcon size={13} /> {t("edit.details")}
       </button>
