@@ -43,6 +43,16 @@ export async function handler(event) {
     const trimmed = typeof v === "string" ? v.trim().slice(0, max) : "";
     clean[k] = trimmed || null;
   }
+  if ("connect_url" in clean && clean.connect_url != null) {
+    const raw = String(clean.connect_url).trim().slice(0, 500);
+    let ok = "";
+    try {
+      const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`);
+      if (u.protocol === "https:" || u.protocol === "http:") ok = u.href;
+    } catch {}
+    if (raw && !ok) return { statusCode: 400, body: JSON.stringify({ error: "Link must be a web address (https://...)" }) };
+    clean.connect_url = ok || null;
+  }
   if ("name" in clean && !clean.name) {
     return { statusCode: 400, body: JSON.stringify({ error: "Event name is required" }) };
   }

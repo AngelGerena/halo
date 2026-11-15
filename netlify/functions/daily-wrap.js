@@ -48,7 +48,7 @@ export async function handler() {
     const dashUrl = `${base}/dashboard?event=${encodeURIComponent(ev.code)}`;
     const html = haloEmail({
       heading: `Your ${photoCount} photos are ready`,
-      subhead: ev.name,
+      subhead: esc(ev.name),
       body: `
         <p style="margin:0 0 14px;">Good morning. Here's how last night went:</p>
         <p style="margin:0 0 14px;"><strong>${photoCount}</strong> photo${photoCount === 1 ? "" : "s"} from <strong>${guestCount || 0}</strong> guest${guestCount === 1 ? "" : "s"}, and HALO picked <strong>${keptCount || 0}</strong> as the best shots.</p>

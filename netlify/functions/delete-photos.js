@@ -25,7 +25,7 @@ export async function handler(event) {
 
   // 1. look up the rows so we know which files to remove
   const { data: rows, error: selErr } = await supabase
-    .from("photos").select("id, storage_path, edited_path, crops, event_id").in("id", photoIds);
+    .from("photos").select("id, storage_path, edited_path, video_path, crops, event_id").in("id", photoIds);
   if (selErr) return { statusCode: 500, body: JSON.stringify({ error: selErr.message }) };
   if (!rows || rows.length === 0) {
     return { statusCode: 404, body: JSON.stringify({ error: "No matching photos" }) };
@@ -44,6 +44,7 @@ export async function handler(event) {
   for (const r of rows) {
     if (r.storage_path) paths.push(r.storage_path);
     if (r.edited_path) paths.push(r.edited_path);
+    if (r.video_path) paths.push(r.video_path);
     if (r.crops && typeof r.crops === "object") {
       for (const k of Object.keys(r.crops)) { if (r.crops[k]) paths.push(r.crops[k]); }
     }

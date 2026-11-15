@@ -21,8 +21,8 @@ export async function handler(event) {
   const contributorId = typeof b.contributorId === "string" ? b.contributorId.trim() : "";
   if (!UUID.test(contributorId)) return json(400, { error: "contributorId required" });
 
-  // A guest joins once; 10 calls per 10 minutes per IP is plenty for a shared
-  // venue Wi-Fi and stops anyone looping this endpoint.
+  // A guest joins once; 300 calls per 10 minutes per IP covers a whole venue on
+  // one Wi-Fi address. The per-event daily cap below stops bulk abuse.
   if (overLimit("notify-welcome", clientIp(event), 300, 10 * 60 * 1000)) return tooMany();
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -43,6 +43,16 @@ export async function handler(event) {
   const to = String(c.email || "").trim();
   if (!to || !isEmail(to)) return json(200, { ok: true, skipped: "no email" });
   if (hasCol && c.welcomed_at) return json(200, { ok: true, skipped: "already welcomed" });
+
+  // Per-event daily cap, so a script can't use one event to mail strangers in
+  // bulk. 400 welcomes a day is far above any real wedding or service.
+  if (hasCol) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase.from("contributors")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", c.event_id).gte("welcomed_at", since);
+    if ((count || 0) >= 400) return json(200, { ok: true, skipped: "event daily limit" });
+  }
 
   // Claim the send first (only one concurrent call can flip null -> now).
   if (hasCol) {

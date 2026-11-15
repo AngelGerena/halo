@@ -1101,7 +1101,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                   </div>
                   <button type="button" onClick={() => setWishStatus(w.id, w.status === "approved" ? "hidden" : "approved")}
                     style={{ flex: "0 0 auto", background: "rgba(255,255,255,.08)", color: C.onInk, border: `1px solid ${C.line2}`, padding: "6px 12px", borderRadius: 999, fontSize: 12 }}>
-                    {w.status === "approved" ? t("admin.hide") : t("admin.show")}
+                    {w.status === "approved" ? t("admin.hideWish") : t("admin.show")}
                   </button>
                 </div>
               ))}
