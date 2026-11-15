@@ -34,6 +34,13 @@ export async function handler(event) {
   if ("owner_id" in patch && auth.isAdmin) {
     clean.owner_id = patch.owner_id; // may be a uuid or null (unassign)
   }
+  // Gallery close date (60-day retention) can only be moved by an admin.
+  if (auth.isAdmin && "expires_at" in patch) {
+    const d = patch.expires_at == null ? null : new Date(patch.expires_at);
+    if (d && isNaN(d.getTime())) return { statusCode: 400, body: JSON.stringify({ error: "expires_at must be a date" }) };
+    clean.expires_at = d ? d.toISOString() : null;
+    clean.expiry_notified = {}; // re-send the 30/7/1-day reminders for the new date
+  }
   for (const [k, max] of Object.entries(TEXT_LIMITS)) {
     if (!(k in clean)) continue;
     const v = clean[k];

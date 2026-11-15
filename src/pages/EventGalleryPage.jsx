@@ -5,6 +5,7 @@
 // live screen, so anything held for review or flagged stays out), with hearts,
 // a Share button and a Download-all ZIP. No name or upload step in the way.
 import React, { useEffect, useState } from "react";
+import { RETAIN_DAYS, expiryFor, formatDate } from "../lib/retention.js";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
@@ -134,6 +135,12 @@ export default function EventGalleryPage() {
       <button className="btn-gold" onClick={() => navigate("/")}>{t("gal.goHome")}</button>
     </div></div>
   );
+  if (event.closed_at) return shell(
+    <div style={S.center}><div>
+      <h1 className="serif" style={{ fontSize: 30, margin: "0 0 8px" }}>{t("ret.guestClosedTitle")}</h1>
+      <p style={{ color: C.second, maxWidth: 340, margin: "0 auto 20px" }}>{t("ret.guestClosedSub").replace("{n}", RETAIN_DAYS)}</p>
+    </div></div>
+  );
 
   const coverUrl = event.cover_path ? publicUrl(event.cover_path) : null;
   const coverPos = `${Math.round((event.cover_focus_x ?? 0.5) * 100)}% ${Math.round((event.cover_focus_y ?? 0.5) * 100)}%`;
@@ -159,6 +166,9 @@ export default function EventGalleryPage() {
         <p style={{ color: C.second, margin: "6px 0 0", fontSize: 13 }}>
           <strong style={{ color: C.text }}>{photos.length}</strong> {photos.length === 1 ? t("sg.count1") : t("sg.countN")}
         </p>
+        {photos.length > 0 && expiryFor(event, null) && (
+          <p style={{ color: C.gold, margin: "6px 0 0", fontSize: 13, fontWeight: 700 }}>{t("ret.guestUntil").replace("{date}", formatDate(expiryFor(event, null), lang))}</p>
+        )}
 
         <div style={S.actions}>
           {photos.length > 0 && (

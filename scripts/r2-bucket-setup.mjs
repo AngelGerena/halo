@@ -3,7 +3,8 @@
 //
 // Applies two bucket-level settings that cannot live in app code:
 //   1. CORS   — lets guest browsers PUT directly to R2 via presigned URLs
-//   2. Lifecycle — auto-deletes every object 60 days after upload
+//   2. Lifecycle — REMOVES any bucket-wide auto-delete rule (the 60-day
+//      retention now runs in netlify/functions/gallery-retention.js)
 //
 // RUN THIS ONCE, LOCALLY, with the R2 credentials in your shell env:
 //
@@ -23,9 +24,8 @@
 import {
   S3Client,
   PutBucketCorsCommand,
-  PutBucketLifecycleConfigurationCommand,
+  DeleteBucketLifecycleCommand,
   GetBucketCorsCommand,
-  GetBucketLifecycleConfigurationCommand,
 } from "@aws-sdk/client-s3";
 
 const {
@@ -66,20 +66,10 @@ const CORS = {
   },
 };
 
-// Lifecycle: delete every object 60 days after it is created.
-const LIFECYCLE = {
-  Bucket: R2_BUCKET,
-  LifecycleConfiguration: {
-    Rules: [
-      {
-        ID: "halo-60day-autodelete",
-        Status: "Enabled",
-        Filter: { Prefix: "" }, // all objects
-        Expiration: { Days: 60 },
-      },
-    ],
-  },
-};
+// No bucket-wide lifecycle rule: the bucket also holds landing-page photos,
+// covers, sponsor logos and music that must not expire. The 60-day gallery
+// retention is done by netlify/functions/gallery-retention.js instead, which
+// deletes only event photos and updates the database to match.
 
 async function main() {
   console.log(`Configuring bucket: ${R2_BUCKET}\n`);
@@ -87,14 +77,12 @@ async function main() {
   await s3.send(new PutBucketCorsCommand(CORS));
   console.log("✓ CORS applied");
 
-  await s3.send(new PutBucketLifecycleConfigurationCommand(LIFECYCLE));
-  console.log("✓ Lifecycle applied (60-day auto-delete)");
+  await s3.send(new DeleteBucketLifecycleCommand({ Bucket: R2_BUCKET }));
+  console.log("✓ Bucket-wide lifecycle rule removed (retention is handled by the app)");
 
   // read back to confirm
   const cors = await s3.send(new GetBucketCorsCommand({ Bucket: R2_BUCKET }));
-  const life = await s3.send(new GetBucketLifecycleConfigurationCommand({ Bucket: R2_BUCKET }));
   console.log("\nVerified CORS rules:", JSON.stringify(cors.CORSRules, null, 2));
-  console.log("Verified Lifecycle rules:", JSON.stringify(life.Rules, null, 2));
   console.log("\nDone.");
 }
 

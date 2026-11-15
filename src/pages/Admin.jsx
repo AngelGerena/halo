@@ -6,6 +6,8 @@ import { C } from "../lib/score.js";
 import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import EditEventDetails, { qrFileName } from "../components/EditEventDetails.jsx";
+import RetentionBanner from "../components/RetentionBanner.jsx";
+import { expiryFor, formatDate } from "../lib/retention.js";
 import EventExtras from "../components/EventExtras.jsx";
 import FrameSettings from "../components/FrameSettings.jsx";
 import LeaderboardSetting from "../components/LeaderboardSetting.jsx";
@@ -685,7 +687,7 @@ function CreateEvent({ token, clients = [], onCreated }) {
 }
 
 function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, back }) {
-  const { t, ev } = useI18n();
+  const { t, ev, lang } = useI18n();
   // Local copy so a renamed event shows its new name right away (header, QR download).
   const [event, setEvent] = useState(eventProp);
   const [renamedMsg, setRenamedMsg] = useState("");
@@ -797,6 +799,24 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
     return j;
   } };
   const panelError = (e) => alert(e?.message || String(e));
+
+  // Super-admin only: push the 60-day close date out by 30 days (from the
+  // current close date, or from today if it hasn't been set yet). Resets the
+  // reminder emails so the host is warned again before the new date.
+  const [extending, setExtending] = useState(false);
+  const [extendMsg, setExtendMsg] = useState("");
+  async function extendGallery() {
+    setExtending(true); setExtendMsg("");
+    try {
+      const first = photos.reduce((m, p) => (!m || (p.created_at && p.created_at < m) ? p.created_at : m), null);
+      const cur = expiryFor(event, first);
+      const from = Math.max(cur ? cur.getTime() : Date.now(), Date.now());
+      const next = new Date(from + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const u = await updateEvent({ expires_at: next, expiry_notified: {} });
+      setEvent((e) => ({ ...e, ...(u || { expires_at: next }) }));
+      setExtendMsg(t("ret.extended").replace("{date}", formatDate(next, lang)));
+    } catch (e) { alert(e.message); } finally { setExtending(false); }
+  }
 
   // Reassign owner: patches owner_id via update-event. The function must add
   // owner_id to its ALLOWED whitelist and permit the change only for admins.
@@ -1009,6 +1029,18 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
         <button onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
         <button onClick={() => setSettingsOpen((v) => !v)} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
       </div>
+
+      <RetentionBanner event={event}
+        firstPhotoAt={photos.reduce((m, p) => (!m || (p.created_at && p.created_at < m) ? p.created_at : m), null)}
+        extra={!event.closed_at && !event.is_recurring ? (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
+            <button type="button" onClick={extendGallery} disabled={extending}
+              style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "8px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700, opacity: extending ? 0.6 : 1 }}>
+              {t("ret.extend")}
+            </button>
+            {extendMsg && <span style={{ fontSize: 12, color: C.gold, fontWeight: 700 }}>{extendMsg}</span>}
+          </div>
+        ) : null} />
 
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
