@@ -14,6 +14,7 @@ const KINDS = {
   hero:  { prefix: "hero",   ext: "jpg", ct: "image/jpeg", perEvent: false },
   cover: { prefix: "covers", ext: "jpg", ct: "image/jpeg", perEvent: true }, // per-event cover photo
   music: { prefix: "music",  ext: null,  ct: "audio/mpeg", perEvent: true }, // ext from filename
+  highlight: { prefix: "highlights", ext: null, ct: "video/mp4", perEvent: true }, // saved highlight videos
   site:  { prefix: "site",   ext: null,  ct: "image/jpeg", perEvent: false }, // swappable landing photos; ext from filename
 };
 
@@ -37,7 +38,7 @@ export async function handler(event) {
     return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   const spec = KINDS[kind];
-  if (!spec) return { statusCode: 400, body: JSON.stringify({ error: "kind must be hero, cover, music or site" }) };
+  if (!spec) return { statusCode: 400, body: JSON.stringify({ error: "kind must be hero, cover, music, highlight or site" }) };
 
   let prefix = spec.prefix;
   if (spec.perEvent) {
@@ -60,9 +61,20 @@ export async function handler(event) {
   }
 
   const rnd = Math.random().toString(36).slice(2, 7);
-  const ext = spec.ext || safeExt(filename, kind === "music" ? "mp3" : "jpg");
+  let ext = spec.ext || safeExt(filename, kind === "music" ? "mp3" : kind === "highlight" ? "mp4" : "jpg");
+  let ct = contentType || spec.ct;
+  // Keep each folder to its own media type (the bucket is public).
+  if (kind === "music") {
+    const AUDIO = { mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg" };
+    if (!AUDIO[ext]) return { statusCode: 400, body: JSON.stringify({ error: "Upload an MP3, WAV, M4A, AAC or OGG file." }) };
+    ct = AUDIO[ext];
+  } else if (kind === "highlight") {
+    const base = String(contentType || "").split(";")[0].toLowerCase();
+    if (base === "video/webm") { ct = "video/webm"; ext = "webm"; } else { ct = "video/mp4"; ext = "mp4"; }
+  } else if (!String(ct).startsWith("image/") || /svg/i.test(ct)) {
+    ct = spec.ct;
+  }
   const path = `${prefix}/${Date.now()}-${rnd}.${ext}`;
-  const ct = contentType || spec.ct;
 
   try {
     const uploadUrl = await presignPut(path, ct);

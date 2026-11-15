@@ -41,12 +41,14 @@ import { notMessage } from "../lib/videoMessage.js";
 import { shareLink, copyText, galleryUrlFor } from "../lib/share.js";
 import { useDialogs, friendlyError } from "./Dialogs.jsx";
 
-const HL_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
 import { challengesFor, challengeText, parseChallengeLines, DEFAULT_CHALLENGES } from "../lib/challenges.js";
 import { TvIcon, PhoneIcon, AlertIcon, PlayIcon, ChevronIcon, ExpandIcon, CloseIcon, PrintIcon, VideoIcon } from "./Icons.jsx";
 import { MediaThumb, LoopBadge } from "./BoomerangPlayer.jsx";
 import EditEventDetails, { qrFileName } from "./EditEventDetails.jsx";
 import RetentionBanner from "./RetentionBanner.jsx";
+import MusicPicker, { trackLabel } from "./MusicPicker.jsx";
+import HighlightList from "./HighlightList.jsx";
+import { autoTrack } from "../lib/music.js";
 
 
 const TAGS = ["worship", "baptism", "kids", "fellowship"];
@@ -440,6 +442,16 @@ export function EventDetail({ event: eventProp, api, back }) {
     return j.event;
   }
 
+  // Music for the highlight video + live slideshow (MusicPicker).
+  async function changeMusic(v, meta = {}) {
+    const patch = { music_url: v || null };
+    if (meta.rights) { patch.music_rights_ack = true; patch.music_rights_ack_at = new Date().toISOString(); }
+    const u = await updateEvent(patch);
+    setEvent((e) => ({ ...e, ...(u || patch) }));
+    setMusicUrl(v || "");
+    if (meta.rights) setMusicRightsOk(true);
+  }
+
   async function pinMoment(id) { try { await updateEvent({ featured_photo_id: id }); setFeaturedId(id); } catch (e) { showErr(e); } }
   async function clearMoment() { try { await updateEvent({ featured_photo_id: null }); setFeaturedId(null); } catch (e) { showErr(e); } }
   async function pinTopMoment() {
@@ -592,9 +604,11 @@ export function EventDetail({ event: eventProp, api, back }) {
     if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
     let siteKey = "midnight"; try { siteKey = localStorage.getItem("halo_theme") || "midnight"; } catch { /* default */ }
     const look = getLook(siteKey); // highlight video uses the site palette guests see
+    const auto = autoTrack(event, libTracks);
     const music = event.music_url === "none" ? null
       : event.music_url ? ((event.music_url.startsWith("/") || event.music_url.startsWith("http")) ? event.music_url : publicUrl(event.music_url))
-      : (HL_MUSIC[event.category] || "/music/cinematic.mp3");
+      : (auto ? publicUrl(auto.storage_path) : null);
+    const musicName = trackLabel(event.music_url || "", libTracks, event, t);
     const ctrl = new AbortController(); hlAbort.current = ctrl;
     setHl({ busy: true, sec: 0, total: 60 });
     try {
@@ -609,7 +623,20 @@ export function EventDetail({ event: eventProp, api, back }) {
         watermark: "HALO", signal: ctrl.signal,
         onProgress: (sec, total) => setHl({ busy: true, sec, total }),
       });
-      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds });
+      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds, saving: true });
+      // Save it to the event so it can be found, shared or deleted later.
+      try {
+        const base = String(r.type || "").split(";")[0];
+        const { uploadUrl, path, contentType } = await api.fn("sign-upload-admin", {
+          kind: "highlight", eventId: event.id, filename: `highlight.${base === "video/webm" ? "webm" : "mp4"}`, contentType: base,
+        });
+        await putToR2(uploadUrl, r.blob, contentType);
+        const j = await api.fn("manage-highlights", { action: "save", eventId: event.id, path, type: contentType, seconds: r.seconds, vertical: hlVertical, music: musicName });
+        setEvent((e) => ({ ...e, highlights: j.highlights }));
+        setHl((h) => (h ? { ...h, saving: false, saved: true } : h));
+      } catch (e) {
+        setHl((h) => (h ? { ...h, saving: false, saveError: friendlyError(e, t) } : h));
+      }
     } catch (e) {
       setHl(e.message === "cancelled" ? null : { error: e.message === "unsupported" ? t("hl.unsupported") : t("hl.failed") });
     }
@@ -1013,6 +1040,9 @@ export function EventDetail({ event: eventProp, api, back }) {
               <button type="button" onClick={() => { URL.revokeObjectURL(hl.url); setHl(null); }} style={{ background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "10px 16px", borderRadius: 10, fontSize: 13 }}>{t("hl.again")}</button>
             </div>
             {hl.type !== "video/mp4" && <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0" }}>{t("hl.webmNote")}</p>}
+            {hl.saving && <p style={{ fontSize: 12, color: C.second, margin: "8px 0 0" }}>{t("hls.saving")}</p>}
+            {hl.saved && <p style={{ fontSize: 12, color: C.gold, fontWeight: 700, margin: "8px 0 0" }}>{t("hls.saved")}</p>}
+            {hl.saveError && <p style={{ fontSize: 12, color: "#ff8a80", margin: "8px 0 0" }}>{t("hls.saveFailed")} {hl.saveError}</p>}
           </div>
         ) : hl && hl.busy ? (
           <div>
@@ -1073,7 +1103,8 @@ export function EventDetail({ event: eventProp, api, back }) {
                 </div>
               </div>
             )}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <MusicPicker event={event} tracks={libTracks} value={event.music_url || ""} api={api} onChange={changeMusic} />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
               <div style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${C.line2}`, overflow: "hidden" }}>
                 <button type="button" onClick={() => setHlVertical(true)} aria-pressed={hlVertical} style={{ background: hlVertical ? C.gold : "transparent", color: hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.vertical")}</button>
                 <button type="button" onClick={() => setHlVertical(false)} aria-pressed={!hlVertical} style={{ background: !hlVertical ? C.gold : "transparent", color: !hlVertical ? C.onInk : C.text, border: "none", borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{t("hl.wide")}</button>
@@ -1086,6 +1117,20 @@ export function EventDetail({ event: eventProp, api, back }) {
           )
         )}
       </div>
+
+      {Array.isArray(event.highlights) && event.highlights.length > 0 && (
+        <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "4px 18px 18px" }}>
+          <HighlightList event={event} highlights={event.highlights}
+            confirm={(message) => dlg.confirm({ title: t("hls.deleteTitle"), message, confirmLabel: t("hls.delete") })}
+            onDelete={async (id) => {
+              try {
+                const j = await api.fn("manage-highlights", { action: "delete", eventId: event.id, id });
+                setEvent((e) => ({ ...e, highlights: j.highlights }));
+                dlg.toast(t("hls.deleted"), "success");
+              } catch (e) { showErr(e); }
+            }} />
+        </div>
+      )}
 
       <LeadsSection event={event} api={api} mode={leadMode} />
 
@@ -1308,7 +1353,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                 <select style={sfield} value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)}>
                   <option value="none">{t("admin.musicNone")}</option>
                   <option value="">{t("admin.musicAuto")}</option>
-                  {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("admin.musicFromLib")}: {t("music." + tr.mood)}</option>)}
+                  {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("music." + tr.mood)}: {tr.title || t("admin.musicFromLib")}</option>)}
                   {musicUrl && musicUrl !== "none" && !libTracks.some((tr) => tr.storage_path === musicUrl) && (
                     <option value={musicUrl}>{t("admin.musicCustom")}</option>
                   )}

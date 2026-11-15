@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { autoTrack } from "../lib/music.js";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { C } from "../lib/score.js";
 import { fetchReactions, like, getDeviceId, rxKey } from "../lib/reactions.js";
@@ -20,8 +21,6 @@ import VideoMessageCard from "../components/VideoMessageCard.jsx";
 import { BoomerangFrame } from "../components/BoomerangPlayer.jsx";
 
 // Slideshow music: explicit choice wins; otherwise auto-match by event type.
-const CAT_MUSIC = { wedding: "/music/elegant.mp3", quinceanera: "/music/celebration.mp3", church: "/music/worship.mp3", corporate: "/music/corporate.mp3", gala: "/music/elegant.mp3", other: "/music/cinematic.mp3" };
-const CAT_MOOD = { wedding: "elegant", quinceanera: "celebration", church: "worship", corporate: "corporate", gala: "elegant", other: "cinematic" };
 function resolveMusic(ev) {
   if (!ev) return null;
   const m = ev.music_url;
@@ -609,8 +608,7 @@ export default function SlideshowPage() {
   if (event) {
     if (event.music_url) { musicSrc = resolveMusic(event); }
     else {
-      const mood = CAT_MOOD[event.category];
-      const hit = mood && libTracks.find((x) => x.mood === mood);
+      const hit = autoTrack(event, libTracks);
       musicSrc = hit ? publicUrl(hit.storage_path) : resolveMusic(event);
     }
   }

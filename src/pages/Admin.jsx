@@ -7,6 +7,8 @@ import { Header, Footer, Stat, Spinner, Empty } from "../components/UI.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import EditEventDetails, { qrFileName } from "../components/EditEventDetails.jsx";
 import RetentionBanner from "../components/RetentionBanner.jsx";
+import MusicLibraryAdmin from "../components/MusicLibraryAdmin.jsx";
+import HighlightList from "../components/HighlightList.jsx";
 import { expiryFor, formatDate } from "../lib/retention.js";
 import EventExtras from "../components/EventExtras.jsx";
 import FrameSettings from "../components/FrameSettings.jsx";
@@ -87,10 +89,6 @@ function Dashboard({ token, onLogout }) {
   const [heroList, setHeroList] = useState([]);
   const [heroOpen, setHeroOpen] = useState(false);
   const [heroBusy, setHeroBusy] = useState(false);
-  const [libRows, setLibRows] = useState([]);
-  const [libOpen, setLibOpen] = useState(false);
-  const [libMood, setLibMood] = useState("elegant");
-  const [libBusy, setLibBusy] = useState(false);
 
   async function loadEvents() {
     const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
@@ -169,22 +167,6 @@ function Dashboard({ token, onLogout }) {
     try { await heroAction({ action: "reorder", ids: arr.map((x) => x.id) }); } catch (e) { alert(e.message); loadHero(); }
   }
 
-  async function loadLib() {
-    const { data } = await supabase.from("music_library").select("*").order("created_at", { ascending: false });
-    setLibRows(data || []);
-  }
-  useEffect(() => { loadLib(); }, []);
-  async function libAction(body) {
-    const r = await fetch("/.netlify/functions/generate-music", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: token, ...body }),
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || "Failed");
-    return j;
-  }
-  async function genMusic() { setLibBusy(true); try { await libAction({ action: "generate", mood: libMood, count: 1 }); await loadLib(); } catch (e) { alert(e.message); } finally { setLibBusy(false); } }
-  async function toggleLib(x) { try { await libAction({ action: "toggle", id: x.id, active: !x.active }); await loadLib(); } catch (e) { alert(e.message); } }
-  async function removeLib(x) { if (!confirm("Delete this track?")) return; try { await libAction({ action: "remove", id: x.id }); await loadLib(); } catch (e) { alert(e.message); } }
 
   if (loading) return <Spinner label={t("admin.loadingEvents")} />;
   if (selected) return <EventDetail event={selected} token={token} clients={clients} profileMap={profileMap} back={() => { setSelected(null); loadEvents(); }} />;
@@ -239,38 +221,7 @@ function Dashboard({ token, onLogout }) {
         )}
       </div>
 
-      {/* Music library manager (Mubert) */}
-      <div style={{ marginTop: 18, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setLibOpen((v) => !v)}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{t("admin.musicLib")} <span style={{ color: C.second, fontWeight: 400 }}>({libRows.length})</span></div>
-          <span style={{ color: C.second, fontSize: 18 }}>{libOpen ? "\u2013" : "+"}</span>
-        </div>
-        {libOpen && (
-          <div style={{ marginTop: 12 }}>
-            <p style={{ fontSize: 12, color: C.second, margin: "0 0 12px" }}>{t("admin.musicLibHelp")}</p>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={libMood} onChange={(e) => setLibMood(e.target.value)} style={{ borderRadius: 999, border: `1px solid ${C.second}`, padding: "8px 12px", fontSize: 13, color: C.text, background: C.card }}>
-                {["elegant", "celebration", "worship", "corporate", "cinematic", "acoustic"].map((m) => <option key={m} value={m}>{t("music." + m)}</option>)}
-              </select>
-              <button onClick={genMusic} disabled={libBusy} style={{ background: C.gold, color: C.ink, padding: "9px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, opacity: libBusy ? 0.6 : 1 }}>{libBusy ? t("admin.musicGenerating") : t("admin.musicGenerate")}</button>
-            </div>
-            {libRows.length === 0 ? (
-              <p style={{ fontSize: 13, color: C.second, marginTop: 12 }}>{t("admin.musicLibEmpty")}</p>
-            ) : (
-              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-                {libRows.map((x) => (
-                  <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.bg, borderRadius: 10, padding: "8px 12px", border: `1px solid ${x.active ? C.gold : "rgba(255,255,255,.12)"}` }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text, minWidth: 90 }}>{t("music." + x.mood)}</span>
-                    <audio controls preload="none" src={publicUrl(x.storage_path)} style={{ height: 34, flex: 1, minWidth: 180 }} />
-                    <button onClick={() => toggleLib(x)} style={{ background: x.active ? C.ink : "transparent", color: x.active ? C.bg : C.second, border: `1px solid ${x.active ? C.ink : C.second}`, padding: "5px 10px", borderRadius: 999, fontSize: 11 }}>{t("admin.heroActive")}</button>
-                    <button onClick={() => removeLib(x)} style={{ background: "transparent", border: "1px solid #b3261e", color: "#b3261e", borderRadius: 8, padding: "5px 9px", fontSize: 12 }}>\uD83D\uDDD1</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <MusicLibraryAdmin token={token} />
 
       <SiteAppearance token={token} />
 
@@ -1042,6 +993,19 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
           </div>
         ) : null} />
 
+      {Array.isArray(event.highlights) && event.highlights.length > 0 && (
+        <div style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "4px 18px 18px" }}>
+          <HighlightList event={event} highlights={event.highlights}
+            confirm={async (message) => window.confirm(message)}
+            onDelete={async (id) => {
+              try {
+                const j = await api.fn("manage-highlights", { action: "delete", eventId: event.id, id });
+                setEvent((e) => ({ ...e, highlights: j.highlights }));
+              } catch (e) { alert(e.message); }
+            }} />
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 22, alignItems: "center", marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: 22 }}>
         <div style={{ textAlign: "center" }}>
           {qr && <img src={qr} alt="Event QR code" style={{ width: 160, height: 160, borderRadius: 10 }} />}
@@ -1150,7 +1114,7 @@ function EventDetail({ event: eventProp, token, clients = [], profileMap = {}, b
                 <select style={sfield} value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)}>
                   <option value="none">{t("admin.musicNone")}</option>
                   <option value="">{t("admin.musicAuto")}</option>
-                  {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("admin.musicFromLib")}: {t("music." + tr.mood)}</option>)}
+                  {libTracks.map((tr) => <option key={tr.id} value={tr.storage_path}>{t("music." + tr.mood)}: {tr.title || t("admin.musicFromLib")}</option>)}
                   {musicUrl && musicUrl !== "none" && !libTracks.some((tr) => tr.storage_path === musicUrl) && (
                     <option value={musicUrl}>{t("admin.musicCustom")}</option>
                   )}
