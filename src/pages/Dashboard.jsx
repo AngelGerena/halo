@@ -24,6 +24,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import { useAuth, RequireAuth } from "../lib/auth.jsx";
 import { makeApi } from "../lib/authedFetch.js";
 import { useSiteTheme } from "../lib/siteTheme.js";
+import InviteGate from "../components/CohostInvite.jsx";
 
 // "Poster Stack" look: every event is a full-bleed poster built from its
 // cover (or its best-rated photo), with a date tile, the name in Anton and
@@ -107,9 +108,12 @@ export default function Dashboard() {
   const { t } = useI18n();
   return (
     <Shell>
-      <RequireAuth fallback={<Spinner label={t("dash.loading")} />}>
-        <DashboardInner />
-      </RequireAuth>
+      {/* A co-host's emailed link signs them in here, before the sign-in check. */}
+      <InviteGate>
+        <RequireAuth fallback={<Spinner label={t("dash.loading")} />}>
+          <DashboardInner />
+        </RequireAuth>
+      </InviteGate>
     </Shell>
   );
 }

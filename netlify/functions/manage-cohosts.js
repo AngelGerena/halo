@@ -1,13 +1,12 @@
 // HALO — co-hosts for an event. Owner (or admin) only.
 //   POST { eventId }                          -> { cohosts: [{ id, email, created_at }] }
-//   POST { eventId, add: "email@x.com", lang } -> invites (emails them), returns list
+//   POST { eventId, add: "email@x.com", lang } -> invites (emails a one-tap link), returns list
 //   POST { eventId, remove: "<cohost id>" }   -> removes, returns list
 import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
-import { haloEmail, sendEmail } from "./_email.js";
+import { sendCohostInvite } from "./_cohostInvite.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const esc = (s) => String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const MAX_COHOSTS = 10;
 
 export async function handler(event) {
@@ -37,26 +36,21 @@ export async function handler(event) {
       if (!EMAIL_RE.test(email)) return { statusCode: 400, body: JSON.stringify({ error: "That doesn't look like an email address" }) };
       if (auth.email && email === auth.email) return { statusCode: 400, body: JSON.stringify({ error: "You already own this event" }) };
       const current = await list();
-      if (current.length >= MAX_COHOSTS) return { statusCode: 400, body: JSON.stringify({ error: `Up to ${MAX_COHOSTS} co-hosts per event` }) };
+      if (current.length >= MAX_COHOSTS && !current.some((c) => c.email === email)) return { statusCode: 400, body: JSON.stringify({ error: `Up to ${MAX_COHOSTS} co-hosts per event` }) };
       const { error } = await supabase.from("event_cohosts")
         .upsert({ event_id: eventId, email, invited_by: auth.userId || null }, { onConflict: "event_id,email", ignoreDuplicates: true });
       if (error) throw error;
 
-      // Invite email (best effort: the co-host is added even if email fails).
+      // Invite email with a personal one-tap link: opening it signs the
+      // co-host in and lands them in the event, no sign-up or password.
+      // Re-inviting an address that is already a co-host sends a fresh link.
+      // (Best effort: the co-host is added even if the email fails.)
       try {
-        const { data: ev } = await supabase.from("events").select("name, code").eq("id", eventId).single();
-        const site = process.env.URL || "https://halo.finessemedia.pro";
-        const es = lang === "es";
-        const html = haloEmail({
-          heading: es ? "Te invitaron a ayudar" : "You're invited to help host",
-          subhead: esc(ev?.name || ""),
-          body: es
-            ? `<p>Te agregaron como coanfitrión de <strong>${esc(ev?.name)}</strong> en HALO.</p><p>Inicia sesión (o crea tu cuenta) con este correo, <strong>${esc(email)}</strong>, y el evento aparecerá en tu panel. Podrás revisar fotos, ponerlo en la pantalla y descargar todo.</p>`
-            : `<p>You've been added as a co-host for <strong>${esc(ev?.name)}</strong> on HALO.</p><p>Sign in (or create your account) with this email, <strong>${esc(email)}</strong>, and the event will be in your dashboard. You can review photos, put it on the big screen and download everything.</p>`,
-          ctaText: es ? "Abrir mi panel" : "Open my dashboard",
-          ctaUrl: `${site}/dashboard?event=${encodeURIComponent(ev?.code || "")}`,
-        });
-        await sendEmail({ to: email, subject: es ? `Coanfitrión: ${ev?.name}` : `Co-host: ${ev?.name}`, html });
+        const [{ data: row }, { data: ev }] = await Promise.all([
+          supabase.from("event_cohosts").select("id").eq("event_id", eventId).eq("email", email).maybeSingle(),
+          supabase.from("events").select("name, code").eq("id", eventId).single(),
+        ]);
+        if (row) await sendCohostInvite({ cohostId: row.id, email, ev, lang });
       } catch { /* email optional */ }
     } else if (remove) {
       const { error } = await supabase.from("event_cohosts").delete().eq("id", remove).eq("event_id", eventId);
