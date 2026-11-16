@@ -56,17 +56,44 @@ export function inviteUrl(cohostId, code) {
 }
 
 // Send (or re-send) the invite email with a fresh one-tap link.
-export async function sendCohostInvite({ cohostId, email, ev, lang }) {
-  const es = lang === "es";
+//   lang:  "en" | "es" | "both" (both = English then Spanish, for when we
+//          don't know which language the co-host reads)
+//   fresh: true when this replaces an earlier link (re-send, or the old
+//          sign-in style invite), so the email says so.
+export async function sendCohostInvite({ cohostId, email, ev, lang, fresh = false }) {
   const name = esc(ev?.name || "");
+  const who = esc(email);
+  const small = 'style="font-size:13px;color:#6b6b6b;"';
+  const copy = {
+    en: {
+      heading: fresh ? "Your new one-tap link" : "You're invited to help host",
+      cta: "Open the event",
+      subject: `Co-host: ${ev?.name || "HALO"}`,
+      body: (fresh
+        ? `<p>Here is a fresh link for <strong>${name}</strong> on HALO, where you're a co-host. It replaces any earlier link we sent you.</p>`
+        : `<p>You've been added as a co-host for <strong>${name}</strong> on HALO.</p>`)
+        + `<p>Tap the button and you're in. No account to create and no password. You can see and share the photos and videos, put the event on the big screen and download everything.</p>`
+        + `<p ${small}>This link is personal to <strong>${who}</strong> and works for ${INVITE_DAYS} days. Please don't forward it.</p>`,
+    },
+    es: {
+      heading: fresh ? "Tu nuevo enlace directo" : "Te invitaron a ayudar",
+      cta: "Abrir el evento",
+      subject: `Coanfitrión: ${ev?.name || "HALO"}`,
+      body: (fresh
+        ? `<p>Aquí tienes un enlace nuevo para <strong>${name}</strong> en HALO, donde eres coanfitrión. Reemplaza cualquier enlace anterior que te enviamos.</p>`
+        : `<p>Te agregaron como coanfitrión de <strong>${name}</strong> en HALO.</p>`)
+        + `<p>Toca el botón y entras directo al evento. No necesitas crear cuenta ni contraseña. Podrás ver y compartir las fotos y videos, ponerlo en la pantalla y descargar todo.</p>`
+        + `<p ${small}>Este enlace es personal para <strong>${who}</strong> y funciona por ${INVITE_DAYS} días. Por favor no lo reenvíes.</p>`,
+    },
+  };
+  const both = lang === "both";
+  const c = copy[lang === "es" ? "es" : "en"];
   const html = haloEmail({
-    heading: es ? "Te invitaron a ayudar" : "You're invited to help host",
+    heading: c.heading,
     subhead: name,
-    body: es
-      ? `<p>Te agregaron como coanfitrión de <strong>${name}</strong> en HALO.</p><p>Toca el botón y entras directo al evento. No necesitas crear cuenta ni contraseña. Podrás ver y compartir las fotos y videos, ponerlo en la pantalla y descargar todo.</p><p style="font-size:13px;color:#6b6b6b;">Este enlace es personal para <strong>${esc(email)}</strong> y funciona por ${INVITE_DAYS} días. Por favor no lo reenvíes.</p>`
-      : `<p>You've been added as a co-host for <strong>${name}</strong> on HALO.</p><p>Tap the button and you're in. No account to create and no password. You can see and share the photos and videos, put the event on the big screen and download everything.</p><p style="font-size:13px;color:#6b6b6b;">This link is personal to <strong>${esc(email)}</strong> and works for ${INVITE_DAYS} days. Please don't forward it.</p>`,
-    ctaText: es ? "Abrir el evento" : "Open the event",
+    body: both ? `${copy.en.body}<hr style="border:0;border-top:1px solid #e7e0d6;margin:20px 0;" />${copy.es.body}` : c.body,
+    ctaText: both ? `${copy.en.cta} / ${copy.es.cta}` : c.cta,
     ctaUrl: inviteUrl(cohostId, ev?.code),
   });
-  await sendEmail({ to: email, subject: es ? `Coanfitrión: ${ev?.name || "HALO"}` : `Co-host: ${ev?.name || "HALO"}`, html });
+  await sendEmail({ to: email, subject: c.subject, html });
 }

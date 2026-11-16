@@ -590,7 +590,16 @@ export function EventDetail({ event: eventProp, api, back }) {
       const r = await api.fn("manage-cohosts", { eventId: event.id, lang, ...body });
       setCohosts(r.cohosts || []);
       if (body.add) setCohostEmail("");
-    } catch (e) { setCohostErr(friendlyError(e, t)); } finally { setCohostBusy(false); }
+      return true;
+    } catch (e) { setCohostErr(friendlyError(e, t)); return false; } finally { setCohostBusy(false); }
+  }
+  // Email one co-host a fresh one-tap link, and show that it went out.
+  const [resendState, setResendState] = useState({}); // cohost id -> "busy" | "sent"
+  async function resendCohost(id) {
+    setResendState((m) => ({ ...m, [id]: "busy" }));
+    const ok = await changeCohosts({ resend: id });
+    setResendState((m) => ({ ...m, [id]: ok ? "sent" : undefined }));
+    if (ok) setTimeout(() => setResendState((m) => ({ ...m, [id]: undefined })), 6000);
   }
 
   // Highlight video: a ~60 s film of the best-loved photos, made in the browser.
@@ -1088,8 +1097,12 @@ export function EventDetail({ event: eventProp, api, back }) {
           {cohosts.length > 0 && (
             <div style={{ display: "grid", gap: 6, marginTop: 12 }}>
               {cohosts.map((c) => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 12px" }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email}</span>
+                <div key={c.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, background: "rgba(255,255,255,.03)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 12px" }}>
+                  <span style={{ flex: "1 1 160px", minWidth: 0, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.email}</span>
+                  <button type="button" disabled={cohostBusy || !!resendState[c.id]} onClick={() => resendCohost(c.id)} aria-live="polite"
+                    style={{ background: resendState[c.id] === "sent" ? "rgba(62,224,143,.12)" : "transparent", color: resendState[c.id] === "sent" ? "#3ee08f" : C.gold, border: `1px solid ${resendState[c.id] === "sent" ? "rgba(62,224,143,.45)" : C.gold}`, padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {resendState[c.id] === "sent" ? t("cohost.resent") : resendState[c.id] === "busy" ? t("cohost.resending") : t("cohost.resend")}
+                  </button>
                   <button type="button" disabled={cohostBusy} onClick={() => changeCohosts({ remove: c.id })} style={{ background: "transparent", color: C.second, border: `1px solid ${C.line2}`, padding: "5px 10px", borderRadius: 999, fontSize: 12 }}>{t("cohost.remove")}</button>
                 </div>
               ))}

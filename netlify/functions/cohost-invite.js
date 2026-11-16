@@ -8,12 +8,19 @@
 //                                  -> { status: "invalid" }  bad/removed invite
 //   POST { token, resend: true, lang } on an expired link emails a fresh one
 //                                     to the invited address -> { status: "resent" }
+//   POST { request: true, email, code, lang }
+//                                     "I was invited but my link doesn't work":
+//                                     if that address is a co-host of the event
+//                                     with that code, email it a fresh link.
+//                                     Always answers { status: "sent" } so the
+//                                     reply never reveals who is a co-host.
 //
 // The link only ever signs in the address the owner invited, and only while
 // that co-host is still on the event.
 import { createClient } from "@supabase/supabase-js";
 import { readInvite, sendCohostInvite } from "./_cohostInvite.js";
 import { clientIp, overLimit, tooMany } from "./_ratelimit.js";
+import { isEmail } from "./_email.js";
 
 const json = (statusCode, body) => ({ statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
 
@@ -23,6 +30,26 @@ export async function handler(event) {
   try { b = JSON.parse(event.body || "{}"); } catch {}
 
   if (overLimit("cohost-invite", clientIp(event), 30, 10 * 60 * 1000)) return tooMany();
+
+  // Self-serve fresh link (used by the sign-in page for older invite emails,
+  // whose button had no one-tap link in it).
+  if (b.request) {
+    if (overLimit("cohost-request", clientIp(event), 5, 10 * 60 * 1000)) return tooMany();
+    const email = String(b.email || "").trim().toLowerCase();
+    const code = String(b.code || "").trim();
+    if (!isEmail(email) || !code || code.length > 80) return json(200, { status: "sent" });
+    try {
+      const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: ev } = await supabase.from("events").select("id, name, code").eq("code", code).maybeSingle();
+      if (ev) {
+        const { data: row } = await supabase.from("event_cohosts").select("id, email").eq("event_id", ev.id).eq("email", email).maybeSingle();
+        if (row && !overLimit("cohost-resend", row.id, 3, 60 * 60 * 1000)) {
+          await sendCohostInvite({ cohostId: row.id, email, ev, lang: b.lang === "es" ? "es" : "en", fresh: true });
+        }
+      }
+    } catch { /* same answer either way */ }
+    return json(200, { status: "sent" });
+  }
 
   let inv = null;
   try { inv = readInvite(b.token); } catch { return json(500, { error: "Server not configured" }); }
@@ -41,7 +68,7 @@ export async function handler(event) {
       // At most 3 fresh links per invite per hour (per warm instance).
       if (overLimit("cohost-resend", row.id, 3, 60 * 60 * 1000)) return tooMany();
       const { data: ev } = await supabase.from("events").select("name, code").eq("id", row.event_id).maybeSingle();
-      await sendCohostInvite({ cohostId: row.id, email, ev, lang: b.lang === "es" ? "es" : "en" });
+      await sendCohostInvite({ cohostId: row.id, email, ev, lang: b.lang === "es" ? "es" : "en", fresh: true });
       return json(200, { status: "resent" });
     }
 
