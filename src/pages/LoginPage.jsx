@@ -9,7 +9,7 @@ import ResendConfirm from "../components/ResendConfirm.jsx";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [params] = useSearchParams();
   // Where to go after signing in (set by RequireAuth). Validated so it can only
   // ever be a path on this site, never an outside URL.
@@ -18,6 +18,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Arrived from an event link (e.g. an older co-host invite email, whose
+  // button led here)? Offer a one-tap link by email instead of a password.
+  const eventCode = (() => { try { return new URLSearchParams(next.split("?")[1] || "").get("event") || ""; } catch { return ""; } })();
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkState, setLinkState] = useState(""); // "" | busy | done | bad
+  async function sendLink(e) {
+    e?.preventDefault();
+    if (linkState === "busy") return;
+    const em = linkEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) { setLinkState("bad"); return; }
+    setLinkState("busy");
+    try {
+      await fetch("/.netlify/functions/cohost-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request: true, email: em, code: eventCode, lang }),
+      });
+    } catch { /* same message either way */ }
+    setLinkState("done");
+  }
 
   async function submit(e) {
     e?.preventDefault();
@@ -46,6 +66,34 @@ export default function LoginPage() {
       title={t("login.title")}
       sub={t("login.sub")}
     >
+      {eventCode && (
+        <div style={{ margin: "0 0 20px", padding: "16px 16px 18px", borderRadius: 16, border: "1px solid color-mix(in srgb, var(--gold) 55%, transparent)", background: "color-mix(in srgb, var(--gold) 9%, transparent)" }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: "#fff" }}>{t("invite.ask.t")}</div>
+          {linkState === "done" ? (
+            <p role="status" style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.55, color: "#e7e3ee" }}>{t("invite.ask.done")}</p>
+          ) : (
+            <form onSubmit={sendLink} noValidate>
+              <p style={{ margin: "6px 0 12px", fontSize: 13.5, lineHeight: 1.55, color: "#e7e3ee" }}>{t("invite.ask.b")}</p>
+              <input
+                className="field"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                value={linkEmail}
+                onChange={(e) => { setLinkEmail(e.target.value); if (linkState === "bad") setLinkState(""); }}
+                placeholder={t("auth.emailPh")}
+                aria-label={t("auth.email")}
+              />
+              {linkState === "bad" && <p role="alert" style={{ color: "#ff8a80", fontSize: 13, margin: "8px 0 0" }}>{t("invite.ask.bad")}</p>}
+              <div style={{ marginTop: 12 }}>
+                <AuthButton busy={linkState === "busy"} busyLabel={t("invite.sending")}>{t("invite.ask.btn")}</AuthButton>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+      {eventCode && <p style={{ textAlign: "center", color: C.second, fontSize: 12.5, letterSpacing: ".04em", margin: "0 0 14px" }}>{t("invite.ask.or")}</p>}
+
       <form onSubmit={submit} noValidate>
         <AuthField label={t("auth.email")}>
           <input

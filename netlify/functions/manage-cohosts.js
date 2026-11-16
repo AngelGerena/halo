@@ -2,6 +2,7 @@
 //   POST { eventId }                          -> { cohosts: [{ id, email, created_at }] }
 //   POST { eventId, add: "email@x.com", lang } -> invites (emails a one-tap link), returns list
 //   POST { eventId, remove: "<cohost id>" }   -> removes, returns list
+//   POST { eventId, resend: "<cohost id>", lang } -> emails that co-host a fresh one-tap link, returns list
 import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 import { sendCohostInvite } from "./_cohostInvite.js";
@@ -13,7 +14,7 @@ export async function handler(event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
-  const { eventId, add, remove, lang } = b;
+  const { eventId, add, remove, resend, lang } = b;
 
   const auth = await authenticate(event);
   if (!auth.ok) return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
@@ -52,6 +53,18 @@ export async function handler(event) {
         ]);
         if (row) await sendCohostInvite({ cohostId: row.id, email, ev, lang });
       } catch { /* email optional */ }
+    } else if (resend) {
+      // Fresh one-tap link for someone already on the list. Unlike the first
+      // invite this is NOT best effort: the owner pressed "Resend", so a
+      // failed email must show as an error.
+      const { data: row } = await supabase.from("event_cohosts").select("id, email").eq("id", resend).eq("event_id", eventId).maybeSingle();
+      if (!row) return { statusCode: 404, body: JSON.stringify({ error: "That co-host is no longer on this event" }) };
+      const { data: ev } = await supabase.from("events").select("name, code").eq("id", eventId).single();
+      try {
+        await sendCohostInvite({ cohostId: row.id, email: row.email, ev, lang, fresh: true });
+      } catch {
+        return { statusCode: 502, body: JSON.stringify({ error: "The email could not be sent. Please try again in a minute." }) };
+      }
     } else if (remove) {
       const { error } = await supabase.from("event_cohosts").delete().eq("id", remove).eq("event_id", eventId);
       if (error) throw error;
