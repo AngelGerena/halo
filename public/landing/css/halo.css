@@ -376,3 +376,58 @@ em{font-style:italic}
 
 /* Phones: lighter top shading so the photo runs clean up to the status bar */
 @media(max-width:760px){.hero-vignette{background:linear-gradient(90deg,rgba(var(--ov-deep),.7) 0%,rgba(var(--ov-deep),.35) 50%,transparent 100%),linear-gradient(0deg,rgba(var(--ov-deep),.9) 0%,transparent 30%,transparent 85%,rgba(var(--ov-deep),.2) 100%),radial-gradient(60% 55% at 62% 42%,rgba(255,184,107,.12),transparent 70%)}}
+
+/* ---------------- FEATURES: two doors (hosts / sponsors) ---------------- */
+/* Every color comes from the theme variables, so all palettes work. The
+   little "screens" inside each card stay dark on purpose: they show the live
+   wall, which is a dark screen at every event. */
+#features .section-title em{font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--accent)}
+#features .section-title{margin-bottom:16px;max-width:18ch}
+.fx-sub{color:var(--lead);text-align:center;max-width:60ch;margin:0 auto 30px;font-size:clamp(15px,1.8vw,18px);line-height:1.6}
+.fx-tabs{display:flex;gap:6px;margin:0 auto 32px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;width:max-content;max-width:100%}
+.fx-tab{min-height:46px;padding:0 22px;border-radius:999px;border:0;background:transparent;color:var(--lead);font:700 15px 'Space Grotesk',system-ui,sans-serif;cursor:pointer;transition:background .2s,color .2s}
+.fx-tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent)}
+.fx-tab:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.fx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.fx-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.fx-card h3{font-size:17px;font-weight:700;color:var(--text);margin:4px 4px 0}
+.fx-card p{font-size:14px;color:var(--muted);line-height:1.55;margin:0 4px 4px}
+.fx-viz{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:12px;overflow:hidden;background:#0a0410;color:#fff}
+.fx-ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fx-viz::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),transparent 32%,transparent 66%,rgba(0,0,0,.38));pointer-events:none}
+.fx-plain::after,.fx-break::after,.fx-sheet-wrap::after{display:none}
+.fx-chip{position:absolute;z-index:2;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:rgba(10,6,14,.72);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;color:#fff}
+.fx-chip.hot{background:var(--accent);color:var(--on-accent);border:0}
+.fx-by{padding:4px 12px}.fx-by img{display:block;width:auto}
+.fx-qr{position:absolute;z-index:2;left:7%;top:16%;width:26%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:8px;padding:2.5%;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.fx-phone{position:absolute;z-index:2;right:9%;top:7%;width:27%;aspect-ratio:9/18;border-radius:12px;border:3px solid #23232e;overflow:hidden;background:#05040a}
+.fx-mosaic{position:absolute;inset:0;z-index:1;display:grid;grid-template-columns:repeat(16,1fr);grid-template-rows:repeat(9,1fr)}
+.fx-mosaic i{display:block;border:1px solid rgba(0,0,0,.3)}
+.fx-board{position:absolute;z-index:2;inset:12% 20%;background:rgba(8,4,12,.86);border-radius:10px;padding:5% 8%;display:flex;flex-direction:column;justify-content:center;gap:7%;font-size:12px}
+.fx-board div{display:flex;justify-content:space-between}
+.fx-board b{color:#f5c96b}
+.fx-plain{background:radial-gradient(70% 80% at 50% 40%,#2a1530,#0b0610)}
+.fx-frame{position:absolute;inset:8% 29%;background:#fbf7f2;padding:3% 3% 0;display:flex;flex-direction:column;transform:rotate(-2deg);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.fx-frame-p{flex:1;position:relative;overflow:hidden}
+.fx-frame-f{height:18%;display:flex;align-items:center;justify-content:space-between;gap:6px;color:#1a1020;font-size:9px;font-weight:700;padding:0 4%;white-space:nowrap;overflow:hidden}
+.fx-frame-logo{color:#14305e;letter-spacing:.08em}
+.fx-rail{position:absolute;z-index:2;top:0;right:0;bottom:0;width:32%;background:rgba(8,4,12,.94);border-left:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8%;padding:0 3%}
+.fx-rail img,.fx-ticker img,.fx-break img{display:block;width:auto;max-width:100%}
+.fx-ticker{position:absolute;z-index:2;left:0;right:0;bottom:0;height:19%;background:rgba(8,4,12,.9);border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:7%;padding-left:5%;overflow:hidden}
+.fx-break{display:grid;place-items:center;text-align:center;background:radial-gradient(70% 80% at 50% 30%,rgba(54,227,255,.16),transparent 65%),#06030a}
+.fx-break>div{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:90%}
+.fx-break-k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7fe9ff;font-weight:700}
+.fx-sheet-wrap{background:#121620;display:grid;place-items:center}
+.fx-sheet{width:86%;background:#f4f6fb;border-radius:8px;color:#1b1e2a;font-size:10px;display:grid;grid-template-columns:1.1fr 1.5fr 1.2fr .7fr;overflow:hidden}
+.fx-sheet span{padding:6px;border-bottom:1px solid #dde2ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fx-sheet .h{font-weight:800;background:#e6eaf4}
+.fx-sheet .yes{color:#0a8a4a;font-weight:800}.fx-sheet .no{color:#a33;font-weight:800}
+.fx-small{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.fx-small div{border:1px solid var(--line);border-radius:14px;padding:14px;font-size:13px;color:var(--muted);line-height:1.5}
+.fx-small b{display:block;color:var(--text);font-size:14px;margin-bottom:3px}
+.fx-small b::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent-2);margin-right:8px;vertical-align:middle}
+.fx-note{text-align:center;color:var(--muted);font-size:13px;margin:18px auto 0;max-width:60ch}
+.fx-cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:34px}
+@media (max-width:900px){.fx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-small{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.fx-grid{grid-template-columns:minmax(0,1fr)}.fx-tab{padding:0 16px;font-size:14px}}
+@media (max-width:420px){.fx-small{grid-template-columns:minmax(0,1fr)}.fx-cta a{width:100%}}

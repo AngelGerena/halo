@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 160" width="560" height="160"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c96b"/><stop offset="1" stop-color="#c8913a"/></linearGradient></defs>
+<path d="M70 18 L120 34 V80 C120 112 98 132 70 144 C42 132 20 112 20 80 V34 Z" fill="#14305e" stroke="url(#g)" stroke-width="6"/>
+<rect x="44" y="70" width="10" height="44" rx="2" fill="url(#g)"/><rect x="65" y="58" width="10" height="56" rx="2" fill="url(#g)"/><rect x="86" y="46" width="10" height="68" rx="2" fill="url(#g)"/>
+<text x="142" y="84" font-family="Fraunces, Georgia, serif" font-size="54" font-weight="600" fill="#ffffff" letter-spacing="1">Veralux</text>
+<text x="145" y="122" font-family="Space Grotesk, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#f5c96b" letter-spacing="7">FEDERAL CREDIT UNION</text></svg>
