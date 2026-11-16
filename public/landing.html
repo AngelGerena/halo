@@ -253,19 +253,105 @@
   </section>
 
   <!-- ============ FEATURES ============ -->
+  <!-- Two doors: a tab for hosts and a tab for sponsors. Sponsor logos are
+       made-up sample businesses (images/sponsors), not real companies. -->
   <section class="band dark" id="features">
     <div class="wrap">
       <p class="eyebrow center" data-i18n="feat.eyebrow">FEATURES</p>
-      <h2 class="section-title center" data-i18n="feat.title">Everything, handled for you.</h2>
-      <div class="features">
-        <div class="feat"><h3 data-i18n="feat.curate.t">Smart auto-curation</h3><p data-i18n="feat.curate.d">HALO picks the keepers and filters the blurry, duplicate and accidental shots.</p></div>
-        <div class="feat"><h3 data-i18n="feat.enhance.t">Automatic enhancement</h3><p data-i18n="feat.enhance.d">Every photo gets balanced light, color and sharpness the moment it&rsquo;s uploaded.</p></div>
-        <div class="feat"><h3 data-i18n="feat.slideshow.t">Live slideshow</h3><p data-i18n="feat.slideshow.d">Open it on any screen at the venue &mdash; guests&rsquo; photos appear within seconds as they shoot.</p></div>
-        <div class="feat"><h3 data-i18n="feat.perguest.t">Per-guest galleries</h3><p data-i18n="feat.perguest.d">See who shot what &mdash; every contributor gets their own view.</p></div>
-        <div class="feat"><h3 data-i18n="feat.email.t">Email delivery</h3><p data-i18n="feat.email.d">Send the finished gallery straight to your guests&rsquo; inboxes.</p></div>
-        <div class="feat"><h3 data-i18n="feat.bilingual.t">Bilingual EN / ES</h3><p data-i18n="feat.bilingual.d">The whole experience in English or Spanish, switched in a tap.</p></div>
-        <div class="feat"><h3 data-i18n="feat.noapp.t">No app required</h3><p data-i18n="feat.noapp.d">Guests just scan and shoot in their browser. Nothing to install.</p></div>
-        <div class="feat"><h3 data-i18n="feat.control.t">Full control</h3><p data-i18n="feat.control.d">Remove any photo you don&rsquo;t want, one tap or in bulk.</p></div>
+      <div class="fx-head" data-fx-head="host">
+        <h2 class="section-title center" data-i18n="fx.title.host">Everything your guests <em>love</em>.</h2>
+        <p class="fx-sub" data-i18n="fx.sub.host">One QR code turns every guest into your photographer, and the big screen into the life of the party.</p>
+      </div>
+      <div class="fx-head" data-fx-head="spons" hidden>
+        <h2 class="section-title center" data-i18n="fx.title.spons">Sponsors that <em>shine</em> all night.</h2>
+        <p class="fx-sub" data-i18n="fx.sub.spons">Galas, fundraisers and corporate events can sell real screen time. HALO puts every sponsor in front of every guest, tastefully.</p>
+      </div>
+      <div class="fx-tabs" role="tablist" aria-label="Who it is for">
+        <button class="fx-tab" role="tab" id="fx-tab-host" aria-controls="fx-panel-host" aria-selected="true" data-fx="host" data-i18n="fx.tab.host">For hosts</button>
+        <button class="fx-tab" role="tab" id="fx-tab-spons" aria-controls="fx-panel-spons" aria-selected="false" tabindex="-1" data-fx="spons" data-i18n="fx.tab.spons">For sponsors</button>
+      </div>
+      <div class="fx-panel" id="fx-panel-host" role="tabpanel" aria-labelledby="fx-tab-host">
+        <div class="fx-grid">
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/qr-scan.webp" alt="" loading="lazy" decoding="async"><img class="fx-qr" src="/landing/images/demo-qr.png" alt="" loading="lazy"><div class="fx-phone"><img class="fx-ph" src="/landing/images/moments/couple-portrait.webp" alt="" loading="lazy" decoding="async"></div><span class="fx-chip" style="bottom:8%;left:6%" data-i18n="fx.chip.scan">Scan. Shoot. Done.</span></div>
+            <h3 data-i18n="fx.h.scan.t">No app. Just scan.</h3>
+            <p data-i18n="fx.h.scan.d">Guests scan one QR code and shoot from their phone&rsquo;s browser. Nothing to download, in English or Spanish.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/moments/grand-exit.webp" alt="" loading="lazy" decoding="async"><span class="fx-chip" style="top:7%;left:5%">Maya &amp; Daniel</span><span class="fx-chip" style="top:7%;right:5%"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/></svg> 214</span><span class="fx-chip hot" style="top:42%;left:50%;transform:translateX(-50%)" data-i18n="fx.chip.spot">Shot of the night &middot; 48</span><span class="fx-chip" style="bottom:7%;left:5%" data-i18n="fx.chip.count">312 photos &middot; 86 guests</span></div>
+            <h3 data-i18n="fx.h.wall.t">A live wall that moves the room</h3>
+            <p data-i18n="fx.h.wall.d">Photos hit the big screen in seconds, with Shot of the night, hearts and a running photo count.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/moments/couple-portrait.webp" alt="" loading="lazy" decoding="async"><div class="fx-mosaic" aria-hidden="true"></div><span class="fx-chip" style="bottom:7%;left:50%;transform:translateX(-50%)" data-i18n="fx.chip.mosaic">Made from 286 of your photos</span></div>
+            <h3 data-i18n="fx.h.mosaic.t">The photo mosaic</h3>
+            <p data-i18n="fx.h.mosaic.d">Your cover photo rebuilt from hundreds of guest photos, live, as the night goes on.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/friends.webp" alt="" loading="lazy" decoding="async"><span class="fx-chip" style="top:8%;left:50%;transform:translateX(-50%)" data-i18n="fx.chip.msg">A message for the couple</span><span class="fx-chip" style="bottom:8%;left:50%;transform:translateX(-50%)" data-i18n="fx.chip.from">from T&iacute;a Rosa &middot; 0:09</span></div>
+            <h3 data-i18n="fx.h.video.t">Video guestbook</h3>
+            <p data-i18n="fx.h.video.d">Ten-second video messages that play on the wall and come home as a keepsake.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/quinceanera.webp" alt="" loading="lazy" decoding="async"><div class="fx-board"><b data-i18n="fx.board.t">Top photographers tonight</b><div><span>1. Ana</span><b>42</b></div><div><span>2. Luis</span><b>37</b></div><div><span>3. Mari</span><b>29</b></div></div></div>
+            <h3 data-i18n="fx.h.games.t">Games that keep phones out</h3>
+            <p data-i18n="fx.h.games.d">Photo challenges, the top photographers leaderboard, boomerangs and fun filters.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz fx-plain"><div class="fx-frame"><div class="fx-frame-p"><img class="fx-ph" src="/landing/images/moments/phones-couple.webp" alt="" loading="lazy" decoding="async"></div><div class="fx-frame-f"><span>Maya &amp; Daniel &middot; 10.31</span><span class="fx-frame-logo">VERALUX</span></div></div></div>
+            <h3 data-i18n="fx.h.frame.t">Your keepsake frame</h3>
+            <p data-i18n="fx.h.frame.d">Every photo guests save or share carries your names, date and a small logo.</p>
+          </article>
+        </div>
+        <div class="fx-small">
+          <div><b data-i18n="fx.x.curate.t">Auto-curation</b><span data-i18n="fx.x.curate.d">Blurry and duplicate shots filtered out.</span></div>
+          <div><b data-i18n="fx.x.highlight.t">Highlight video</b><span data-i18n="fx.x.highlight.d">A ready-to-post reel after the event.</span></div>
+          <div><b data-i18n="fx.x.cohost.t">Co-hosts</b><span data-i18n="fx.x.cohost.d">Share the controls with family or a planner.</span></div>
+          <div><b data-i18n="fx.x.control.t">You stay in control</b><span data-i18n="fx.x.control.d">Review mode, kid-safe settings, delete anything.</span></div>
+        </div>
+        <div class="fx-cta">
+          <a class="btn-primary" href="/signup" data-i18n="cta.create">Create Your Event</a>
+          <a class="btn-ghost" href="/demo" data-i18n="cta.demo">Try the Live Demo</a>
+        </div>
+      </div>
+      <div class="fx-panel" id="fx-panel-spons" role="tabpanel" aria-labelledby="fx-tab-spons" hidden>
+        <div class="fx-grid">
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/moments/grand-exit.webp" alt="" loading="lazy" decoding="async" style="right:32%;width:68%"><div class="fx-rail"><img src="/landing/images/sponsors/veralux-bank.svg" alt="Veralux Federal Credit Union" style="height:28px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/solvane-motors.svg" alt="Solvane Motors" style="height:20px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/cyprella-health.svg" alt="Cyprella Health System" style="height:20px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/ashford-reyes-law.svg" alt="Ashford &amp; Reyes" style="height:17px" loading="lazy" decoding="async"></div></div>
+            <h3 data-i18n="fx.s.seen.t">Seen all night</h3>
+            <p data-i18n="fx.s.seen.d">Eight wall looks, from a quiet corner logo to a side rail or a TV-style lower third.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/moments/pink-blazer.webp" alt="" loading="lazy" decoding="async"><span class="fx-chip hot" style="top:32%;left:50%;transform:translateX(-50%)" data-i18n="fx.chip.spot">Shot of the night &middot; 48</span><span class="fx-chip fx-by" style="top:47%;left:50%;transform:translateX(-50%)"><span data-i18n="fx.chip.by">presented by</span><img src="/landing/images/sponsors/solvane-motors.svg" alt="Solvane Motors" style="height:20px" loading="lazy" decoding="async"></span></div>
+            <h3 data-i18n="fx.s.moment.t">Own a moment</h3>
+            <p data-i18n="fx.s.moment.d">Sponsor Shot of the night, the leaderboard, the mosaic or the video messages.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz fx-plain"><div class="fx-frame"><div class="fx-frame-p"><img class="fx-ph" src="/landing/images/moments/bridesmaid-phone.webp" alt="" loading="lazy" decoding="async"></div><div class="fx-frame-f"><span>Hope Gala &middot; 11.21</span><span class="fx-frame-logo">VERALUX</span></div></div></div>
+            <h3 data-i18n="fx.s.shared.t">On every shared photo</h3>
+            <p data-i18n="fx.s.shared.d">The presenting sponsor&rsquo;s logo rides along on photos guests post to Instagram and send in group chats.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz fx-break"><div><div class="fx-break-k" data-i18n="fx.chip.possible">Tonight is made possible by</div><img src="/landing/images/sponsors/veralux-bank.svg" alt="Veralux Federal Credit Union" style="height:56px" loading="lazy" decoding="async"></div></div>
+            <h3 data-i18n="fx.s.breaks.t">Full-screen thank-yous</h3>
+            <p data-i18n="fx.s.breaks.d">Each sponsor gets its own full screen during short, classy sponsor breaks.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz fx-sheet-wrap"><div class="fx-sheet" role="img" aria-label="Sample leads spreadsheet"><span class="h" data-i18n="fx.csv.name">Name</span><span class="h">Email</span><span class="h" data-i18n="fx.csv.phone">Phone</span><span class="h" data-i18n="fx.csv.opt">Opt-in</span><span>Ana Ruiz</span><span>ana@mail.com</span><span>(407) 555-0142</span><span class="yes" data-i18n="fx.csv.yes">yes</span><span>Luis Vega</span><span>luis@mail.com</span><span>(321) 555-0188</span><span class="yes" data-i18n="fx.csv.yes">yes</span><span>Mari Soto</span><span>mari@mail.com</span><span></span><span class="no">no</span><span>Jon Bell</span><span>jon@mail.com</span><span>(689) 555-0110</span><span class="yes" data-i18n="fx.csv.yes">yes</span></div></div>
+            <h3 data-i18n="fx.s.leads.t">Opted-in leads</h3>
+            <p data-i18n="fx.s.leads.d">Guests can leave an email or phone with a clear opt-in. Download a clean spreadsheet after.</p>
+          </article>
+          <article class="fx-card">
+            <div class="fx-viz"><img class="fx-ph" src="/landing/images/friends.webp" alt="" loading="lazy" decoding="async"><div class="fx-ticker"><img src="/landing/images/sponsors/veralux-bank.svg" alt="Veralux" style="height:22px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/keystride-realty.svg" alt="Keystride Realty" style="height:22px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/orvanta-insurance.svg" alt="Orvanta Insurance" style="height:22px" loading="lazy" decoding="async"><img src="/landing/images/sponsors/bluewren-title.svg" alt="Bluewren Title" style="height:22px" loading="lazy" decoding="async"></div></div>
+            <h3 data-i18n="fx.s.tiers.t">Tiers that match your packages</h3>
+            <p data-i18n="fx.s.tiers.d">Presenting, Gold and Community, ready for the sponsorship levels you already sell.</p>
+          </article>
+        </div>
+        <p class="fx-note" data-i18n="fx.s.note">Sponsor tools are turned on per event. Weddings and family parties never see them unless the host wants.</p>
+        <div class="fx-cta">
+          <a class="btn-primary" href="/signup" data-i18n="fx.cta.spons">Plan a Sponsored Event</a>
+          <a class="btn-ghost" href="/demo" data-i18n="cta.demo">Try the Live Demo</a>
+        </div>
       </div>
     </div>
   </section>

@@ -79,23 +79,59 @@
     "use.photographers.t": "Fotógrafos",
     "use.photographers.d": "Ofrece a tus clientes una galería de invitados con tu marca que funciona sola.",
     "feat.eyebrow": "FUNCIONES",
-    "feat.title": "Todo, resuelto por ti.",
-    "feat.curate.t": "Selección inteligente",
-    "feat.curate.d": "HALO elige las mejores fotos y filtra las borrosas, repetidas y accidentales.",
-    "feat.enhance.t": "Realce automático",
-    "feat.enhance.d": "Cada foto recibe luz, color y nitidez balanceados apenas se sube.",
-    "feat.slideshow.t": "Presentación en vivo",
-    "feat.slideshow.d": "Ábrela en cualquier pantalla del lugar — las fotos aparecen en segundos mientras los invitados disparan.",
-    "feat.perguest.t": "Galerías por invitado",
-    "feat.perguest.d": "Mira quién tomó qué — cada persona tiene su propia vista.",
-    "feat.email.t": "Entrega por correo",
-    "feat.email.d": "Envía la galería terminada directo al correo de tus invitados.",
-    "feat.bilingual.t": "Bilingüe EN / ES",
-    "feat.bilingual.d": "Toda la experiencia en inglés o español, con un solo toque.",
-    "feat.noapp.t": "Sin app",
-    "feat.noapp.d": "Los invitados solo escanean y toman fotos en su navegador. Nada que instalar.",
-    "feat.control.t": "Control total",
-    "feat.control.d": "Quita cualquier foto que no quieras, una por una o en grupo.",
+    "fx.title.host": "Todo lo que tus invitados <em>aman</em>.",
+    "fx.sub.host": "Un c\u00f3digo QR convierte a cada invitado en tu fot\u00f3grafo, y la pantalla grande en el alma de la fiesta.",
+    "fx.title.spons": "Patrocinadores que <em>brillan</em> toda la noche.",
+    "fx.sub.spons": "Galas, eventos ben\u00e9ficos y corporativos pueden vender tiempo real en pantalla. HALO pone a cada patrocinador frente a cada invitado, con buen gusto.",
+    "fx.tab.host": "Para anfitriones",
+    "fx.tab.spons": "Para patrocinadores",
+    "fx.h.scan.t": "Sin app. Solo escanea.",
+    "fx.h.scan.d": "Los invitados escanean un c\u00f3digo QR y toman fotos desde el navegador. Nada que descargar, en ingl\u00e9s o espa\u00f1ol.",
+    "fx.h.wall.t": "Una pantalla en vivo que anima la fiesta",
+    "fx.h.wall.d": "Las fotos llegan a la pantalla en segundos, con la Foto de la noche, corazones y un contador de fotos.",
+    "fx.h.mosaic.t": "El mosaico de fotos",
+    "fx.h.mosaic.d": "Tu foto de portada armada con cientos de fotos de tus invitados, en vivo, mientras avanza la noche.",
+    "fx.h.video.t": "Libro de video",
+    "fx.h.video.d": "Mensajes en video de diez segundos que se ven en la pantalla y te llevas como recuerdo.",
+    "fx.h.games.t": "Juegos que sacan los celulares",
+    "fx.h.games.d": "Retos de fotos, la tabla de mejores fot\u00f3grafos, boomerangs y filtros divertidos.",
+    "fx.h.frame.t": "Tu marco de recuerdo",
+    "fx.h.frame.d": "Cada foto que los invitados guardan o comparten lleva sus nombres, la fecha y un logo peque\u00f1o.",
+    "fx.x.curate.t": "Selecci\u00f3n autom\u00e1tica",
+    "fx.x.curate.d": "Las fotos borrosas y repetidas se filtran solas.",
+    "fx.x.highlight.t": "Video resumen",
+    "fx.x.highlight.d": "Un video listo para publicar despu\u00e9s del evento.",
+    "fx.x.cohost.t": "Coanfitriones",
+    "fx.x.cohost.d": "Comparte el control con tu familia o tu planificador.",
+    "fx.x.control.t": "T\u00fa tienes el control",
+    "fx.x.control.d": "Modo de revisi\u00f3n, protecci\u00f3n para ni\u00f1os y borra lo que quieras.",
+    "fx.s.seen.t": "A la vista toda la noche",
+    "fx.s.seen.d": "Ocho estilos para la pantalla, desde un logo discreto en la esquina hasta una barra lateral o una banda estilo TV.",
+    "fx.s.moment.t": "Due\u00f1o de un momento",
+    "fx.s.moment.d": "Patrocina la Foto de la noche, la tabla de fot\u00f3grafos, el mosaico o los mensajes en video.",
+    "fx.s.shared.t": "En cada foto compartida",
+    "fx.s.shared.d": "El logo del patrocinador principal viaja en las fotos que los invitados suben a Instagram y mandan por chat.",
+    "fx.s.breaks.t": "Agradecimientos en pantalla completa",
+    "fx.s.breaks.d": "Cada patrocinador tiene su propia pantalla completa en pausas cortas y elegantes.",
+    "fx.s.leads.t": "Contactos con permiso",
+    "fx.s.leads.d": "Los invitados pueden dejar su correo o tel\u00e9fono con una casilla clara. Descarga una hoja de c\u00e1lculo limpia despu\u00e9s.",
+    "fx.s.tiers.t": "Niveles como tus paquetes",
+    "fx.s.tiers.d": "Principal, Oro y Comunidad, listos para los niveles de patrocinio que ya vendes.",
+    "fx.s.note": "Las herramientas de patrocinio se activan por evento. Las bodas y fiestas familiares nunca las ven si el anfitri\u00f3n no quiere.",
+    "fx.cta.spons": "Planea un evento patrocinado",
+    "fx.chip.scan": "Escanea. Toma. Listo.",
+    "fx.chip.spot": "Foto de la noche &middot; 48",
+    "fx.chip.count": "312 fotos &middot; 86 invitados",
+    "fx.chip.mosaic": "Hecho con 286 de sus fotos",
+    "fx.chip.msg": "Un mensaje para los novios",
+    "fx.chip.from": "de T&iacute;a Rosa &middot; 0:09",
+    "fx.chip.by": "presentado por",
+    "fx.chip.possible": "Esta noche es posible gracias a",
+    "fx.board.t": "Mejores fot\u00f3grafos de la noche",
+    "fx.csv.name": "Nombre",
+    "fx.csv.phone": "Tel\u00e9fono",
+    "fx.csv.opt": "Permiso",
+    "fx.csv.yes": "s\u00ed",
     "price.eyebrow": "PRECIOS",
     "price.title": "Paga por evento, o ve ilimitado.",
     "price.perEvent": "Por evento",
@@ -157,4 +193,40 @@
     }
   }
   apply(initial);
+})();
+
+/* Features: hosts / sponsors tabs and the mosaic tile grid. */
+(function(){
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".fx-tab"));
+  if (!tabs.length) return;
+  function pick(which, focus){
+    tabs.forEach(function(t){
+      var on = t.getAttribute("data-fx") === which;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !on;
+      if (on && focus) t.focus();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-fx-head]"), function(h){ h.hidden = h.getAttribute("data-fx-head") !== which; });
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener("click", function(){ pick(t.getAttribute("data-fx")); });
+    t.addEventListener("keydown", function(e){
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        var n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        pick(n.getAttribute("data-fx"), true); e.preventDefault();
+      }
+    });
+  });
+  if (location.hash === "#sponsors") pick("spons");
+  Array.prototype.forEach.call(document.querySelectorAll(".fx-mosaic"), function(m){
+    var h = "";
+    for (var i = 0; i < 144; i++) {
+      var x = i % 16, y = Math.floor(i / 16), d = Math.hypot(x - 7.5, (y - 4.5) * 1.6);
+      var l = Math.max(18, 78 - d * 7) + ((i * 37) % 13), hue = [330, 20, 280, 200][i % 4];
+      h += '<i style="background:hsla(' + hue + ',' + (45 + (i * 7) % 30) + '%,' + l + '%,.42)"></i>';
+    }
+    m.innerHTML = h;
+  });
 })();
