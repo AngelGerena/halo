@@ -175,6 +175,8 @@ function Poster({ e, info, onOpen }) {
   }, [cover]);
   const pos = e.cover_path && e.cover_focus_x != null ? `${Math.round(e.cover_focus_x * 100)}% ${Math.round((e.cover_focus_y ?? 0.4) * 100)}%` : "center 35%";
   const live = !e.published_at;
+  // A co-host after the event gets the simple Album, not the host tools.
+  const albumOnly = !!(e._cohost && e._over && e._album_key);
   async function copy() {
     try { await navigator.clipboard.writeText(url); } catch {
       const ta = document.createElement("textarea"); ta.value = url; document.body.appendChild(ta); ta.select();
@@ -185,10 +187,11 @@ function Poster({ e, info, onOpen }) {
   return (
     <article className="poster">
       <div className="bg" style={{ backgroundImage: shown ? `url(${shown})` : "none", backgroundPosition: pos, opacity: shown ? 1 : 0 }} aria-hidden="true" />
-      <button className="open" onClick={onOpen} aria-label={`${t("dash.manage")}: ${ev(e, "name")}`} />
+      <button className="open" onClick={onOpen} aria-label={`${albumOnly ? t("alb.open") : t("dash.manage")}: ${ev(e, "name")}`} />
       <div className="tagrow">
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
-          <span className={"pill " + (live ? "live" : "done")}>{live ? t("dash.status.live") : t("dash.status.published")}</span>
+          {albumOnly ? <span className="pill done">{t("alb.overTag")}</span>
+            : <span className={"pill " + (live ? "live" : "done")}>{live ? t("dash.status.live") : t("dash.status.published")}</span>}
           {e.closed_at ? <span className="pill ret">{t("ret.chipClosed")}</span>
             : (e.expires_at && !e.is_recurring) ? <span className={"pill ret" + (new Date(e.expires_at) - Date.now() < 7 * 864e5 ? " soon" : "")}>{t("ret.chipCloses").replace("{date}", shortDate(e.expires_at, lang))}</span> : null}
         </div>
@@ -205,11 +208,17 @@ function Poster({ e, info, onOpen }) {
             {info.clips > 0 && <div><b>{info.clips}</b><small>{t("dash.clips")}</small></div>}
           </div>
         ) : info ? <p className="wait">{t("dash.waiting")}</p> : null}
+        {albumOnly ? (
+        <div className="ps-acts">
+          <button className="ps-btn a" onClick={onOpen} style={{ gridColumn: "1 / -1" }}>{t("alb.open")}</button>
+        </div>
+        ) : (
         <div className="ps-acts">
           <button className="ps-btn a" onClick={onOpen}>{t("dash.manage")}</button>
           <a className="ps-btn g" href={`/live/${e.code}`} target="_blank" rel="noreferrer">{I.play}{t("dash.wall")}</a>
           <button className="ps-btn g" onClick={copy} aria-live="polite">{copied ? I.check : I.link}{copied ? t("dash.copied") : t("dash.copy")}</button>
         </div>
+        )}
       </div>
     </article>
   );
@@ -252,12 +261,22 @@ function DashboardInner() {
       const code = new URLSearchParams(window.location.search).get("event");
       if (code) {
         const hit = (data || []).find((e) => e.code === code);
-        if (hit) setSelected(hit);
+        if (hit) openEvent(hit);
         window.history.replaceState({}, "", window.location.pathname);
       }
     } catch {}
   }
   useEffect(() => { loadEvents(); }, []);
+
+  // Co-hosts after the event: straight to the simple Album (no host tools).
+  // Owners and co-hosts during the event: the full event view, as before.
+  function openEvent(e) {
+    if (e && e._cohost && e._over && e._album_key) {
+      window.location.assign(`/album/${encodeURIComponent(e._album_key)}`);
+      return;
+    }
+    setSelected(e);
+  }
 
   if (selected) {
     return (
@@ -320,7 +339,7 @@ function DashboardInner() {
         ) : events.length === 0 ? (
           <div style={{ gridColumn: "1 / -1" }}><Empty title={t("dash.noEvents.title")} sub={t("dash.noEvents.sub")} /></div>
         ) : (
-          events.map((e, i) => <div key={e.id} data-tour={i === 0 ? "d-event" : undefined} style={{ display: "contents" }}><Poster e={e} info={info[e.id]} onOpen={() => setSelected(e)} /></div>)
+          events.map((e, i) => <div key={e.id} data-tour={i === 0 ? "d-event" : undefined} style={{ display: "contents" }}><Poster e={e} info={info[e.id]} onOpen={() => openEvent(e)} /></div>)
         )}
       </div>
     </div>

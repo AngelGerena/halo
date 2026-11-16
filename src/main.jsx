@@ -8,6 +8,7 @@ import "./styles.css";
 
 import EventPage from "./pages/EventPage.jsx";
 import EventGalleryPage from "./pages/EventGalleryPage.jsx";
+import AlbumPage from "./pages/AlbumPage.jsx";
 import GalleryPage from "./pages/GalleryPage.jsx";
 import Admin from "./pages/Admin.jsx";
 import SlideshowPage from "./pages/SlideshowPage.jsx";
@@ -34,6 +35,7 @@ createRoot(document.getElementById("root")).render(
             <Route path="/e/:code" element={<EventPage />} />
             <Route path="/g/:contributorId" element={<GalleryPage />} />
             <Route path="/gallery/:code" element={<EventGalleryPage />} />
+            <Route path="/album/:key" element={<AlbumPage />} />
             <Route path="/live/:code" element={<SlideshowPage />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/dashboard" element={<Dashboard />} />
