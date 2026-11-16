@@ -99,9 +99,3 @@
 # netlify/functions/gallery-retention.js.
 [functions."gallery-retention"]
   schedule = "30 13 * * *"
-
-# One-time catch-up: emails a fresh one-tap link to co-hosts who were invited
-# before one-tap links existed. Each co-host is emailed once; the job retires
-# itself a week later. Remove with netlify/functions/cohost-relink.js.
-[functions."cohost-relink"]
-  schedule = "*/5 * * * *"
