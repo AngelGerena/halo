@@ -14,7 +14,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
@@ -22,10 +21,25 @@ import { getObjectBuffer, putObject, deleteObjects } from "./_r2.js";
 import { siteBase } from "./_email.js";
 import { musicFor } from "../../src/lib/music.js";
 
-const require = createRequire(import.meta.url);
-
-function ffmpegPath() {
-  try { const p = require("ffmpeg-static"); if (p) return p; } catch { /* below */ }
+// The bundled ffmpeg binary. Zipping can drop its "executable" flag, so a
+// copy in /tmp with the flag set is used when the original can't run.
+async function ffmpegPath() {
+  let p = null;
+  try { const m = await import("ffmpeg-static"); p = (m && (m.default || m)) || null; if (typeof p !== "string") p = null; }
+  catch (e) { console.error("ffmpeg-static load failed:", e.message); }
+  const candidates = [p, path.join(process.cwd(), "node_modules/ffmpeg-static/ffmpeg"), "/var/task/node_modules/ffmpeg-static/ffmpeg"].filter(Boolean);
+  for (const c of candidates) {
+    try { await fs.access(c, fs.constants ? fs.constants.X_OK : 1); return c; } catch { /* try a /tmp copy */ }
+    try {
+      await fs.access(c);
+      const tmp = path.join(os.tmpdir(), "halo-ffmpeg");
+      try { await fs.access(tmp, 1); return tmp; } catch {}
+      await fs.copyFile(c, tmp);
+      await fs.chmod(tmp, 0o755);
+      return tmp;
+    } catch { /* next */ }
+  }
+  console.error("ffmpeg binary not found in", candidates.join(", "), "- trying ffmpeg on PATH");
   return "ffmpeg";
 }
 
@@ -66,16 +80,34 @@ async function setAudio(supabase, eventId, id, patch) {
 }
 
 export async function handler(event) {
+  let supabase = null, eventId = null, id = null;
+  const stage = async (st, extra = {}) => {
+    console.log("highlight-music:", eventId, id, st, extra.audio_error || "");
+    if (supabase && eventId && id) { try { await setAudio(supabase, eventId, id, { audio_stage: st, ...extra }); } catch {} }
+  };
+  try {
+    return await run2(event, (s, i, e) => { supabase = s; eventId = i; id = e; }, stage);
+  } catch (e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    console.error("highlight-music crashed:", msg);
+    await stage("crashed", { audio: "failed", audio_error: msg });
+    return { statusCode: 500, body: "failed" };
+  }
+}
+
+async function run2(event, bind, stage) {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method not allowed" };
   let b = {};
   try { b = JSON.parse(event.body || "{}"); } catch {}
   const { eventId, id } = b;
   const auth = await authenticate(event);
-  if (!auth.ok) return { statusCode: 401, body: "Unauthorized" };
+  if (!auth.ok) { console.error("highlight-music: not signed in"); return { statusCode: 401, body: "Unauthorized" }; }
   if (!eventId || !id) return { statusCode: 400, body: "eventId and id required" };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  if (!(await ownsEventOrAdmin(supabase, eventId, auth))) return { statusCode: 403, body: "Forbidden" };
+  if (!(await ownsEventOrAdmin(supabase, eventId, auth))) { console.error("highlight-music: forbidden"); return { statusCode: 403, body: "Forbidden" }; }
+  bind(supabase, eventId, id);
+  await stage("started", { audio: "pending", audio_error: null });
 
   const { data: ev } = await supabase.from("events").select("*").eq("id", eventId).maybeSingle();
   const item = ev && Array.isArray(ev.highlights) ? ev.highlights.find((h) => h && h.id === id) : null;
@@ -87,21 +119,27 @@ export async function handler(event) {
     tracks = data || [];
   }
   const ref = musicFor(ev, tracks);
-  if (!ref) { await setAudio(supabase, eventId, id, { audio: "none" }); return { statusCode: 200, body: "no music" }; }
+  if (!ref) { await stage("no-music", { audio: "none" }); return { statusCode: 200, body: "no music" }; }
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "halo-hl-"));
   try {
-    const webm = item.type === "video/webm" || /\.webm$/i.test(item.path);
+    // Re-runs start from the original upload, never from an earlier -music copy.
+    const src = item.source_path || item.path;
+    const webm = item.type === "video/webm" || /\.webm$/i.test(src);
     const inV = path.join(dir, webm ? "in.webm" : "in.mp4");
     const inA = path.join(dir, "music");
     const out = path.join(dir, webm ? "out.webm" : "out.mp4");
-    const [vbuf, abuf] = await Promise.all([getObjectBuffer(item.path), loadMusic(ref)]);
+    const [vbuf, abuf] = await Promise.all([getObjectBuffer(src), loadMusic(ref)]);
+    await stage("downloaded", { audio_debug: `video ${vbuf.length} B, music ${abuf.length} B (${String(ref).slice(-60)})` });
+    if (abuf.length < 1000 || /^\s*</.test(abuf.subarray(0, 64).toString("utf8"))) throw new Error("the music file is empty or not audio: " + ref);
     await fs.writeFile(inV, vbuf);
     await fs.writeFile(inA, abuf);
 
+    const bin = await ffmpegPath();
+    await stage("encoding");
     const secs = Math.max(3, Number(item.seconds) || 60);
     const fadeOut = Math.max(0, secs - 2.5).toFixed(2);
-    await run(ffmpegPath(), [
+    await run(bin, [
       "-hide_banner", "-loglevel", "error", "-y",
       "-i", inV,
       "-stream_loop", "-1", "-i", inA,
@@ -109,23 +147,20 @@ export async function handler(event) {
       "-c:v", "copy",
       ...(webm ? ["-c:a", "libopus", "-b:a", "160k"] : ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"]),
       "-af", `afade=t=in:st=0:d=1.5,afade=t=out:st=${fadeOut}:d=2.5`,
-      "-shortest", "-t", String(secs),
+      "-t", String(secs),
       out,
     ]);
     const data = await fs.readFile(out);
-    if (data.length < 1000) throw new Error("empty output");
+    if (data.length < 1000) throw new Error("ffmpeg made an empty file");
 
     // New file name so phones and the CDN don't keep the silent copy.
-    const newPath = item.path.replace(/(\.[a-z0-9]+)?$/i, `-music${webm ? ".webm" : ".mp4"}`);
+    const newPath = src.replace(/(\.[a-z0-9]+)?$/i, `-music-${Date.now().toString(36)}${webm ? ".webm" : ".mp4"}`);
     await putObject(newPath, data, webm ? "video/webm" : "video/mp4");
-    const still = await setAudio(supabase, eventId, id, { path: newPath, audio: "done" });
-    if (still) { try { await deleteObjects([item.path]); } catch { /* old copy stays */ } }
-    else { try { await deleteObjects([newPath]); } catch {} }
+    const oldMusicCopy = item.source_path && item.path !== item.source_path ? item.path : null;
+    const still = await setAudio(supabase, eventId, id, { path: newPath, source_path: src, audio: "done", audio_stage: "done", audio_error: null, audio_debug: `out ${data.length} B` });
+    if (!still) { try { await deleteObjects([newPath]); } catch {} }
+    else if (oldMusicCopy) { try { await deleteObjects([oldMusicCopy]); } catch {} }
     return { statusCode: 200, body: "ok" };
-  } catch (e) {
-    console.error("highlight-music failed:", e && e.message);
-    await setAudio(supabase, eventId, id, { audio: "failed" });
-    return { statusCode: 500, body: "failed" };
   } finally {
     try { await fs.rm(dir, { recursive: true, force: true }); } catch {}
   }

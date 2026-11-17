@@ -625,6 +625,7 @@ export function EventDetail({ event: eventProp, api, back }) {
   // The server puts the event's music into the saved highlight video, then
   // the preview switches to that copy. Polls the event for up to 3 minutes.
   async function addMusicOnServer(itemId) {
+    setEvent((e) => ({ ...e, highlights: (e.highlights || []).map((x) => (x && x.id === itemId ? { ...x, audio: "pending" } : x)) }));
     try { await api.fn("highlight-music-background", { eventId: event.id, id: itemId }); }
     catch { setHl((h) => (h ? { ...h, addingMusic: false, musicMissing: true } : h)); return; }
     const until = Date.now() + 180000;
@@ -1171,6 +1172,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         <p style={{ fontSize: 12, color: C.second, margin: "6px 0 12px", lineHeight: 1.5 }}>{t("hl.help")}</p>
         {hl && hl.url ? (
           <div>
+            {hl.addingMusic && <p role="status" style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: "0 0 10px", padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,.06)", border: `1px solid ${C.gold}`, display: "flex", alignItems: "center", gap: 8 }}><span className="spin" style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", borderTopColor: C.gold, display: "inline-block" }} />{t("hl.addingMusic")}</p>}
             <video src={hl.url} controls playsInline style={{ width: "100%", maxWidth: hlVertical ? 260 : 520, maxHeight: 460, borderRadius: 12, background: "#000", display: "block" }} />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
               <a href={hl.url} download={`HALO_${event.code}_highlight.${hl.type === "video/mp4" ? "mp4" : "webm"}`} style={{ textDecoration: "none" }}>
@@ -1180,7 +1182,6 @@ export function EventDetail({ event: eventProp, api, back }) {
             </div>
             {hl.type !== "video/mp4" && <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0" }}>{t("hl.webmNote")}</p>}
             {hl.saving && <p style={{ fontSize: 12, color: C.second, margin: "8px 0 0" }}>{t("hls.saving")}</p>}
-            {hl.addingMusic && <p role="status" style={{ fontSize: 12, color: C.second, margin: "8px 0 0", display: "flex", alignItems: "center", gap: 8 }}><span className="spin" style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", borderTopColor: C.gold, display: "inline-block" }} />{t("hl.addingMusic")}</p>}
             {hl.musicMissing && <p role="status" style={{ fontSize: 12, color: "#ffcc80", margin: "8px 0 0" }}>{t("hl.noMusic")}</p>}
             {hl.saved && <p style={{ fontSize: 12, color: C.gold, fontWeight: 700, margin: "8px 0 0" }}>{t("hls.saved")}</p>}
             {hl.saveError && <p style={{ fontSize: 12, color: "#ff8a80", margin: "8px 0 0" }}>{t("hls.saveFailed")} {hl.saveError}</p>}
@@ -1261,7 +1262,7 @@ export function EventDetail({ event: eventProp, api, back }) {
 
       {Array.isArray(event.highlights) && event.highlights.length > 0 && (
         <div data-tour="ev-hlsaved" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "4px 18px 18px" }}>
-          <HighlightList event={event} highlights={event.highlights}
+          <HighlightList event={event} highlights={event.highlights} onAddMusic={(id) => addMusicOnServer(id)}
             confirm={(message) => dlg.confirm({ title: t("hls.deleteTitle"), message, confirmLabel: t("hls.delete") })}
             onDelete={async (id) => {
               try {

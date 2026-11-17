@@ -9,14 +9,18 @@ import { downloadOne } from "../lib/zipDownload.js";
 function TrashIcon() {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block" }}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></svg>;
 }
+function NoteIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block" }}><path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>;
+}
 function DownIcon() {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block" }}><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>;
 }
 
 // onDelete(id) -> Promise; confirm(message) -> Promise<boolean>
-export default function HighlightList({ event, highlights, onDelete, confirm }) {
+export default function HighlightList({ event, highlights, onDelete, confirm, onAddMusic = null }) {
   const { t, lang } = useI18n();
   const [busy, setBusy] = useState("");
+  const [adding, setAdding] = useState("");
   const list = Array.isArray(highlights) ? highlights : [];
   if (!list.length) return null;
 
@@ -50,8 +54,15 @@ export default function HighlightList({ event, highlights, onDelete, confirm }) 
             </div>
             {h.music && <div style={{ fontSize: 11, color: C.second, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.music}</div>}
             {h.audio === "pending" && <div style={{ fontSize: 11, color: C.gold, marginTop: 2 }}>{t("hls.addingMusic")}</div>}
+            {h.audio === "failed" && <div style={{ fontSize: 11, color: "#ffcc80", marginTop: 2 }}>{t("hls.musicFailed")}</div>}
             <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
               <button type="button" style={btn} onClick={() => dl(h)} disabled={!!busy}><DownIcon />{busy === "dl-" + h.id ? t("hls.downloading") : t("hls.download")}</button>
+              {onAddMusic && h.music && h.audio !== "done" && h.audio !== "none" && (
+                <button type="button" id={`hl-music-${h.id}`} style={{ ...btn, color: C.gold, borderColor: C.gold }} disabled={!!busy || adding === h.id}
+                  onClick={async () => { setAdding(h.id); try { await onAddMusic(h.id); } finally { setAdding(""); } }}>
+                  <NoteIcon />{adding === h.id ? t("hls.addingMusic") : t("hls.addMusic")}
+                </button>
+              )}
               <button type="button" style={{ ...btn, color: "#ff8a80", borderColor: "rgba(255,138,128,.5)" }} onClick={() => del(h)} disabled={!!busy}><TrashIcon />{t("hls.delete")}</button>
             </div>
           </div>
