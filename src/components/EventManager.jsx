@@ -623,9 +623,21 @@ export function EventDetail({ event: eventProp, api, back }) {
     });
   }
   async function makeHighlightVideo() {
+    // Open the audio now, while the tap still counts. Phones block sound that
+    // starts later, which left the music out of highlight videos.
+    let audioCtx = null;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        audioCtx = new AC();
+        try { audioCtx.resume(); } catch { /* resumed later */ }
+        const b = audioCtx.createBuffer(1, 1, 22050);
+        const s0 = audioCtx.createBufferSource(); s0.buffer = b; s0.connect(audioCtx.destination); s0.start(0);
+      }
+    } catch { audioCtx = null; }
     const { makeHighlight } = await import("../lib/highlight.js");
     const chosen = hlSelected;
-    if (chosen.length < 3) { setHl({ error: t("hl.needMore") }); return; }
+    if (chosen.length < 3) { try { audioCtx && audioCtx.close(); } catch {} setHl({ error: t("hl.needMore") }); return; }
     let siteKey = "midnight"; try { siteKey = localStorage.getItem("halo_theme") || "midnight"; } catch { /* default */ }
     const look = getLook(siteKey); // highlight video uses the site palette guests see
     const auto = autoTrack(event, libTracks);
@@ -644,10 +656,10 @@ export function EventDetail({ event: eventProp, api, back }) {
         outroTitle: t("hl.outroTitle"),
         outroSub: t("hl.outroSub").replace("{n}", contributors.length).replace("{p}", photos.length),
         musicUrl: music, vertical: hlVertical, gold: look.gold, bg: look.light ? "#17150f" : look.ink,
-        watermark: "HALO", signal: ctrl.signal,
+        watermark: "HALO", signal: ctrl.signal, audioCtx,
         onProgress: (sec, total) => setHl({ busy: true, sec, total }),
       });
-      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds, saving: true });
+      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds, saving: true, musicMissing: !!(music && r.musicMissing) });
       // Save it to the event so it can be found, shared or deleted later.
       try {
         const base = String(r.type || "").split(";")[0];
@@ -662,6 +674,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         setHl((h) => (h ? { ...h, saving: false, saveError: friendlyError(e, t) } : h));
       }
     } catch (e) {
+      try { audioCtx && audioCtx.state !== "closed" && audioCtx.close(); } catch { /* already closed */ }
       setHl(e.message === "cancelled" ? null : { error: e.message === "unsupported" ? t("hl.unsupported") : t("hl.failed") });
     }
   }
@@ -1131,6 +1144,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             </div>
             {hl.type !== "video/mp4" && <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0" }}>{t("hl.webmNote")}</p>}
             {hl.saving && <p style={{ fontSize: 12, color: C.second, margin: "8px 0 0" }}>{t("hls.saving")}</p>}
+            {hl.musicMissing && <p role="status" style={{ fontSize: 12, color: "#ffcc80", margin: "8px 0 0" }}>{t("hl.noMusic")}</p>}
             {hl.saved && <p style={{ fontSize: 12, color: C.gold, fontWeight: 700, margin: "8px 0 0" }}>{t("hls.saved")}</p>}
             {hl.saveError && <p style={{ fontSize: 12, color: "#ff8a80", margin: "8px 0 0" }}>{t("hls.saveFailed")} {hl.saveError}</p>}
           </div>
