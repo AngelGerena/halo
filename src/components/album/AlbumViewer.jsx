@@ -5,6 +5,7 @@ import { fetchBytes, saveBlob } from "../../lib/zipDownload.js";
 import { exportBoomerang } from "../../lib/boomerang.js";
 import { shareLink } from "../../lib/share.js";
 import BoomerangPlayer from "../BoomerangPlayer.jsx";
+import AlbumReactions from "./AlbumReactions.jsx";
 
 // HALO Album: one photo full screen. Swipe or use the arrows to move through
 // every photo, Save puts it on the phone, Share sends the actual photo (with
@@ -19,7 +20,7 @@ const isIOS = () => typeof navigator !== "undefined" &&
   (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 const canShareFile = (f) => { try { return !!(f && navigator.canShare && navigator.canShare({ files: [f] })); } catch { return false; } };
 
-export default function AlbumViewer({ items, index, onIndex, onClose, frame, slug, albumLink, albumTitle, onSlideshow }) {
+export default function AlbumViewer({ items, index, onIndex, onClose, frame, slug, albumLink, albumTitle, onSlideshow, hearts = null }) {
   const { t } = useI18n();
   const item = items[index];
   const total = items.length;
@@ -170,6 +171,7 @@ export default function AlbumViewer({ items, index, onIndex, onClose, frame, slu
         )}
       </div>
 
+      {hearts && <div style={{ paddingTop: 8 }}><AlbumReactions photoId={item.id} hearts={hearts} variant="viewer" /></div>}
       <div className="albv-note" role="status">{note || (total > 1 ? t("alb.swipe") : "")}</div>
 
       <div className="albv-bar">
