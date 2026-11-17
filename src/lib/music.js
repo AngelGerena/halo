@@ -20,3 +20,16 @@ export function autoTrack(event, tracks) {
   const mood = CATEGORY_MOOD[event && event.category] || "cinematic";
   return active.find((x) => x.mood === mood) || active.find((x) => x.mood === "cinematic") || active[0];
 }
+
+// The slideshow track for an event, as a stored path or URL (pass it through
+// publicUrl when it's a path), or null for no music. Same rule as the live
+// screen: the host's choice wins ("none" = silence); otherwise the library
+// track for the event type.
+export function musicFor(event, tracks) {
+  if (!event) return null;
+  const m = event.music_url;
+  if (m === "none") return null;
+  if (m) return m;
+  const hit = autoTrack(event, tracks);
+  return hit ? hit.storage_path : null;
+}

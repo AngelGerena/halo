@@ -27,6 +27,10 @@ export default {
   "alb.zipFailed": { en: "The download stopped. Try again.", es: "La descarga se detuvo. Inténtalo de nuevo." },
   "alb.saveAllNote": { en: "Save all downloads one ZIP file. On a phone, saving photos one by one puts them right in your camera roll.", es: "Guardar todo descarga un archivo ZIP. En el teléfono, guardar las fotos una por una las pone directo en tu galería." },
 
+  "alb.heart": { en: "Love this photo", es: "Me encanta esta foto" },
+  "alb.musicOn": { en: "Play music", es: "Poner música" },
+  "alb.musicOff": { en: "Stop music", es: "Quitar música" },
+
   // full-screen viewer
   "alb.of": { en: "{n} of {total}", es: "{n} de {total}" },
   "alb.save": { en: "Save", es: "Guardar" },

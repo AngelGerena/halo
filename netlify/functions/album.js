@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 import { albumKey, albumUrl, readAlbumKey } from "./_album.js";
 import { RETAIN_DAYS, DAY_MS } from "./_retention.js";
+import { musicFor } from "../../src/lib/music.js";
 
 const json = (statusCode, body, extra = {}) => ({
   statusCode,
@@ -58,5 +59,12 @@ export async function handler(event) {
     if (ev.expires_at) until = ev.expires_at;
     else if (photos.length) until = new Date(new Date(photos[0].created_at).getTime() + RETAIN_DAYS * DAY_MS).toISOString();
   }
-  return json(200, { event: pick(ev, EVENT_FIELDS), photos, until });
+  // Slideshow music, same pick as the live screen.
+  let music = null;
+  try {
+    const { data: tracks } = ev.music_url ? { data: [] } : await supabase.from("music_library").select("storage_path,mood,active").eq("active", true);
+    music = musicFor(ev, tracks || []);
+  } catch { music = null; }
+
+  return json(200, { event: pick(ev, EVENT_FIELDS), photos, until, music });
 }
