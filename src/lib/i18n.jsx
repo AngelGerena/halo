@@ -220,6 +220,8 @@ const STRINGS = {
   "hl.failed": { en: "The video couldn't be made. Check your connection and try again.", es: "No se pudo crear el video. Revisa tu conexión e inténtalo de nuevo." },
   "hl.addingMusic": { en: "Adding the music… keep this page open (about 30 seconds).", es: "Agregando la música… deja esta página abierta (unos 30 segundos)." },
   "hls.addingMusic": { en: "Adding the music…", es: "Agregando la música…" },
+  "hls.addMusic": { en: "Add music", es: "Agregar música" },
+  "hls.musicFailed": { en: "The music didn't go in. Tap Add music to try again.", es: "No se agregó la música. Toca Agregar música para intentarlo de nuevo." },
   "hl.noMusic": { en: "The music couldn't be added to this one, so it's silent. Check your connection and make it again.", es: "No se pudo agregar la música a este video, así que no tiene sonido. Revisa tu conexión y vuelve a crearlo." },
   "hl.webmNote": { en: "Saved as WebM. For Instagram, open this page in Safari or the latest Chrome to get MP4.", es: "Guardado como WebM. Para Instagram, abre esta página en Safari o en el Chrome más reciente para obtener MP4." },
   "hl.eyebrow": { en: "The highlights", es: "Lo mejor" },
