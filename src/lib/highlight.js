@@ -166,12 +166,13 @@ function prepareWatermark(W, H, text) {
 /**
  * Make the highlight video.
  * opts: { photos:[{url}], title, subtitle, outroTitle, outroSub, eyebrow,
- *         musicUrl, vertical, gold, bg, watermark, onProgress(sec,total), signal }
- * Resolves { blob, type, seconds }.
+ *         musicUrl, vertical, gold, bg, watermark, onProgress(sec,total), signal,
+ *         audioCtx (from unlockAudio(), made inside the tap) }
+ * Resolves { blob, type, seconds, musicMissing }.
  */
 export async function makeHighlight(opts) {
   const { photos, title, subtitle, outroTitle, outroSub, eyebrow, musicUrl, vertical = true,
-    gold = "#ffb86b", bg = "#0a0410", watermark = "HALO", onProgress = () => {}, signal } = opts;
+    gold = "#ffb86b", bg = "#0a0410", watermark = "HALO", onProgress = () => {}, signal, audioCtx: unlockedCtx = null } = opts;
   const canEncode = typeof VideoEncoder !== "undefined" && typeof VideoFrame !== "undefined";
   const type = recorderType();
   if (!canEncode && !type) throw new Error("unsupported");
@@ -180,6 +181,15 @@ export async function makeHighlight(opts) {
   const imgs = (await Promise.all(photos.map((p) => loadImage(p.url)))).filter(Boolean);
   if (imgs.length < 3) throw new Error("few-photos");
   const total = INTRO + imgs.length * PER + OUTRO;
+
+  // Music: mixed ahead of time (looped to length, faded in and out), so
+  // nothing has to play out loud while the video is made. Phones block
+  // sound that starts long after the tap, which is what left videos silent.
+  let pcm = null, musicMissing = false;
+  if (musicUrl) {
+    try { pcm = await renderMusic(musicUrl, total); }
+    catch (e) { musicMissing = true; console.warn("HALO highlight: music could not be loaded:", e && e.message); }
+  }
 
   // Prepare every photo once (see preparePhoto), yielding between photos so
   // the page stays responsive.
@@ -232,28 +242,37 @@ export async function makeHighlight(opts) {
   // live recording below if this browser can't.
   if (canEncode) {
     try {
-      return await encodeFrames({ W, H, total, vertical, musicUrl, drawFrame, canvas, onProgress, signal });
+      const out = await encodeFrames({ W, H, total, vertical, pcm, drawFrame, canvas, onProgress, signal });
+      try { unlockedCtx && unlockedCtx.close().catch(() => {}); } catch {}
+      return { ...out, musicMissing };
     } catch (e) {
       if (e && e.message === "cancelled") throw e;
       console.warn("HALO highlight: frame encoder unavailable, recording live instead:", e && e.message);
-      if (!type) throw new Error("unsupported");
+      if (!type) {
+        // No live recorder either: still make the video, just without music.
+        if (pcm) {
+          const out = await encodeFrames({ W, H, total, vertical, pcm: null, drawFrame, canvas, onProgress, signal });
+          try { unlockedCtx && unlockedCtx.close().catch(() => {}); } catch {}
+          return { ...out, musicMissing: true };
+        }
+        throw new Error("unsupported");
+      }
     }
   }
 
   const stream = canvas.captureStream(FPS);
-  // Music: routed through WebAudio so it records without playing out loud.
-  let audioCtx = null, audioEl = null, gain = null;
-  if (musicUrl) {
+  // Music: the pre-mixed track goes straight into the recording through
+  // WebAudio (nothing plays out loud). The context was unlocked by the tap.
+  let audioCtx = null, music = null;
+  if (pcm) {
     try {
-      audioEl = new Audio(); audioEl.crossOrigin = "anonymous"; audioEl.src = musicUrl; audioEl.loop = true; audioEl.preload = "auto";
-      await new Promise((res) => { audioEl.oncanplaythrough = res; audioEl.onerror = res; setTimeout(res, 6000); });
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaElementSource(audioEl);
-      gain = audioCtx.createGain(); gain.gain.value = 0;
+      audioCtx = unlockedCtx || new (window.AudioContext || window.webkitAudioContext)();
+      try { await audioCtx.resume(); } catch {}
       const dest = audioCtx.createMediaStreamDestination();
-      src.connect(gain); gain.connect(dest);
+      music = audioCtx.createBufferSource(); music.buffer = pcm;
+      music.connect(dest);
       dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
-    } catch { audioCtx = null; }
+    } catch (e) { console.warn("HALO highlight: music not recorded:", e && e.message); music = null; musicMissing = true; }
   }
 
   const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: vertical ? 9_000_000 : 10_000_000, audioBitsPerSecond: 160_000 });
@@ -263,15 +282,7 @@ export async function makeHighlight(opts) {
 
   frame(0);
   rec.start(1000);
-  if (audioEl && audioCtx) {
-    try { await audioCtx.resume(); audioEl.currentTime = 0; await audioEl.play(); } catch {}
-    // fade the music in, and out over the last 2.5 s
-    const now = audioCtx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.9, now + 1.5);
-    gain.gain.setValueAtTime(0.9, now + total - 2.5);
-    gain.gain.linearRampToValueAtTime(0, now + total);
-  }
+  if (music) { try { music.start(0); } catch { /* recorded without music */ } }
 
   const t0 = performance.now();
   await new Promise((resolve, reject) => {
@@ -291,13 +302,28 @@ export async function makeHighlight(opts) {
     tick();
   }).finally(() => {
     try { rec.state !== "inactive" && rec.stop(); } catch {}
-    try { audioEl && audioEl.pause(); } catch {}
-    try { audioCtx && audioCtx.close(); } catch {}
+    try { music && music.stop(); } catch {}
+    try { audioCtx && audioCtx.close().catch(() => {}); } catch {}
     stream.getTracks().forEach((t) => t.stop());
   });
   await stopped;
   const mime = type.split(";")[0];
-  return { blob: new Blob(chunks, { type: mime }), type: mime, seconds: Math.round(total) };
+  return { blob: new Blob(chunks, { type: mime }), type: mime, seconds: Math.round(total), musicMissing };
+}
+
+// Call this first thing in the tap handler (before any await), and pass the
+// result as opts.audioCtx. Phones (iPhone above all) only let sound start
+// from inside a tap; this opens the audio while the tap still counts.
+export function unlockAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    const c = new AC();
+    try { c.resume(); } catch {}
+    const b = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0);
+    return c;
+  } catch { return null; }
 }
 
 
@@ -308,7 +334,11 @@ const SR = 48000;
 // Music mixed offline: looped to the video's length, faded in over 1.5 s and
 // out over the last 2.5 s (same as the live recorder).
 async function renderMusic(url, total) {
-  const res = await fetch(url, { mode: "cors" });
+  let res;
+  try { res = await fetch(url, { mode: "cors" }); } catch { res = null; }
+  // Safari can hold a non-CORS copy of the track (the music preview played
+  // it); a slightly different URL gets a clean CORS copy.
+  if (!res || !res.ok) res = await fetch(corsUrl(url), { mode: "cors" });
   if (!res.ok) throw new Error("music " + res.status);
   const bytes = await res.arrayBuffer();
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -332,18 +362,19 @@ async function pickConfig(Enc, list) {
   return null;
 }
 
-async function encodeFrames({ W, H, total, vertical, musicUrl, drawFrame, canvas, onProgress, signal }) {
+async function encodeFrames({ W, H, total, vertical, pcm, drawFrame, canvas, onProgress, signal }) {
   const vcfg = await pickConfig(VideoEncoder, ["avc1.640028", "avc1.4d0028", "avc1.42E028", "avc1.640033"].map((codec) => ({
     codec, width: W, height: H, bitrate: vertical ? 6_500_000 : 7_500_000, bitrateMode: "variable", framerate: FPS, avc: { format: "avc" },
   })));
   if (!vcfg) throw new Error("no-h264-encoder");
 
-  let pcm = null, acfg = null;
-  if (musicUrl) {
+  // With music, this path needs an AAC encoder (most phones don't have one);
+  // otherwise the live recorder below adds the same pre-mixed track.
+  let acfg = null;
+  if (pcm) {
     if (typeof AudioEncoder === "undefined" || typeof AudioData === "undefined") throw new Error("no-audio-encoder");
     acfg = await pickConfig(AudioEncoder, [{ codec: "mp4a.40.2", sampleRate: SR, numberOfChannels: 2, bitrate: 160_000 }]);
     if (!acfg) throw new Error("no-aac-encoder");
-    pcm = await renderMusic(musicUrl, total);
   }
 
   const { Muxer, ArrayBufferTarget } = await import("mp4-muxer");
