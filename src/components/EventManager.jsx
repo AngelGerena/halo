@@ -26,6 +26,7 @@ import QRCode from "qrcode";
 import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
+import EventHomeTiles from "./EventHomeTiles.jsx";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
@@ -249,6 +250,24 @@ export function EventDetail({ event: eventProp, api, back }) {
   const [tagging, setTagging] = useState(false);
   const [featuredId, setFeaturedId] = useState(event.featured_photo_id || null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Phones: the event screen is a home of six tiles; each tile opens one group
+  // of tools (page). Computers keep the full page. null = the tiles.
+  const PHONE_MQ = "(max-width: 760px)";
+  const [isPhone, setIsPhone] = useState(() => { try { return window.matchMedia(PHONE_MQ).matches; } catch { return false; } });
+  useEffect(() => {
+    let mq; try { mq = window.matchMedia(PHONE_MQ); } catch { return undefined; }
+    const f = () => setIsPhone(mq.matches);
+    mq.addEventListener ? mq.addEventListener("change", f) : mq.addListener(f);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", f) : mq.removeListener(f); };
+  }, []);
+  const [page, setPage] = useState(null);
+  const on = (p) => !isPhone || page === p;
+  const atHome = !isPhone || page === null;
+  function openPage(p) {
+    setPage(p);
+    if (p === "settings") setSettingsOpen(true);
+    try { window.scrollTo({ top: 0, behavior: "auto" }); } catch { /* old browsers */ }
+  }
   const tourOpenedSettings = useRef(false);
   const [isRecurring, setIsRecurring] = useState(!!event.is_recurring);
   // Moderation. These existed only on the create form before, so a host had
@@ -341,7 +360,7 @@ export function EventDetail({ event: eventProp, api, back }) {
     };
     go();
   }
-  function goToSetting(id) { readyReturn.current = true; setSettingsOpen(true); flashTo(id); }
+  function goToSetting(id) { readyReturn.current = true; if (isPhone) setPage("settings"); setSettingsOpen(true); flashTo(id); }
   const [deletingEvent, setDeletingEvent] = useState(false);
 
   const eventUrl = `${window.location.origin}/e/${event.code}`;
@@ -517,7 +536,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       setSavedMsg(t("admin.saved"));
       dlg.toast(t("admin.saved"), "success");
       markReady("settings");
-      if (readyReturn.current) { readyReturn.current = false; setTimeout(() => flashTo("halo-ready"), 600); }
+      if (readyReturn.current) { readyReturn.current = false; if (isPhone) setPage(null); setTimeout(() => flashTo("halo-ready"), 600); }
     } catch (e) { setSavedMsg(friendlyError(e, t)); } finally { setSaving(false); }
   }
 
@@ -837,7 +856,11 @@ export function EventDetail({ event: eventProp, api, back }) {
   // grouped into chapters (the Help menu can jump to any chapter). Settings
   // steps open the Settings panel; it closes again when the tour ends.
   const openSettings = () => setSettingsOpen((v) => { if (!v) tourOpenedSettings.current = true; return true; });
-  const S = (key, target, ch, extra) => ({ target, chapter: t("tw.ch." + ch), title: t(`tw.${key}.t`), body: t(`tw.${key}.b`), ...extra });
+  const TOUR_PAGE = { start: null, qr: "share", share: "share", team: "guests", hl: "video", msg: "guests", tv: "tv", set: "settings", photos: "photos" };
+  const S = (key, target, ch, extra = {}) => ({
+    target, chapter: t("tw.ch." + ch), title: t(`tw.${key}.t`), body: t(`tw.${key}.b`), ...extra,
+    before: () => { if (isPhone) setPage(key === "ret" ? "photos" : (TOUR_PAGE[ch] ?? null)); if (extra.before) extra.before(); },
+  });
   const M = (key) => t(`tw.${key}.m`);
   const eventTourSteps = [
     { chapter: t("tw.ch.start"), title: t("tw.welcome.t"), body: t("tw.welcome.b") },
@@ -886,30 +909,56 @@ export function EventDetail({ event: eventProp, api, back }) {
     S("card", '[data-tour="ev-photocard"]', "photos", { missing: M("card") }),
     S("end", '[data-tour="ev-help"]', "photos", { doneLabel: t("tour.letsGo") }),
   ];
-  const endTour = () => { if (tourOpenedSettings.current) { tourOpenedSettings.current = false; setSettingsOpen(false); } };
+  const endTour = () => { if (isPhone) setPage(null); if (tourOpenedSettings.current) { tourOpenedSettings.current = false; setSettingsOpen(false); } };
 
   return (
     <div>
       <HoverHints />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <button data-tour="ev-back" data-hint={t("hint.back")} onClick={back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.allEvents")}</button>
+        <button data-tour="ev-back" data-hint={t("hint.back")} onClick={isPhone && page ? () => openPage(null) : back} style={{ background: "transparent", color: C.second, border: `1px solid ${C.second}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{isPhone && page ? t("tiles.back") : t("admin.allEvents")}</button>
         <span style={{ display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
         <span data-tour="ev-help"><HelpMenu id="event" chapters={tourChapters(eventTourSteps)} /></span>
-        <button data-tour="ev-settings" data-hint={t("hint.settings")} onClick={() => { if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
+        <button data-tour="ev-settings" data-hint={t("hint.settings")} onClick={() => { if (isPhone) { openPage(page === "settings" ? null : "settings"); return; } if (settingsOpen) { setSettingsOpen(false); } else { setSettingsOpen(true); flashTo("halo-settings", "start"); } }} aria-expanded={isPhone ? page === "settings" : settingsOpen} style={{ background: settingsOpen ? C.gold : "transparent", color: settingsOpen ? C.ink : C.text, border: `1px solid ${settingsOpen ? C.gold : C.line2}`, padding: "7px 14px", borderRadius: 999, fontSize: 13 }}>{t("admin.settings")}</button>
         </span>
       </div>
       <Tour id="event" auto={!loading} delay={1200} steps={eventTourSteps} onFinish={endTour} />
+      {isPhone && page === null && (() => {
+        const recent = photos.filter((p) => Date.now() - new Date(p.created_at).getTime() < 5 * 60 * 1000).length;
+        const hlCount = Array.isArray(event.highlights) ? event.highlights.length : 0;
+        const newWishes = wishes.filter((w) => w.status !== "approved" && w.status !== "hidden").length;
+        return (
+          <EventHomeTiles
+            title={ev(event, "name")}
+            sub={[`${photos.length} ${photos.length === 1 ? t("tiles.n1") : t("tiles.nN")}`, `${contributors.length} ${contributors.length === 1 ? t("pulse.guest") : t("pulse.guests")}`].join(" · ")}
+            coverUrl={coverPath ? publicUrl(coverPath) : (photos[0] ? photos[0].edited_url || photos[0].url : null)}
+            coverPos={`${Math.round((coverFx ?? 0.5) * 100)}% ${Math.round((coverFy ?? 0.5) * 100)}%`}
+            live={recent > 0}
+            badges={{ photos: pending.length, guests: newWishes }}
+            hints={{
+              share: t("tiles.share.h"),
+              photos: pending.length ? t("tiles.photos.review").replace("{n}", pending.length) : `${photos.length} ${photos.length === 1 ? t("tiles.n1") : t("tiles.nN")}`,
+              tv: t("tiles.tv.h"),
+              video: hlCount ? t("tiles.video.saved").replace("{n}", hlCount) : t("tiles.video.h"),
+              guests: t("tiles.guests.h"),
+              settings: t("tiles.settings.h"),
+            }}
+            onOpen={openPage} />
+        );
+      })()}
+      {isPhone && page && (
+        <h2 className="serif" style={{ fontSize: 26, color: C.text, margin: "14px 0 0" }}>{t(`tiles.${page}`)}</h2>
+      )}
       {/* Host shortcut: straight to the guest page to take or add photos, same tab. */}
-      <a data-tour="ev-addphotos" data-hint={t("hint.add")} href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
+      {(atHome || page === "photos") && <a data-tour="ev-addphotos" data-hint={t("hint.add")} href={`/e/${event.code}`} aria-label={t("admin.addPhotosHelp")}
         style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, minHeight: 52, padding: "12px 16px", borderRadius: 14, background: C.gold, color: C.ink, fontSize: 16, fontWeight: 800, textDecoration: "none", boxSizing: "border-box", width: "100%" }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>
         {t("admin.addPhotos")}
-      </a>
+      </a>}
 
       {/* ---- YOU'RE READY CHECKLIST ----
           Hosts panic the morning of. Five things, each with a button that does
           it. Detected where we can; otherwise ticked when they do it here. */}
-      {(() => {
+      {atHome && (() => {
         const items = [
           { k: "cover", done: !!coverPath, label: t("ready.cover"), action: () => goToSetting("set-cover") },
           { k: "settings", done: !!readyDone.settings, label: t("ready.settings"), action: () => goToSetting("set-privacy") },
@@ -978,7 +1027,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       })()}
 
       {/* ---- LIVE PULSE ---- what's happening right now, no refresh needed */}
-      {(() => {
+      {atHome && (() => {
         void tick;
         const now = Date.now();
         const recent = photos.filter((p) => now - new Date(p.created_at).getTime() < 5 * 60 * 1000).length;
@@ -1002,11 +1051,11 @@ export function EventDetail({ event: eventProp, api, back }) {
         );
       })()}
 
-      <RetentionBanner event={event}
+      {on("photos") && <RetentionBanner event={event}
         firstPhotoAt={photos.reduce((m, p) => (!m || (p.created_at && p.created_at < m) ? p.created_at : m), null)}
-        onDownload={photos.length ? downloadAll : null} />
+        onDownload={photos.length ? downloadAll : null} />}
 
-      <div id="halo-qr-box" className="hqb" style={{ background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16 }}>
+      {on("share") && <div id="halo-qr-box" className="hqb" style={{ background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16 }}>
         <style>{`
           .hqb { display: grid; grid-template-columns: 220px 1fr; grid-template-areas: "cover head" "cover rest" "qr rest"; grid-template-rows: auto auto 1fr; column-gap: 24px; row-gap: 14px; margin-top: 16px; padding: 22px; }
           .hqb-cover { grid-area: cover; width: 100%; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; background: #111; border: 1px solid rgba(255,255,255,.12); align-self: start; }
@@ -1113,7 +1162,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             {publishMsg && <div style={{ fontSize: 12, color: C.second, marginTop: 8 }}>{publishMsg}</div>}
           </div>
         </div>
-      </div>
+      </div>}
 
       {qrFull && (qrBig || (qrFull === "tv" ? tvQr : qr)) && (
         <div onClick={() => setQrFull(false)} role="dialog" aria-label={t("tv.qrFull")}
@@ -1134,7 +1183,7 @@ export function EventDetail({ event: eventProp, api, back }) {
       )}
 
       {/* ---- CO-HOSTS ---- */}
-      {event._cohost ? (
+      {on("guests") && (event._cohost ? (
         <div data-tour="ev-cohosts" style={{ marginTop: 16, background: "rgba(255,184,107,.08)", border: "1px solid rgba(255,184,107,.3)", borderRadius: 14, padding: "10px 14px", fontSize: 13, color: C.text }}>{t("cohost.youAre")}</div>
       ) : cohosts && (
         <details data-tour="ev-cohosts" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "14px 18px" }}>
@@ -1161,9 +1210,10 @@ export function EventDetail({ event: eventProp, api, back }) {
             </div>
           )}
         </details>
-      )}
+      ))}
 
       {/* ---- HIGHLIGHT VIDEO ---- */}
+      {on("video") && <>
       <div data-tour="ev-highlight" style={{ marginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.1)", borderRadius: 16, padding: "16px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ color: C.gold, display: "inline-flex" }}><VideoIcon size={20} /></span>
@@ -1274,6 +1324,9 @@ export function EventDetail({ event: eventProp, api, back }) {
         </div>
       )}
 
+      </>}
+
+      {on("guests") && <>
       <LeadsSection event={event} api={api} mode={leadMode} />
 
       {/* ---- GUESTBOOK MESSAGES ---- */}
@@ -1305,13 +1358,14 @@ export function EventDetail({ event: eventProp, api, back }) {
       </details>
 
       {event.video_guestbook_enabled && <div data-tour="ev-vmsg"><VideoMessages event={event} api={api} contributors={contributors} canDelete={!isCohost} /></div>}
+      </>}
 
       {/* ---- SHOW ON TV / PROJECTOR ----
           The live slideshow is the event-day "wow", but a host at a venue has
           to get a browser URL onto a TV. Make that a first-class, plain-language
           card: one big action, a QR so nobody types a URL, and three steps that
           cover the real ways people connect. */}
-      <div data-tour="ev-tv" style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
+      {on("tv") && <div data-tour="ev-tv" style={{ marginTop: 16, background: C.card, border: `1px solid ${C.gold}`, borderRadius: 16, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <div style={{ color: C.gold, marginTop: 2 }}><TvIcon size={30} /></div>
           <div style={{ flex: 1, minWidth: 220 }}>
@@ -1389,9 +1443,9 @@ export function EventDetail({ event: eventProp, api, back }) {
             <p style={{ fontSize: 12.5, color: C.second, margin: "4px 0 0", lineHeight: 1.5 }}>{t("tv.browser.d")}</p>
           </div>
         </div>
-      </div>
+      </div>}
 
-      {settingsOpen && (
+      {settingsOpen && on("settings") && (
         <div id="halo-settings" style={{ marginTop: 16, scrollMarginTop: 16, background: C.card, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 20 }}>
           <h3 className="serif" style={{ fontSize: 20, color: C.text, margin: "0 0 12px" }}>{t("admin.settings")}</h3>
 
@@ -1528,6 +1582,7 @@ export function EventDetail({ event: eventProp, api, back }) {
         </div>
       )}
 
+      {on("photos") && <>
       {photos.length > 0 && (
         <div data-tour="ev-moment" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: C.card, border: `1px solid ${featured ? C.gold : "rgba(255,255,255,.1)"}`, borderRadius: 12, padding: "10px 14px" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t("admin.moment")}</span>
@@ -1715,6 +1770,7 @@ export function EventDetail({ event: eventProp, api, back }) {
           </div>
         </>
       )}
+      </>}
     </div>
   );
 }
