@@ -27,6 +27,7 @@ import { supabase, publicUrl } from "../lib/supabase.js";
 import { putToR2 } from "../lib/r2upload.js";
 import { C } from "../lib/score.js";
 import EventHomeTiles from "./EventHomeTiles.jsx";
+import SmallThumb from "./SmallThumb.jsx";
 import { Stat, Spinner, Empty } from "./UI.jsx";
 import { downloadZip, downloadOne, saveBlob } from "../lib/zipDownload.js";
 import { useI18n } from "../lib/i18n.jsx";
@@ -1278,13 +1279,15 @@ export function EventDetail({ event: eventProp, api, back }) {
             {hlChoosing && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11.5, color: C.second, marginBottom: 8 }}>{t("hl.chooseHelp")}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(78px, 1fr))", gap: 6, maxHeight: 340, overflowY: "auto", paddingRight: 2 }}>
+                <div style={{ maxHeight: 340, overflowY: "auto", WebkitOverflowScrolling: "touch", paddingRight: 2 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(78px, 1fr))", gap: 6 }}>
                   {hlPool.map((p) => {
                     const on = hlPick ? hlPick.has(p.id) : hlAuto.some((a) => a.id === p.id);
                     return (
                       <button type="button" key={p.id} onClick={() => toggleHlPhoto(p.id)} aria-pressed={on}
-                        style={{ position: "relative", aspectRatio: "1 / 1", padding: 0, border: on ? `2px solid ${C.gold}` : "2px solid transparent", borderRadius: 10, overflow: "hidden", background: "#111", cursor: "pointer" }}>
-                        <img src={p.edited_url || p.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: on ? 1 : 0.45 }} />
+                        style={{ position: "relative", display: "block", width: "100%", height: 0, paddingBottom: "100%", border: "none", borderRadius: 10, overflow: "hidden", background: "#111", cursor: "pointer", boxSizing: "border-box" }}>
+                        <SmallThumb src={p.edited_url || p.url} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: on ? 1 : 0.45 }} />
+                        {on && <span aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: 10, boxShadow: `inset 0 0 0 2px ${C.gold}` }} />}
                         {on && (
                           <span style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: C.gold, color: C.onInk, display: "grid", placeItems: "center" }}>
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
@@ -1296,6 +1299,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                       </button>
                     );
                   })}
+                </div>
                 </div>
               </div>
             )}
