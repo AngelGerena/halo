@@ -622,6 +622,39 @@ export function EventDetail({ event: eventProp, api, back }) {
       return next;
     });
   }
+  // The server puts the event's music into the saved highlight video, then
+  // the preview switches to that copy. Polls the event for up to 3 minutes.
+  async function addMusicOnServer(itemId) {
+    try { await api.fn("highlight-music-background", { eventId: event.id, id: itemId }); }
+    catch { setHl((h) => (h ? { ...h, addingMusic: false, musicMissing: true } : h)); return; }
+    const until = Date.now() + 180000;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 3000));
+      let list = null;
+      try {
+        const j = await api.fn("manage-highlights", { action: "list", eventId: event.id });
+        list = Array.isArray(j.highlights) ? j.highlights : null;
+      } catch { /* try again */ }
+      const it = list && list.find((x) => x && x.id === itemId);
+      if (!list || !it) { if (list) { setHl((h) => (h ? { ...h, addingMusic: false } : h)); return; } continue; }
+      if (it.audio === "pending") continue;
+      setEvent((e) => ({ ...e, highlights: list }));
+      if (it.audio === "done") {
+        let url = publicUrl(it.path);
+        try { const res = await fetch(url, { cache: "no-store" }); if (res.ok) url = URL.createObjectURL(await res.blob()); } catch { /* play from R2 */ }
+        setHl((h) => {
+          if (!h) return h;
+          if (h.url && h.url.startsWith("blob:") && h.url !== url) { try { URL.revokeObjectURL(h.url); } catch {} }
+          return { ...h, url, addingMusic: false, musicMissing: false };
+        });
+      } else {
+        setHl((h) => (h ? { ...h, addingMusic: false, musicMissing: it.audio === "failed" } : h));
+      }
+      return;
+    }
+    setHl((h) => (h ? { ...h, addingMusic: false, musicMissing: true } : h));
+  }
+
   async function makeHighlightVideo() {
     // Open the audio now, while the tap still counts. Phones block sound that
     // starts later, which left the music out of highlight videos.
@@ -659,7 +692,9 @@ export function EventDetail({ event: eventProp, api, back }) {
         watermark: "HALO", signal: ctrl.signal, audioCtx,
         onProgress: (sec, total) => setHl({ busy: true, sec, total }),
       });
-      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds, saving: true, musicMissing: !!(music && r.musicMissing) });
+      // With music, the server adds the track to the saved copy (iPhones can't
+      // put sound into a video a web page makes), so hold the note until then.
+      setHl({ url: URL.createObjectURL(r.blob), type: r.type, seconds: r.seconds, saving: true, musicMissing: false });
       // Save it to the event so it can be found, shared or deleted later.
       try {
         const base = String(r.type || "").split(";")[0];
@@ -667,9 +702,10 @@ export function EventDetail({ event: eventProp, api, back }) {
           kind: "highlight", eventId: event.id, filename: `highlight.${base === "video/webm" ? "webm" : "mp4"}`, contentType: base,
         });
         await putToR2(uploadUrl, r.blob, contentType);
-        const j = await api.fn("manage-highlights", { action: "save", eventId: event.id, path, type: contentType, seconds: r.seconds, vertical: hlVertical, music: musicName });
+        const j = await api.fn("manage-highlights", { action: "save", eventId: event.id, path, type: contentType, seconds: r.seconds, vertical: hlVertical, music: musicName, wantMusic: !!music });
         setEvent((e) => ({ ...e, highlights: j.highlights }));
-        setHl((h) => (h ? { ...h, saving: false, saved: true } : h));
+        setHl((h) => (h ? { ...h, saving: false, saved: true, addingMusic: !!music } : h));
+        if (music && j.item) await addMusicOnServer(j.item.id);
       } catch (e) {
         setHl((h) => (h ? { ...h, saving: false, saveError: friendlyError(e, t) } : h));
       }
@@ -1144,6 +1180,7 @@ export function EventDetail({ event: eventProp, api, back }) {
             </div>
             {hl.type !== "video/mp4" && <p style={{ fontSize: 11.5, color: C.second, margin: "8px 0 0" }}>{t("hl.webmNote")}</p>}
             {hl.saving && <p style={{ fontSize: 12, color: C.second, margin: "8px 0 0" }}>{t("hls.saving")}</p>}
+            {hl.addingMusic && <p role="status" style={{ fontSize: 12, color: C.second, margin: "8px 0 0", display: "flex", alignItems: "center", gap: 8 }}><span className="spin" style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", borderTopColor: C.gold, display: "inline-block" }} />{t("hl.addingMusic")}</p>}
             {hl.musicMissing && <p role="status" style={{ fontSize: 12, color: "#ffcc80", margin: "8px 0 0" }}>{t("hl.noMusic")}</p>}
             {hl.saved && <p style={{ fontSize: 12, color: C.gold, fontWeight: 700, margin: "8px 0 0" }}>{t("hls.saved")}</p>}
             {hl.saveError && <p style={{ fontSize: 12, color: "#ff8a80", margin: "8px 0 0" }}>{t("hls.saveFailed")} {hl.saveError}</p>}

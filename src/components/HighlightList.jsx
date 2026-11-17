@@ -49,6 +49,7 @@ export default function HighlightList({ event, highlights, onDelete, confirm }) 
               {h.seconds ? ` · ${h.seconds}s` : ""}
             </div>
             {h.music && <div style={{ fontSize: 11, color: C.second, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.music}</div>}
+            {h.audio === "pending" && <div style={{ fontSize: 11, color: C.gold, marginTop: 2 }}>{t("hls.addingMusic")}</div>}
             <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
               <button type="button" style={btn} onClick={() => dl(h)} disabled={!!busy}><DownIcon />{busy === "dl-" + h.id ? t("hls.downloading") : t("hls.download")}</button>
               <button type="button" style={{ ...btn, color: "#ff8a80", borderColor: "rgba(255,138,128,.5)" }} onClick={() => del(h)} disabled={!!busy}><TrashIcon />{t("hls.delete")}</button>
