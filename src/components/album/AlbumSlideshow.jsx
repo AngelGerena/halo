@@ -6,13 +6,32 @@ import { useI18n } from "../../lib/i18n.jsx";
 // arrows or swipe to move, Esc or the X to leave.
 const HOLD_MS = 4500;
 
-export default function AlbumSlideshow({ photos, start = 0, title, onClose }) {
+export default function AlbumSlideshow({ photos, start = 0, title, music = null, onClose }) {
   const { t } = useI18n();
   const total = photos.length;
   const [i, setI] = useState(Math.min(Math.max(0, start), Math.max(0, total - 1)));
   const [layers, setLayers] = useState(() => [{ k: 0, i: Math.min(Math.max(0, start), Math.max(0, total - 1)) }]);
   const [paused, setPaused] = useState(false);
   const rootRef = useRef(null);
+  const audioRef = useRef(null);
+  const [musicOn, setMusicOn] = useState(false);
+
+  // Start the music with the slideshow (it was opened by a tap, so phones
+  // usually allow it). If the phone blocks it, the music button starts it.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return undefined;
+    a.volume = 0.6;
+    a.play().then(() => setMusicOn(true)).catch(() => setMusicOn(false));
+    return () => { try { a.pause(); } catch {} };
+  }, [music]);
+  function toggleMusic(e) {
+    e.stopPropagation();
+    const a = audioRef.current;
+    if (!a) return;
+    if (musicOn) { a.pause(); setMusicOn(false); }
+    else { a.volume = 0.6; a.play().then(() => setMusicOn(true)).catch(() => {}); }
+  }
 
   const go = (d) => setI((n) => (n + d + total) % total);
 
@@ -71,7 +90,16 @@ export default function AlbumSlideshow({ photos, start = 0, title, onClose }) {
         const p = photos[l.i];
         return p ? <img key={l.k} src={p.edited_url || p.url} alt="" className={"albs-img" + (n === layers.length - 1 ? " on" : "")} /> : null;
       })}
+      {music && <audio ref={audioRef} src={music} loop preload="auto" />}
       <div className="albs-title">{title}</div>
+      {music && (
+        <button type="button" className={"albv-round albs-music" + (musicOn ? " on" : "")} onClick={toggleMusic}
+          aria-pressed={musicOn} aria-label={musicOn ? t("alb.musicOff") : t("alb.musicOn")}>
+          {musicOn
+            ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 18V6l11-2v12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>
+            : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /><path d="M3 3l18 18" /></svg>}
+        </button>
+      )}
       <button type="button" className="albv-round albs-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label={t("alb.exit")}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
