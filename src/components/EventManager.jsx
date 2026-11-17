@@ -708,7 +708,11 @@ export function EventDetail({ event: eventProp, api, back }) {
         subtitle: [ev(event, "host"), ev(event, "event_date")].filter(Boolean).join(" · "),
         outroTitle: t("hl.outroTitle"),
         outroSub: t("hl.outroSub").replace("{n}", contributors.length).replace("{p}", photos.length),
-        musicUrl: music, vertical: hlVertical, gold: look.gold, bg: look.light ? "#17150f" : look.ink,
+        // No music here: the server adds it to the saved copy. Without music
+        // every phone can use the frame-by-frame builder (smooth 30 fps); with
+        // music, phones without an AAC encoder fell back to recording live,
+        // which drops frames on iPhone (choppy playback).
+        musicUrl: null, vertical: hlVertical, gold: look.gold, bg: look.light ? "#17150f" : look.ink,
         watermark: "HALO", signal: ctrl.signal, audioCtx,
         onProgress: (sec, total) => setHl({ busy: true, sec, total }),
       });
