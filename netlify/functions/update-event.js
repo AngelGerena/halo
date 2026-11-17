@@ -4,7 +4,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { authenticate, ownsEventOrAdmin } from "./_auth.js";
 
-const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name", "leaderboard_minutes", "sponsors", "sponsor_layout", "sponsor_card_minutes", "sponsor_moments", "name", "host", "event_date", "name_es", "host_es", "event_date_es"];
+const ALLOWED = ["featured_photo_id", "look", "challenges", "moderation_mode", "protect_minors", "is_recurring", "current_session", "connect_label", "connect_label_es", "connect_url", "category", "cover_path", "cover_focus_x", "cover_focus_y", "cover_zoom", "music_url", "music_rights_ack", "music_rights_ack_at", "frame_style", "frame_logo", "frame_title", "frame_partner_path", "boomerang_enabled", "video_guestbook_enabled", "filters_enabled", "mosaic_enabled", "lead_capture", "lead_consent_text", "sponsor_name", "leaderboard_minutes", "sponsors", "sponsor_layout", "sponsor_card_minutes", "sponsor_moments", "name", "host", "event_date", "name_es", "host_es", "event_date_es", "cohost_mode"];
 
 // Event details a host can rename after creation (fix a typo, change the title).
 // The event code (and so the QR link) never changes, so printed QR codes keep working.
@@ -72,6 +72,9 @@ export async function handler(event) {
   if ("sponsor_card_minutes" in clean && ![0, 5, 10, 20, null].includes(clean.sponsor_card_minutes)) {
     return { statusCode: 400, body: JSON.stringify({ error: "sponsor_card_minutes must be 0, 5, 10 or 20" }) };
   }
+  if ("cohost_mode" in clean && !["auto", "album", "tools"].includes(clean.cohost_mode)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "cohost_mode must be auto, album or tools" }) };
+  }
   if ("sponsor_moments" in clean) clean.sponsor_moments = clean.sponsor_moments === true;
   if ("sponsors" in clean) {
     // Rebuild the list from known fields only. Logos must be files uploaded
@@ -110,6 +113,10 @@ export async function handler(event) {
 
   if (!(await ownsEventOrAdmin(supabase, eventId, auth))) {
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden" }) };
+  }
+  // Only the owner decides what co-hosts get after the event.
+  if ("cohost_mode" in clean && !(await ownsEventOrAdmin(supabase, eventId, auth, { allowCohost: false }))) {
+    return { statusCode: 403, body: JSON.stringify({ error: "Only the event owner can change this" }) };
   }
 
   const { data, error } = await supabase.from("events").update(clean).eq("id", eventId).select().single();

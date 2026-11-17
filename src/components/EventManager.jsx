@@ -33,6 +33,7 @@ import { getLook } from "../lib/looks.js";
 import { pickHighlights } from "../lib/highlight.js";
 import CoverFramer, { coverStyle } from "./CoverFramer.jsx";
 import LeaderboardSetting from "./LeaderboardSetting.jsx";
+import AlbumHostCard from "./album/AlbumHostCard.jsx";
 import FrameSettings from "./FrameSettings.jsx";
 import EventExtras from "./EventExtras.jsx";
 import LeadsSection from "./LeadsSection.jsx";
@@ -1048,6 +1049,7 @@ export function EventDetail({ event: eventProp, api, back }) {
                 style={{ minHeight: 44, background: "transparent", color: C.text, border: `1px solid ${C.line2}`, padding: "9px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{galCopied ? t("admin.copied") : t("sg.copyLink")}</button>
             </div>
           </div>
+          <AlbumHostCard event={event} api={api} updateEvent={updateEvent} isCohost={isCohost} onError={showErr} />
           <div data-tour="ev-publish" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line2}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t("admin.afterEvent")}</div>
             <p style={{ fontSize: 11.5, color: C.second, margin: "4px 0 10px", lineHeight: 1.45 }}>{t("admin.afterEventHelp")}</p>
