@@ -10,6 +10,7 @@ import { publicUrl } from "../../lib/supabase.js";
 import { Footer, LangToggle } from "../UI.jsx";
 import BoomerangPlayer from "../BoomerangPlayer.jsx";
 import AlbumViewer from "./AlbumViewer.jsx";
+import AlbumReactions, { REACTIONS_CSS } from "./AlbumReactions.jsx";
 import AlbumSlideshow from "./AlbumSlideshow.jsx";
 import { useI18n } from "../../lib/i18n.jsx";
 import { frameFor } from "../../lib/frames.js";
@@ -26,7 +27,7 @@ export function AlbumShell({ children }) {
   useEffect(() => { applyLook(siteLook); return () => clearLook(); }, [siteLook]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="alb">
-      <style>{CSS}</style>
+      <style>{CSS + REACTIONS_CSS}</style>
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </div>
@@ -38,8 +39,6 @@ export function AlbumCenter({ children }) {
 export function AlbumLoading({ text }) {
   return <AlbumCenter><div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--second)" }}><span className="spin alb-spin" /> {text}</div></AlbumCenter>;
 }
-
-const HEART = <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 4.3 2.4.7-1.3 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z" /></svg>;
 
 // props:
 //   event, items (photos with url / edited_url / video_url), until (ISO | null)
@@ -169,9 +168,6 @@ export default function AlbumView({
         ) : (
           <div className="alb-grid">
             {items.map((p, i) => {
-              const hk = hearts ? `${p.id}:heart` : null;
-              const on = hearts ? hearts.liked.has(hk) : false;
-              const n = hearts ? ((hearts.kinds[p.id] || {}).heart || 0) : 0;
               return (
                 <div key={p.id} className={"alb-tile" + (i % 5 === 0 ? " wide" : "")}>
                   <button type="button" className="alb-open" onClick={() => setViewing(i)}
@@ -185,12 +181,7 @@ export default function AlbumView({
                       </span>
                     )}
                   </button>
-                  {hearts && (
-                    <button type="button" className={"alb-heart" + (on ? " on" : "")} aria-pressed={on}
-                      aria-label={`${t("alb.heart")}${n ? ` (${n})` : ""}`} onClick={() => hearts.onLike(p.id, "heart")}>
-                      {HEART}{n > 0 && <span>{n}</span>}
-                    </button>
-                  )}
+                  <AlbumReactions photoId={p.id} hearts={hearts} />
                 </div>
               );
             })}
@@ -201,7 +192,7 @@ export default function AlbumView({
 
       {viewing != null && (
         <AlbumViewer items={items} index={viewing} onIndex={setViewing} onClose={closeViewer} frame={frame} slug={slug}
-          albumLink={shareUrl} albumTitle={name} onSlideshow={startShow} />
+          albumLink={shareUrl} albumTitle={name} onSlideshow={startShow} hearts={hearts} />
       )}
       {showFrom != null && <AlbumSlideshow photos={slides} start={showFrom} title={name} music={music} onClose={closeShow} />}
     </AlbumShell>
@@ -242,10 +233,6 @@ const CSS = `
 .alb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;grid-auto-flow:dense}
 .alb-tile{position:relative;display:block;background:rgba(var(--tint, 255,255,255),.06);aspect-ratio:3/4;overflow:hidden;border-radius:4px}
 .alb-open{position:absolute;inset:0;display:block;width:100%;height:100%;padding:0;border:0;background:none;cursor:zoom-in}
-.alb-heart{position:absolute;right:6px;bottom:6px;z-index:2;display:inline-flex;align-items:center;gap:4px;min-height:34px;min-width:34px;justify-content:center;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.5);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
-.alb-heart.on{color:#ff4d8d;border-color:rgba(255,77,141,.6)}
-.alb-heart svg{width:16px;height:16px}
-.alb-heart:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .alb-tile.wide{grid-column:1/-1;aspect-ratio:16/10}
 .alb-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
 @media (hover:hover){.alb-tile:hover img{transform:scale(1.03)}}
