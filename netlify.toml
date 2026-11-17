@@ -104,3 +104,9 @@
 # netlify/functions/gallery-retention.js.
 [functions."gallery-retention"]
   schedule = "30 13 * * *"
+
+# Highlight videos: ffmpeg adds the event's music on the server (iPhone
+# Safari can't put sound into a video a web page makes). Ship the binary.
+[functions."highlight-music-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/ffmpeg"]

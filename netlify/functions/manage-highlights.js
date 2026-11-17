@@ -2,6 +2,7 @@
 //
 // POST { action: "save", eventId, path, type, seconds, vertical, music }
 //   records a video the browser just uploaded to R2 (highlights/<eventId>/...)
+// POST { action: "list", eventId }  -> { highlights } (to follow the music job)
 // POST { action: "delete", eventId, id }
 //   deletes the video file from R2 and removes it from the list
 // The event's owner, a co-host or an admin may do either.
@@ -30,6 +31,8 @@ export async function handler(event) {
   if (!ev) return json(404, { error: "Event not found" });
   const list = Array.isArray(ev.highlights) ? ev.highlights : [];
 
+  if (action === "list") return json(200, { ok: true, highlights: list });
+
   if (action === "save") {
     const path = typeof b.path === "string" ? b.path : "";
     if (!path.startsWith(`highlights/${eventId}/`) || path.includes("..") || path.length > 200) return json(400, { error: "Invalid path" });
@@ -41,6 +44,8 @@ export async function handler(event) {
       seconds: Math.max(0, Math.min(600, Math.round(Number(b.seconds) || 0))),
       vertical: b.vertical !== false,
       music: typeof b.music === "string" ? b.music.slice(0, 160) : null,
+      // the server adds the music next (highlight-music-background)
+      ...(b.wantMusic ? { audio: "pending" } : {}),
       created_at: new Date().toISOString(),
     };
     const next = [item, ...list];
